@@ -31,3 +31,15 @@ class HourglassNet(object):
         # show model summary and layer name
         if show:
             self.model.summary()
+        
+    def train(self, batch_size, model_path, epochs):
+        # TODO
+        pass
+    
+    def resume_train(self, batch_size, model_json, model_weights, init_epoch, epochs):
+        # TODO
+        pass
+
+    def load_model(self, modeljson, modelfile):
+        # TODO
+        pass

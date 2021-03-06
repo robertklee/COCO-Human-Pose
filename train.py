@@ -1,7 +1,10 @@
 import argparse
 import os
+
 import tensorflow as tf
 from keras import backend as k
+
+import constants
 from hourglass import HourglassNet
 
 # TODO change to command line arguments
@@ -23,7 +26,7 @@ if __name__ == "__main__":
     # Create a session with the above options specified.
     k.tensorflow_backend.set_session(tf.Session(config=config))
 
-    xnet = HourglassNet(num_classes=16, num_stacks=8, num_channels=256, inres=(256, 256),
+    xnet = HourglassNet(num_classes=constants.num_classes, num_stacks=constants.num_hg_default, num_channels=256, inres=(256, 256),
                             outres=(64, 64))
     
     xnet.build_model(show=True)
