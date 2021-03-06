@@ -1,12 +1,15 @@
+import datetime
 import os
-from hourglass_blocks import create_hourglass_network, bottleneck_block, bottleneck_mobile
+
+import numpy as np
+import scipy.misc
 from keras.callbacks import CSVLogger, ModelCheckpoint
+from keras.losses import mean_squared_error
 from keras.models import load_model, model_from_json
 from keras.optimizers import Adam, RMSprop
-from keras.losses import mean_squared_error
-import datetime
-import scipy.misc
-import numpy as np
+
+from hourglass_blocks import (bottleneck_block, bottleneck_mobile,
+                              create_hourglass_network)
 
 
 class HourglassNet(object):
