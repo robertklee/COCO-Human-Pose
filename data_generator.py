@@ -67,7 +67,7 @@ class DataGenerator(Sequence):
       # validate kps, throw away if out of bounds
       # TODO: if kp is thrown away then we must update num_keypoints
       if (x > self.output_size[0] or x < 0) or (y > self.output_size[1] or y < 0):
-        x,y,z = (0,0,0)
+        x,y,v = (0,0,0)
       
       transformed_label.append(x)
       transformed_label.append(y)
