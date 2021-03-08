@@ -5,8 +5,10 @@
 
 import pandas as pd
 import numpy as np
+from PIL import Image
 import cv2
 import os
+import skimage.io as io
 import tensorflow as tf
 from tensorflow.keras.utils import Sequence
 
@@ -35,19 +37,42 @@ class DataGenerator(Sequence):
   def __len__(self):
     return int(len(self.df) / self.batch_size)
 
-  def transform_image(self, img):
-    og_width, og_height = int(img.shape[1]), int(img.shape[0])
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # fix RBG so images are easier to plot
+  def transform_image(self, img, bbox):
+    new_bbox = self.transform_bbox(bbox)
+    cropped_img = img.crop(box=new_bbox)
+    cropped_width, cropped_height = cropped_img.size
+    img = np.array(cropped_img)
     img = img/255.0 # scale RGB channels to [0,1]
     img = cv2.resize(img,self.output_size,interpolation=cv2.INTER_LINEAR) # resize
-    return img, og_width, og_height
+    return img, cropped_width, cropped_height, new_bbox[0], new_bbox[1]
   
-  def transform_label(self,label, og_width, og_height):
-    label = label.strip('][').split(', ')
-    x_scale = self.output_size[0]/og_width
-    y_scale = self.output_size[1]/og_height
+  def transform_bbox(self,bbox):
+    x,y,w,h = [int(round(i)) for i in list(map(float,(bbox.strip('][').split(', '))))] # (x,y,w,h) anchored to top left
+    center_x = int(x+w/2)
+    center_y = int(y+h/2)
+    new_w = w if w >= h else int(h * self.output_size[0]/self.output_size[1])
+    new_h = h if w <  h else int(w * self.output_size[1]/self.output_size[0])
+    new_x = int(center_x - new_w/2)
+    new_y = int(center_y - new_h/2)
+    return (new_x,new_y,new_x+new_w,new_y+new_h)
+
+  def transform_label(self,label, cropped_width, cropped_height,anchor_x,anchor_y):
+    label = [int(v) for v in label.strip('][').split(', ')]
     # adjust x/y coords to new resized img
-    transformed_label = [int(round(int(val)*(x_scale if i%NUM_COCO_KP_ATTRBS==0 else y_scale if i%NUM_COCO_KP_ATTRBS==1 else 1))) for i,val in enumerate(label)]
+    transformed_label = []
+    for x, y, v in zip(*[iter(label)]*3):
+      x = (x-anchor_x) * self.output_size[0]/cropped_width
+      y = (y-anchor_y) * self.output_size[1]/cropped_height
+
+      # validate kps, throw away if out of bounds
+      # TODO: if kp is thrown away then we must update num_keypoints
+      if (x > self.output_size[0] or x < 0) or (y > self.output_size[1] or y < 0):
+        x,y,z = (0,0,0)
+      
+      transformed_label.append(x)
+      transformed_label.append(y)
+      transformed_label.append(v)
+    
     return np.asarray(transformed_label)
 
   # returns batch at index idx
@@ -61,10 +86,11 @@ class DataGenerator(Sequence):
     for i, data_index in enumerate(indices):
       ann = self.df.loc[data_index]
       img_path = os.path.join(self.base_dir,ann['path'])
-      img = cv2.imread(img_path) # bottleneck
-
-      transformed_img, og_width, og_height = self.transform_image(img)
-      transformed_label = self.transform_label(ann['keypoints'],og_width,og_height)
+      
+      #img = Image.open(img_path) # bottleneck opening from file system
+      img = Image.fromarray(io.imread(ann['coco_url'])) # bottleneck opening from URL
+      transformed_img, cropped_width, cropped_height, anchor_x, anchor_y = self.transform_image(img, ann['bbox'])
+      transformed_label = self.transform_label(ann['keypoints'],cropped_width,cropped_height,anchor_x,anchor_y)
 
       X[i,] = transformed_img
       y[i,] = transformed_label
