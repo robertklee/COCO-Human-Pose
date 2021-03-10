@@ -18,7 +18,7 @@ from constants import NUM_COCO_KP_ATTRBS
 
 class DataGenerator(Sequence): # inherit from Sequence to access multicore functionality: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 
-  def __init__(self, csv_file, base_dir, input_dim, output_dim, num_hg_blocks, shuffle=False, batch_size=DEFAULT_BATCH_SIZE):
+  def __init__(self, csv_file, base_dir, input_dim, output_dim, num_hg_blocks, shuffle=False, batch_size=DEFAULT_BATCH_SIZE, online_fetch=False):
     self.df = pd.read_csv(csv_file) # csv with df of the the annotations we want, we may eventually want to pass in df instead
     self.base_dir = base_dir        # where to read imgs from in collab runtime
     self.input_dim = input_dim      # model requirement for input image dimensions
@@ -26,6 +26,7 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
     self.num_hg_blocks = num_hg_blocks
     self.shuffle = shuffle
     self.batch_size = batch_size
+    self.online_fetch = online_fetch # If true, images will be loaded from url over network rather than filesystem
     self.on_epoch_end()
 
   # after each epoch, shuffle indices so data order changes
@@ -76,15 +77,14 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
   def generate_heatmaps(self,label):
     heat_maps = np.zeros((*self.output_dim, self.num_hg_blocks * NUM_COCO_KEYPOINTS))
     for i in range(NUM_COCO_KEYPOINTS):
-      label_idx = i * NUM_COCO_KP_ATTRBS
-      heatmap_idx = i * self.num_hg_blocks
-
+      label_idx = i * NUM_COCO_KP_ATTRBS # index for label
       if label[label_idx + (NUM_COCO_KP_ATTRBS-1)] == 0: # generate empty heatmap for unlabelled kp
         continue
       kpx = int(label[label_idx] * (self.output_dim[0]/self.input_dim[0]))     # How should kp coords be translated from 256*256 to 64*64, we lose precision here
       kpy = int(label[label_idx + 1] * (self.output_dim[1]/self.input_dim[1])) #  this loss of precision results in clouds not perfectly centered around gt kp
-      heat_map = self.gaussian(heat_maps[:,:,heatmap_idx], (kpx,kpy),2) # what should sigma be?
-      heat_maps[:,:,heatmap_idx:heatmap_idx+self.num_hg_blocks] = np.repeat(heat_map[:,:,np.newaxis],repeats=self.num_hg_blocks,axis=2) 
+      heat_maps[:,:,i] = self.gaussian(heat_maps[:,:,i], (kpx,kpy),2) # what should sigma be?
+    # duplicate the set of heat maps for each hourglass block
+    heat_maps[:,:,NUM_COCO_KEYPOINTS:NUM_COCO_KEYPOINTS*self.num_hg_blocks] = np.tile(heat_maps[:,:,:NUM_COCO_KEYPOINTS],reps=(1,1,self.num_hg_blocks-1)) 
     return heat_maps
 
   # This func is unmodified and ripped from: https://github.com/princeton-vl/pose-hg-train/blob/master/src/pypose/draw.py
@@ -121,7 +121,9 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
   # returns batch at index idx
   def __getitem__(self, idx):
     # Initialize Batch:
-    X = np.empty((self.batch_size, *self.input_dim, 3)) # 3 channels of RGB
+    X = np.empty((self.batch_size, *self.input_dim, 3))
+    
+    # Order of last dimension: (heatmap for each kp) repeated num_hg_blocks times
     y = np.empty((self.batch_size, *self.output_dim, self.num_hg_blocks * NUM_COCO_KEYPOINTS))
 
     # get the indices of the requested batch
@@ -130,9 +132,11 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
       ann = self.df.loc[data_index]
       img_path = os.path.join(self.base_dir,ann['path'])
       
-      img = Image.open(img_path) # bottleneck opening from file system
-      #img = Image.fromarray(io.imread(ann['coco_url'])) # bottleneck opening from URL
-
+      if self.online_fetch:
+        img = Image.fromarray(io.imread(ann['coco_url'])) # bottleneck opening from URL
+      else:
+        img = Image.open(img_path) # bottleneck opening from file system
+      
       transformed_img, cropped_width, cropped_height, anchor_x, anchor_y = self.transform_image(img, ann['bbox'])
       transformed_label = self.transform_label(ann['keypoints'],cropped_width,cropped_height,anchor_x,anchor_y)
       heat_map_labels = self.generate_heatmaps(transformed_label)
