@@ -11,6 +11,7 @@ from keras.optimizers import Adam, RMSprop
 from hourglass_blocks import (bottleneck_block, bottleneck_mobile,
                               create_hourglass_network)
 from data_generator import DataGenerator
+import coco_df
 from constants import *
 
 # Some code adapted from https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/master/src/net/hourglass.py
@@ -34,10 +35,19 @@ class HourglassNet(object):
         # show model summary and layer name
         if show:
             self.model.summary()
-        
+    
+    def load_and_filter_annotations(self,path_to_train_anns,path_to_val_anns):
+        df = coco_df.get_df(path_to_train_anns,path_to_val_anns)
+        # apply filters here
+        train_df = df.loc[df['source'] == 0]
+        val_df = df.loc[df['source'] == 1]
+        return train_df, val_df
+
     def train(self, batch_size, model_path, epochs):
-        train_generator = DataGenerator(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=True, batch_size=batch_size)
-        val_generator = DataGenerator(DEFAULT_VAL_ANNOT_PATH, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=True, batch_size=batch_size)
+        train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH)
+        #train_df, val_df = load_and_filter_annotations(COCO_TRAIN_ANNOT_PATH,COCO_VAL_ANNOT_PATH) # for google collab
+        train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=True, batch_size=batch_size)
+        val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=True, batch_size=batch_size)
         
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 

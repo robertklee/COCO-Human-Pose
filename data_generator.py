@@ -21,8 +21,8 @@ from constants import *
 
 class DataGenerator(Sequence): # inherit from Sequence to access multicore functionality: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 
-  def __init__(self, csv_file, base_dir, input_dim, output_dim, num_hg_blocks, shuffle=False, batch_size=DEFAULT_BATCH_SIZE, online_fetch=False):
-    self.df = pd.read_csv(csv_file) # csv with df of the the annotations we want, we may eventually want to pass in df instead
+  def __init__(self, df, base_dir, input_dim, output_dim, num_hg_blocks, shuffle=False, batch_size=DEFAULT_BATCH_SIZE, online_fetch=False):
+    self.df = df                    # df of the the annotations we want
     self.base_dir = base_dir        # where to read imgs from in collab runtime
     self.input_dim = input_dim      # model requirement for input image dimensions
     self.output_dim = output_dim    # dimesnions of output heatmap of model
@@ -51,7 +51,7 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
     return new_img, cropped_width, cropped_height, new_bbox[0], new_bbox[1]
   
   def transform_bbox(self,bbox):
-    x,y,w,h = [round(i) for i in list(map(float,(bbox.strip('][').split(', '))))] # (x,y,w,h) anchored to top left
+    x,y,w,h = [round(i) for i in bbox] # (x,y,w,h) anchored to top left
     center_x = int(x+w/2)
     center_y = int(y+h/2)
     new_w = w if w >= h else round(h * self.input_dim[0]/self.input_dim[1])
@@ -61,7 +61,7 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
     return (new_x,new_y,new_x+new_w,new_y+new_h)
 
   def transform_label(self,label, cropped_width, cropped_height,anchor_x,anchor_y):
-    label = [int(v) for v in label.strip('][').split(', ')]
+    label = [int(v) for v in label]
     # adjust x/y coords to new resized img
     transformed_label = []
     for x, y, v in zip(*[iter(label)]*3):
