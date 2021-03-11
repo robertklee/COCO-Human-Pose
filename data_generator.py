@@ -12,9 +12,12 @@ import skimage.io as io
 import tensorflow as tf
 from tensorflow.keras.utils import Sequence
 
-from constants import DEFAULT_BATCH_SIZE
-from constants import NUM_COCO_KEYPOINTS
-from constants import NUM_COCO_KP_ATTRBS
+from constants import *
+
+# TODO:
+# make heatmap at full resolution and then downscale to reduce issue of heat map centering
+# bounding box + x percent size (maybe 130% of bounding box size), and then varied through data augmentation 110% to 150%?
+
 
 class DataGenerator(Sequence): # inherit from Sequence to access multicore functionality: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 
