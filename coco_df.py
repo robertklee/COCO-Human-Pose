@@ -1,20 +1,10 @@
-from constants import *
-
-if COCO_TOOLS_INSTALLED:
-    from pycocotools.coco import COCO
-
-import json
-
+from pycocotools.coco import COCO
 import numpy as np
 import pandas as pd
 import skimage.io as io
 
-
 def get_meta(coco):
-    if COCO_TOOLS_INSTALLED:
-        ids = list(coco.imgs.keys())
-    else:
-        ids = list(coco.images.keys())
+    ids = list(coco.imgs.keys())
     for i, img_id in enumerate(ids):
         img_meta = coco.imgs[img_id]
         ann_ids = coco.getAnnIds(imgIds=img_id)
@@ -60,14 +50,8 @@ def convert_to_df(coco, data_set):
     return images_df, persons_df
 
 def get_df(path_to_train_anns, path_to_val_anns):
-    if COCO_TOOLS_INSTALLED:
-        train_coco = COCO(path_to_train_anns) # load annotations for training set
-        val_coco = COCO(path_to_val_anns) # load annotations for validation set
-    else: 
-        with open(path_to_train_anns) as train_ann_file:
-            train_coco = json.load(train_ann_file) # load annotations for training set
-        with open(path_to_val_anns) as val_ann_file:
-            val_coco = json.load(val_ann_file) # load annotations for validation set
+    train_coco = COCO(path_to_train_anns) # load annotations for training set
+    val_coco = COCO(path_to_val_anns) # load annotations for validation set
     images_df, persons_df = convert_to_df(train_coco, 'train2017')     
     train_coco_df = pd.merge(images_df, persons_df, right_index=True, left_index=True)
     train_coco_df['source'] = 0
