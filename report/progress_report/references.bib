@@ -8,22 +8,67 @@
 
 % Additionally, I sort my entries by year (something I just started doing, actually) and within that by primary author's last/family name. This also makes it exceedingly easy to figure out if I already have the key and entry in the database.
 
-@misc{overleaf,
-    title   = {Bibliography management with bibtex},
-    url     = {https://www.overleaf.com/learn/latex/bibliography_management_with_bibtex},
-    journal = {Overleaf, Online LaTeX Editor}
+%%%%%%%%%%% Websites %%%%%%%%%%%%%%%%
+% TODO add "[Online]. Available: <url>. [Accessed: <date>]
+% Need to add double curly braces around title field to preserve capitalization
+@misc{coco_data,
+  title        = {{Common Objects in Context}},
+  howpublished = {\url{https://cocodataset.org/#home}},
 } 
 
-@article{Yan2013, 
-    author={Z. Yan and P. I. Mak and M. K. Law and R. P. Martins}, 
-    journal={IEEE Journal of Solid-State Circuits}, 
-    title={A 0.016-mm$^{2}$ 144-$\mu$W Three-Stage Amplifier Capable of Driving 1-to-15 nF Capacitive Load With $>$ 0.95-MHz GBW}, 
-    year={2013}, 
-    volume={48}, 
-    number={2}, 
-    pages={527-540}, 
-    keywords={UHF amplifiers;circuit feedback;compensation;GBW;capacitance 1 nF to 15 nF;capacitive load;control-centric method;current-buffer Miller compensation;figure-of-merit;frequency 0.95 MHz;local feedback loop analysis;minimum gain-bandwidth product;parasitic-pole cancellation;pole-zero placements;power 144 muW;size 0.35 mum;slew rate;small-signal FOM;three-stage amplifier;Circuit analysis;Feedback loop;Limiting;Poles and zeros;Stability analysis;Standards;Active LHP zero;CMOS;Miller compensation;current buffer;current buffer Miller compensation;frequency compensation;pole-zero cancellation;three-stage amplifier}, 
-    doi={10.1109/JSSC.2012.2229070}, 
-    ISSN={0018-9200}, 
-    month={2},
+@misc{densepose,
+  title        = {{DensePose}},
+  howpublished = {\url{http://densepose.org/}},
+} 
+
+@misc{mpii,
+  title        = {{MPII Human Pose Database}},
+  howpublished = {\url{http://human-pose.mpi-inf.mpg.de/#dataset}},
 }
+
+%%%%%%%%%%% Articles/Books %%%%%%%%%%%%%%%%
+
+@article{Chen_2020,
+  title     = {Monocular human pose estimation: A survey of deep learning-based methods},
+  volume    = {192},
+  issn      = {1077-3142},
+  url       = {http://dx.doi.org/10.1016/j.cviu.2019.102897},
+  doi       = {10.1016/j.cviu.2019.102897},
+  journal   = {Computer Vision and Image Understanding},
+  publisher = {Elsevier BV},
+  author    = {Chen, Yucheng and Tian, Yingli and He, Mingyi},
+  year      = {2020},
+  month     = {Mar},
+  pages     = {102897}
+}
+
+@inbook{Sigal2014,
+  author    = {Sigal, Leonid},
+  editor    = {Ikeuchi, Katsushi},
+  title     = {Human Pose Estimation},
+  booktitle = {Computer Vision: A Reference Guide},
+  year      = {2014},
+  publisher = {Springer US},
+  address   = {Boston, MA},
+  pages     = {362--370},
+  isbn      = {978-0-387-31439-6},
+  doi       = {10.1007/978-0-387-31439-6_584},
+  url       = {https://doi.org/10.1007/978-0-387-31439-6_584}
+}
+
+
+@article{Yan2013,
+  author   = {Z. Yan and P. I. Mak and M. K. Law and R. P. Martins},
+  journal  = {IEEE Journal of Solid-State Circuits},
+  title    = {A 0.016-mm$^{2}$ 144-$\mu$W Three-Stage Amplifier Capable of Driving 1-to-15 nF Capacitive Load With $>$ 0.95-MHz GBW},
+  year     = {2013},
+  volume   = {48},
+  number   = {2},
+  pages    = {527-540},
+  keywords = {UHF amplifiers;circuit feedback;compensation;GBW;capacitance 1 nF to 15 nF;capacitive load;control-centric method;current-buffer Miller compensation;figure-of-merit;frequency 0.95 MHz;local feedback loop analysis;minimum gain-bandwidth product;parasitic-pole cancellation;pole-zero placements;power 144 muW;size 0.35 mum;slew rate;small-signal FOM;three-stage amplifier;Circuit analysis;Feedback loop;Limiting;Poles and zeros;Stability analysis;Standards;Active LHP zero;CMOS;Miller compensation;current buffer;current buffer Miller compensation;frequency compensation;pole-zero cancellation;three-stage amplifier},
+  doi      = {10.1109/JSSC.2012.2229070},
+  issn     = {0018-9200},
+  month    = {2}
+}
+
+
