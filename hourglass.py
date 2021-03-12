@@ -39,9 +39,13 @@ class HourglassNet(object):
     def load_and_filter_annotations(self,path_to_train_anns,path_to_val_anns):
         df = coco_df.get_df(path_to_train_anns,path_to_val_anns)
         # apply filters here
+        print(f"Unfiltered df contains {len(df)} anns")
+        df = df.loc[df['is_crowd'] == 0] # filter crowd
+        df = df.loc[df['bbox_area'] > 900] # filter small bboxes (30*30)
+        print(f"Filtered df contains {len(df)} anns")
         train_df = df.loc[df['source'] == 0]
         val_df = df.loc[df['source'] == 1]
-        return train_df, val_df
+        return train_df.reset_index(), val_df.reset_index()
 
     def train(self, batch_size, model_path, epochs):
         train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH)
