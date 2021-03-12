@@ -52,8 +52,8 @@ class HourglassNet(object):
 
         train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH)
         #train_df, val_df = load_and_filter_annotations(COCO_TRAIN_ANNOT_PATH,COCO_VAL_ANNOT_PATH) # for google collab NOTE no longer needed
-        train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=True, batch_size=batch_size)
-        val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=False, batch_size=batch_size)
+        train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=TRAIN_SHUFFLE, batch_size=batch_size)
+        val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=VAL_SHUFFLE, batch_size=batch_size)
         
         csv_logger = CSVLogger(os.path.join(model_path, 'csv_tr' + current_time + '.csv'))
 
