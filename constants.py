@@ -26,6 +26,7 @@ COCO_VAL_ANNOT_PATH = DEFAULT_VAL_ANNOT_PATH
 # Model parameters
 INPUT_DIM = (256,256)
 OUTPUT_DIM = (64,64)
+NUM_CHANNELS = 256
 
 # Data Generator Constants
 DEFAULT_BATCH_SIZE = 10 #NOTE need to test optimal batch size
