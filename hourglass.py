@@ -1,4 +1,4 @@
-import datetime as dt
+from datetime import datetime
 import os
 
 import numpy as np
@@ -48,13 +48,13 @@ class HourglassNet(object):
         return train_df.reset_index(), val_df.reset_index()
 
     def train(self, batch_size, model_path, epochs):
+        current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
+
         train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH)
-        #train_df, val_df = load_and_filter_annotations(COCO_TRAIN_ANNOT_PATH,COCO_VAL_ANNOT_PATH) # for google collab
+        #train_df, val_df = load_and_filter_annotations(COCO_TRAIN_ANNOT_PATH,COCO_VAL_ANNOT_PATH) # for google collab NOTE no longer needed
         train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=True, batch_size=batch_size)
         val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=True, batch_size=batch_size)
         
-        current_time = dt.datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
-
         csv_logger = CSVLogger(os.path.join(model_path, 'csv_tr' + current_time + '.csv'))
 
         modelSavePath = os.path.join(model_path, current_time +  '_batchsize_' + str(batch_size), '/hg_epoch{epoch:02d}_val_loss_{val_loss:.4f}_train_loss_{loss:.4f}.hdf5')
