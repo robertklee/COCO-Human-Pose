@@ -1,9 +1,6 @@
 # Colab Training
 COLAB_TRAINING = False
 
-# Coco tools installed
-COCO_TOOLS_INSTALLED = False
-
 # Model Defaults
 DEFAULT_NUM_HG = 4 # NOTE in their final design, 8 were used
 DEFAULT_EPOCHS = 40
