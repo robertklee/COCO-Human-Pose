@@ -78,16 +78,15 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
     return np.asarray(transformed_label)
 
   def generate_heatmaps(self,label):
-    heat_maps = np.zeros((*self.output_dim, self.num_hg_blocks * NUM_COCO_KEYPOINTS))
+    heat_maps = np.zeros((*self.output_dim, NUM_COCO_KEYPOINTS))
     for i in range(NUM_COCO_KEYPOINTS):
       label_idx = i * NUM_COCO_KP_ATTRBS # index for label
       if label[label_idx + (NUM_COCO_KP_ATTRBS-1)] == 0: # generate empty heatmap for unlabelled kp
         continue
       kpx = int(label[label_idx] * (self.output_dim[0]/self.input_dim[0]))     # How should kp coords be translated from 256*256 to 64*64, we lose precision here
       kpy = int(label[label_idx + 1] * (self.output_dim[1]/self.input_dim[1])) #  this loss of precision results in clouds not perfectly centered around gt kp
-      heat_maps[:,:,i] = self.gaussian(heat_maps[:,:,i], (kpx,kpy),2) # what should sigma be?
-    # duplicate the set of heat maps for each hourglass block
-    heat_maps[:,:,NUM_COCO_KEYPOINTS:NUM_COCO_KEYPOINTS*self.num_hg_blocks] = np.tile(heat_maps[:,:,:NUM_COCO_KEYPOINTS],reps=(1,1,self.num_hg_blocks-1)) 
+      heat_maps[:,:,i] = self.gaussian(heat_maps[:,:,i], (kpx,kpy),1.5) # what should sigma be?
+    
     return heat_maps
 
   # This func is unmodified and ripped from: https://github.com/princeton-vl/pose-hg-train/blob/master/src/pypose/draw.py
@@ -127,7 +126,7 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
     X = np.empty((self.batch_size, *self.input_dim, 3))
     
     # Order of last dimension: (heatmap for each kp) repeated num_hg_blocks times
-    y = np.empty((self.batch_size, *self.output_dim, self.num_hg_blocks * NUM_COCO_KEYPOINTS))
+    y = np.empty((self.batch_size, *self.output_dim, NUM_COCO_KEYPOINTS))
 
     # get the indices of the requested batch
     indices = self.indices[idx*self.batch_size:(idx+1)*self.batch_size]
