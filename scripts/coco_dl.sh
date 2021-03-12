@@ -20,6 +20,7 @@ for imgs_zip in "train2017" "val2017" # "test2017" "unlabeled2017"
 do
     echo "Downloading: http://images.cocodataset.org/zips/$imgs_zip.zip"
     curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
+    echo "Unzipping: $imgs_zip.zip"
     unzip -q $imgs_zip.zip
     rm $imgs_zip.zip
 done
@@ -31,7 +32,9 @@ cd ../
 
 for annos_zip in "annotations_trainval2017" "stuff_annotations_trainval2017" # "image_info_test2017" "image_info_unlabeled2017" 
 do
+    echo "Downloading: http://images.cocodataset.org/zips/$annos_zip.zip"
     curl -OL http://images.cocodataset.org/annotations/$annos_zip.zip
+    echo "Unzipping: $annos_zip.zip"
     unzip -q $annos_zip.zip
     rm $annos_zip.zip
 done
