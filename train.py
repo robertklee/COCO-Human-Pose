@@ -9,8 +9,6 @@ from keras import backend as k
 from constants import *
 from hourglass import HourglassNet
 
-# TODO change to command line arguments
-num_stack = 8
 
 def tensorflow_setup():
     print("TensorFlow detected the following GPU(s):")
@@ -86,8 +84,8 @@ if __name__ == "__main__":
 
     trainingRunTime = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
-    hgnet = HourglassNet(num_classes=NUM_COCO_KEYPOINTS, num_stacks=args.hourglass, num_channels=256, inres=(256, 256),
-                            outres=(64, 64))
+    hgnet = HourglassNet(num_classes=NUM_COCO_KEYPOINTS, num_stacks=args.hourglass, num_channels=NUM_CHANNELS, inres=INPUT_DIM,
+                            outres=OUTPUT_DIM)
 
     training_start = time.time()
 
@@ -112,3 +110,4 @@ if __name__ == "__main__":
 
     print("Total setup time: {}".format(str(timedelta(seconds=setup_time))))
     print("Total train time: {}".format(str(timedelta(seconds=training_time))))
+    print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}".format(args.hourglass, args.epochs, args.batch))

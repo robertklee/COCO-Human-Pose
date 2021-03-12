@@ -135,9 +135,9 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
       img_path = os.path.join(self.base_dir,ann['path'])
       
       if self.online_fetch:
-        img = Image.fromarray(io.imread(ann['coco_url'])) # bottleneck opening from URL
+        img = Image.fromarray(io.imread(ann['coco_url'])).convert('RGB') # bottleneck opening from URL
       else:
-        img = Image.open(img_path) # bottleneck opening from file system
+        img = Image.open(img_path).convert('RGB') # bottleneck opening from file system
       
       transformed_img, cropped_width, cropped_height, anchor_x, anchor_y = self.transform_image(img, ann['bbox'])
       transformed_label = self.transform_label(ann['keypoints'],cropped_width,cropped_height,anchor_x,anchor_y)
