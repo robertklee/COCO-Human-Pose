@@ -32,3 +32,5 @@ NUM_CHANNELS = 256
 DEFAULT_BATCH_SIZE = 10 #NOTE need to test optimal batch size
 NUM_COCO_KEYPOINTS = 17 # Number of joints to detect
 NUM_COCO_KP_ATTRBS = 3 # (x,y,v) * 17 keypoints
+TRAIN_SHUFFLE = True # Can set to false for debug purposes
+VAL_SHUFFLE = False
