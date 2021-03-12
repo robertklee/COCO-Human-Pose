@@ -35,6 +35,7 @@ def convert_to_df(coco, data_set):
                 'image_id': m['image_id'],
                 'is_crowd': m['iscrowd'],
                 'bbox': m['bbox'],
+                'bbox_area' : m['bbox'][2] * m['bbox'][3],
                 'area': m['area'],
                 'num_keypoints': m['num_keypoints'],            
                 'keypoints': m['keypoints'],
