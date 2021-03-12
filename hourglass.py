@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import os
 
 import numpy as np
@@ -49,7 +49,7 @@ class HourglassNet(object):
         train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=True, batch_size=batch_size)
         val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=True, batch_size=batch_size)
         
-        current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
+        current_time = dt.datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
         csv_logger = CSVLogger(os.path.join(model_path, 'csv_tr' + current_time + '.csv'))
 
