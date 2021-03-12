@@ -8,10 +8,8 @@ DEFAULT_EPOCHS = 40
 DEFAULT_MODEL_PATH = 'models'
 DEFAULT_LOGS_PATH = 'logs'
 DEFAULT_OUTPUT_PATH = 'output'
-DEFAULT_TRAIN_IMG_PATH = 'data/coco/train2017'
-DEFAULT_VAL_IMG_PATH = 'data/coco/val2017'
-DEFAULT_TRAIN_ANNOT_PATH = 'data/annotations/person_keypoints_train2017.json'
-DEFAULT_VAL_ANNOT_PATH = 'data/annotations/person_keypoints_val2017.json'
+DEFAULT_TRAIN_IMG_PATH = '/content/datasets/coco'
+DEFAULT_VAL_IMG_PATH = '/content/datasets/coco'
 
 # Model parameters
 INPUT_DIM = (256,256)
@@ -25,5 +23,8 @@ NUM_COCO_KP_ATTRBS = 3 # (x,y,v) * 17 keypoints
 # COCO DF Constants
 COCO_TRAIN_ANNOT_PATH = '/content/gdrive/My Drive/COCO/2017/annotations/person_keypoints_train2017.json'
 COCO_VAL_ANNOT_PATH = '/content/gdrive/My Drive/COCO/2017/annotations/person_keypoints_val2017.json'
+
+DEFAULT_TRAIN_ANNOT_PATH = COCO_TRAIN_ANNOT_PATH
+DEFAULT_VAL_ANNOT_PATH = COCO_VAL_ANNOT_PATH
 
 # COCO 
