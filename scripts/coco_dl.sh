@@ -1,6 +1,9 @@
 # Credit to https://gist.github.com/mkocabas/a6177fc00315403d31572e17700d7fd9
 
 dataset_root_path="./data"
+enable_unzip=false
+download_all=false
+remove_zip=false
 
 # BEWARE: Symbolic links to a directory will also pass this check
 # https://stackoverflow.com/questions/59838/how-can-i-check-if-a-directory-exists-in-a-bash-shell-script
@@ -11,18 +14,44 @@ fi
 cd $dataset_root_path
 
 #######################################
+#             Zip Names               #
+#######################################
+arrCocoImg=("train2017" "val2017")
+arrCocoAnno=("annotations_trainval2017" "stuff_annotations_trainval2017")
+
+if [ "$download_all" = true ] ; then
+    echo 'Download entire COCO dataset.'
+    arrCocoImg+=("test2017")
+    arrCocoImg+=("unlabeled2017")
+
+    arrCocoAnno+=("image_info_test2017")
+    arrCocoAnno+=("image_info_unlabeled2017")
+fi
+
+#######################################
 #     Download COCO2017 Images        #
 #######################################
 mkdir coco
 cd coco
 
-for imgs_zip in "train2017" "val2017" # "test2017" "unlabeled2017"
+
+for imgs_zip in "${arrCocoImg[@]}"
 do
-    echo "Downloading: http://images.cocodataset.org/zips/$imgs_zip.zip"
-    curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
-    echo "Unzipping: $imgs_zip.zip"
-    unzip -q $imgs_zip.zip
-    rm $imgs_zip.zip
+    if [ ! -f $imgs_zip.zip ]; then
+        echo "$imgs_zip.zip not found!"
+        echo "Downloading: http://images.cocodataset.org/zips/$imgs_zip.zip"
+        curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
+    fi
+
+    if [ "$enable_unzip" = true ] ; then
+        echo "Unzipping: $imgs_zip.zip"
+        unzip -q $imgs_zip.zip
+    fi
+
+    if [ "$remove_zip" = true ] ; then
+        echo "Deleting file: $imgs_zip.zip"
+        rm $imgs_zip.zip
+    fi
 done
 
 #######################################
@@ -30,11 +59,21 @@ done
 #######################################
 cd ../
 
-for annos_zip in "annotations_trainval2017" "stuff_annotations_trainval2017" # "image_info_test2017" "image_info_unlabeled2017" 
+for annos_zip in "${arrCocoAnno[@]}"
 do
-    echo "Downloading: http://images.cocodataset.org/zips/$annos_zip.zip"
-    curl -OL http://images.cocodataset.org/annotations/$annos_zip.zip
-    echo "Unzipping: $annos_zip.zip"
-    unzip -q $annos_zip.zip
-    rm $annos_zip.zip
+    if [ ! -f $annos_zip.zip ]; then
+        echo "$annos_zip.zip not found!"
+        echo "Downloading: http://images.cocodataset.org/zips/$annos_zip.zip"
+        curl -OL http://images.cocodataset.org/annotations/$annos_zip.zip
+    fi
+
+    if [ "$enable_unzip" = true ] ; then
+        echo "Unzipping: $annos_zip.zip"
+        unzip -q $annos_zip.zip
+    fi
+
+    if [ "$remove_zip" = true ] ; then
+        echo "Deleting file: $annos_zip.zip"
+        rm $annos_zip.zip
+    fi
 done
