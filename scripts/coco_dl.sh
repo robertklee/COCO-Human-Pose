@@ -43,7 +43,7 @@ for imgs_zip in "${arrCocoImg[@]}"
 do
     if [ ! -f $imgs_zip.zip ]; then
         echo "$imgs_zip.zip not found!"
-        echo "Downloading: http://images.cocodataset.org/zips/$imgs_zip.zip"
+        echo "Downloading from... http://images.cocodataset.org/zips/$imgs_zip.zip"
         curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
     fi
 
@@ -67,7 +67,7 @@ for annos_zip in "${arrCocoAnno[@]}"
 do
     if [ ! -f $annos_zip.zip ]; then
         echo "$annos_zip.zip not found!"
-        echo "Downloading: http://images.cocodataset.org/zips/$annos_zip.zip"
+        echo "Downloading from... http://images.cocodataset.org/zips/$annos_zip.zip"
         curl -OL http://images.cocodataset.org/annotations/$annos_zip.zip
     fi
 
