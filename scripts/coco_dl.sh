@@ -36,12 +36,16 @@ fi
 #######################################
 #     Download COCO2017 Images        #
 #######################################
-mkdir coco
+
+if [ ! -d "coco" ]; then
+    mkdir coco
+fi
+
 cd coco
 
 for imgs_zip in "${arrCocoImg[@]}"
 do
-    if [ ! -f $imgs_zip.zip -a ! -f $imgs_zip ]; then
+    if [ ! -f $imgs_zip.zip -a ! -d $imgs_zip ]; then
         echo "$imgs_zip.zip and $imgs_zip/ not found!"
         echo "Downloading from... http://images.cocodataset.org/zips/$imgs_zip.zip"
         curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
