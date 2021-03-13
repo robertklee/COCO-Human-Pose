@@ -6,9 +6,9 @@ if [[ $# -eq 1 ]] ; then
     dataset_root_path=$1
 fi
 
-enable_unzip=false
+enable_unzip=true
 download_all=false
-remove_zip=false
+remove_zip=true
 
 # BEWARE: Symbolic links to a directory will also pass this check
 # https://stackoverflow.com/questions/59838/how-can-i-check-if-a-directory-exists-in-a-bash-shell-script
