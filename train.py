@@ -9,6 +9,8 @@ from keras import backend as k
 from constants import *
 from hourglass import HourglassNet
 
+# TODO
+# Add command line parameter for learning rate?
 
 def tensorflow_setup():
     print("TensorFlow detected the following GPU(s):")
