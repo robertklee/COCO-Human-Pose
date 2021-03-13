@@ -41,8 +41,8 @@ cd coco
 
 for imgs_zip in "${arrCocoImg[@]}"
 do
-    if [ ! -f $imgs_zip.zip ]; then
-        echo "$imgs_zip.zip not found!"
+    if [ ! -f $imgs_zip.zip -a ! -f $imgs_zip ]; then
+        echo "$imgs_zip.zip and $imgs_zip/ not found!"
         echo "Downloading from... http://images.cocodataset.org/zips/$imgs_zip.zip"
         curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
     fi
