@@ -36,25 +36,33 @@ fi
 #######################################
 #     Download COCO2017 Images        #
 #######################################
-mkdir coco
+
+if [ ! -d "coco" ]; then
+    mkdir coco
+fi
+
 cd coco
 
 for imgs_zip in "${arrCocoImg[@]}"
 do
-    if [ ! -f $imgs_zip.zip ]; then
-        echo "$imgs_zip.zip not found!"
-        echo "Downloading: http://images.cocodataset.org/zips/$imgs_zip.zip"
+    if [ ! -f $imgs_zip.zip -a ! -d $imgs_zip ]; then
+        echo "$imgs_zip.zip and $imgs_zip/ not found!"
+        echo "Downloading from... http://images.cocodataset.org/zips/$imgs_zip.zip"
         curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
     fi
+    
+    if [ -f $imgs_zip.zip ]; then
+        if [ "$enable_unzip" = true ] ; then
+            echo "Unzipping: $imgs_zip.zip"
+            unzip -q $imgs_zip.zip
+        fi
 
-    if [ "$enable_unzip" = true ] ; then
-        echo "Unzipping: $imgs_zip.zip"
-        unzip -q $imgs_zip.zip
-    fi
-
-    if [ "$remove_zip" = true ] ; then
-        echo "Deleting file: $imgs_zip.zip"
-        rm $imgs_zip.zip
+        if [ "$remove_zip" = true ] ; then
+            echo "Deleting file: $imgs_zip.zip"
+            rm $imgs_zip.zip
+        fi
+    else
+        echo "$imgs_zip.zip not found."
     fi
 done
 
@@ -67,17 +75,21 @@ for annos_zip in "${arrCocoAnno[@]}"
 do
     if [ ! -f $annos_zip.zip ]; then
         echo "$annos_zip.zip not found!"
-        echo "Downloading: http://images.cocodataset.org/zips/$annos_zip.zip"
+        echo "Downloading from... http://images.cocodataset.org/zips/$annos_zip.zip"
         curl -OL http://images.cocodataset.org/annotations/$annos_zip.zip
     fi
 
-    if [ "$enable_unzip" = true ] ; then
-        echo "Unzipping: $annos_zip.zip"
-        unzip -q $annos_zip.zip
-    fi
+    if [ -f $annos_zip.zip ]; then
+        if [ "$enable_unzip" = true ] ; then
+            echo "Unzipping: $annos_zip.zip"
+            unzip -q $annos_zip.zip
+        fi
 
-    if [ "$remove_zip" = true ] ; then
-        echo "Deleting file: $annos_zip.zip"
-        rm $annos_zip.zip
+        if [ "$remove_zip" = true ] ; then
+            echo "Deleting file: $annos_zip.zip"
+            rm $annos_zip.zip
+        fi
+    else
+        echo "$annos_zip.zip not found."
     fi
 done

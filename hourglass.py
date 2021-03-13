@@ -41,7 +41,7 @@ class HourglassNet(object):
         # apply filters here
         print(f"Unfiltered df contains {len(df)} anns")
         df = df.loc[df['is_crowd'] == 0] # filter crowd
-        df = df.loc[df['bbox_area'] > 900] # filter small bboxes (30*30)
+        df = df.loc[df['bbox_area'] > BBOX_MIN_SIZE] # filter small bboxes
         print(f"Filtered df contains {len(df)} anns")
         train_df = df.loc[df['source'] == 0]
         val_df = df.loc[df['source'] == 1]
@@ -51,13 +51,17 @@ class HourglassNet(object):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
         train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH)
-        #train_df, val_df = load_and_filter_annotations(COCO_TRAIN_ANNOT_PATH,COCO_VAL_ANNOT_PATH) # for google collab NOTE no longer needed
+
         train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=TRAIN_SHUFFLE, batch_size=batch_size)
         val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=VAL_SHUFFLE, batch_size=batch_size)
         
         csv_logger = CSVLogger(os.path.join(model_path, 'csv_tr' + current_time + '.csv'))
 
-        modelSavePath = os.path.join(model_path, current_time +  '_batchsize_' + str(batch_size), '/hg_epoch{epoch:02d}_val_loss_{val_loss:.4f}_train_loss_{loss:.4f}.hdf5')
+        modelDir = os.path.join(model_path, current_time +  '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks))
+        modelSavePath = os.path.join(modelDir, 'hpe_epoch{epoch:02d}_val_loss_{val_loss:.4f}_train_loss_{loss:.4f}.hdf5')
+
+        if not os.path.exists(modelDir):
+            os.makedirs(modelDir)
 
         mc_val = ModelCheckpoint(modelSavePath, monitor='val_loss')
         mc_train = ModelCheckpoint(modelSavePath, monitor='loss')
