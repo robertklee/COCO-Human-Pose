@@ -57,7 +57,11 @@ class HourglassNet(object):
         
         csv_logger = CSVLogger(os.path.join(model_path, 'csv_tr' + current_time + '.csv'))
 
-        modelSavePath = os.path.join(model_path, current_time +  '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks), 'hpe_epoch{epoch:02d}_val_loss_{val_loss:.4f}_train_loss_{loss:.4f}.hdf5')
+        modelDir = os.path.join(model_path, current_time +  '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks))
+        modelSavePath = os.path.join(modelDir, 'hpe_epoch{epoch:02d}_val_loss_{val_loss:.4f}_train_loss_{loss:.4f}.hdf5')
+
+        if not os.path.exists(modelDir):
+            os.makedirs(modelDir)
 
         mc_val = ModelCheckpoint(modelSavePath, monitor='val_loss')
         mc_train = ModelCheckpoint(modelSavePath, monitor='loss')
