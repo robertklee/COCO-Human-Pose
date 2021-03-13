@@ -50,15 +50,19 @@ do
         echo "Downloading from... http://images.cocodataset.org/zips/$imgs_zip.zip"
         curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
     fi
+    
+    if [ -f $imgs_zip.zip ]; then
+        if [ "$enable_unzip" = true ] ; then
+            echo "Unzipping: $imgs_zip.zip"
+            unzip -q $imgs_zip.zip
+        fi
 
-    if [ "$enable_unzip" = true ] ; then
-        echo "Unzipping: $imgs_zip.zip"
-        unzip -q $imgs_zip.zip
-    fi
-
-    if [ "$remove_zip" = true ] ; then
-        echo "Deleting file: $imgs_zip.zip"
-        rm $imgs_zip.zip
+        if [ "$remove_zip" = true ] ; then
+            echo "Deleting file: $imgs_zip.zip"
+            rm $imgs_zip.zip
+        fi
+    else
+        echo "$imgs_zip.zip not found."
     fi
 done
 
@@ -75,13 +79,17 @@ do
         curl -OL http://images.cocodataset.org/annotations/$annos_zip.zip
     fi
 
-    if [ "$enable_unzip" = true ] ; then
-        echo "Unzipping: $annos_zip.zip"
-        unzip -q $annos_zip.zip
-    fi
+    if [ -f $annos_zip.zip ]; then
+        if [ "$enable_unzip" = true ] ; then
+            echo "Unzipping: $annos_zip.zip"
+            unzip -q $annos_zip.zip
+        fi
 
-    if [ "$remove_zip" = true ] ; then
-        echo "Deleting file: $annos_zip.zip"
-        rm $annos_zip.zip
+        if [ "$remove_zip" = true ] ; then
+            echo "Deleting file: $annos_zip.zip"
+            rm $annos_zip.zip
+        fi
+    else
+        echo "$annos_zip.zip not found."
     fi
 done
