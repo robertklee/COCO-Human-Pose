@@ -25,6 +25,7 @@ COCO_VAL_ANNOT_PATH = DEFAULT_VAL_ANNOT_PATH
 
 # Model parameters
 INPUT_DIM = (256,256)
+INPUT_CHANNELS = 3
 OUTPUT_DIM = (64,64)
 NUM_CHANNELS = 256
 
@@ -33,3 +34,5 @@ DEFAULT_BATCH_SIZE = 10 #NOTE need to test optimal batch size
 NUM_COCO_KEYPOINTS = 17 # Number of joints to detect
 NUM_COCO_KP_ATTRBS = 3 # (x,y,v) * 17 keypoints
 BBOX_SLACK = 1.3 # before augmentation, increase bbox size to 130%
+MIN_BBOX_SIZE = 30*30 # drop boxes smaller than 30*30
+HEATMAP_SIGMA = 1.5 #NOTE what should sigma be?
