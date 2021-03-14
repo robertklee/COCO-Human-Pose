@@ -92,7 +92,7 @@ class HourglassNet(object):
 
         model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks)
 
-        self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=1, model_subdir=model_subdir, current_time=current_time)
+        self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=0, model_subdir=model_subdir, current_time=current_time)
     
     def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs):
         print('Restoring model architecture json: {}'.format(model_json))
