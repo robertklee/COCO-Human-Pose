@@ -76,7 +76,7 @@ class HourglassNet(object):
 
         callbacks = [mc_val, mc_train, tb, csv_logger]
 
-        architecture_json_file = os.path.join(modelDir, 'hpe_hourglass_stacks_{:02d}_epochs_{:03d}_batchsize_{:03d}.json'.format(self.num_stacks, epochs, batch_size))
+        architecture_json_file = os.path.join(modelDir, 'hpe_hourglass_stacks_{:02d}_batchsize_{:03d}.json'.format(self.num_stacks, batch_size))
         if not os.path.exists(architecture_json_file):
             with open(architecture_json_file, 'w') as f:
                 print("Model architecture json saved to: {}".format(architecture_json_file))
