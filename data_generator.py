@@ -64,12 +64,11 @@ class DataGenerator(Sequence):
         center_y = y+h/2
         if w >= h:
             new_w = w
+            new_h = w * self.input_dim[1]/self.input_dim[0]
         else:
             new_w = h * self.input_dim[0]/self.input_dim[1]
-        if w < h:
             new_h = h
-        else:
-            new_h = w * self.input_dim[1]/self.input_dim[0]
+
         new_w *= BBOX_SLACK  # add slack to bbox
         new_h *= BBOX_SLACK  # add slack to bbox
         new_x = center_x - new_w/2
