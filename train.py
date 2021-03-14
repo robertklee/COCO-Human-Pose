@@ -37,7 +37,7 @@ def process_args():
     argparser.add_argument('-m',
                         '--model-save',
                         default=DEFAULT_MODEL_PATH,
-                        help='path to save model')
+                        help='base directory for saving model weights')
     argparser.add_argument('-e',
                         '--epochs',
                         default=DEFAULT_EPOCHS,
