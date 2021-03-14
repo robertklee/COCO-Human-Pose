@@ -170,8 +170,8 @@ class DataGenerator(Sequence):
             X[i, ] = transformed_img
             y[i, ] = heat_map_labels
 
-            y_stacked = []
-            for j in range(self.num_hg_blocks):
-                y_stacked.append(y)
+        y_stacked = []
+        for _ in range(self.num_hg_blocks):
+            y_stacked.append(y)
 
         return X, y_stacked
