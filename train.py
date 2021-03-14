@@ -85,7 +85,7 @@ def find_resume_json_weights(args):
     files = os.listdir(enclosing_dir)
 
     model_jsons         = [f for f in files if (".json" in f and "hpe_hourglass_stacks" in f)]
-    model_saved_weights = [f for f in files if (".hdf5" in f and "hpe_epoch{epoch:02d}".format(args.resume_epoch) in f)]
+    model_saved_weights = [f for f in files if (".hdf5" in f and "hpe_epoch{epoch:02d}".format(epoch=args.resume_epoch) in f)]
     
     assert len(model_jsons) > 0
     assert len(model_saved_weights) > 0
