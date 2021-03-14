@@ -62,6 +62,7 @@ class HourglassNet(object):
         modelSavePath = os.path.join(modelDir, 'hpe_epoch{epoch:02d}_val_loss_{val_loss:.4f}_train_loss_{loss:.4f}.hdf5')
 
         if not os.path.exists(modelDir):
+            print("Model save directory created: {}".format(modelDir))
             os.makedirs(modelDir)
 
         mc_val = ModelCheckpoint(modelSavePath, monitor='val_loss')
@@ -72,7 +73,13 @@ class HourglassNet(object):
 
         callbacks = [mc_val, mc_train, tb, csv_logger]
 
-        print("Model saved to: {}".format(modelSavePath))
+        architecture_json_file = os.path.join(modelDir, 'hpe_hourglass_{:2d}_stacks_{:3d}_epochs_{:2d}_batch_size.json'.format(self.num_stacks, epochs, batch_size))
+        if not os.path.exists(architecture_json_file):
+            with open(architecture_json_file, 'w') as f:
+                print("Model architecture json saved to: {}".format(architecture_json_file))
+                f.write(self.model.to_json())
+
+        print("Model checkpoints saved to: {}".format(modelSavePath))
 
         self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, callbacks=callbacks)
