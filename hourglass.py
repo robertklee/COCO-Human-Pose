@@ -94,7 +94,10 @@ class HourglassNet(object):
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=0, model_subdir=model_subdir, current_time=current_time)
     
-    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs):
+    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir):
+        if resume_subdir is not None:
+            print('Automatically locating model architecture .json and weights .hdf5...')
+
         print('Restoring model architecture json: {}'.format(model_json))
         print('Restoring model weights: {}'.format(model_weights))
 

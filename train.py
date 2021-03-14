@@ -77,6 +77,9 @@ def process_args():
     # Convert string arguments to appropriate type
     args = argparser.parse_args()
 
+    if args.resume and args.resume_subdir is not None:
+        find_resume_json_weights(args)
+
     return args
 
 def find_resume_json_weights(args):
@@ -101,9 +104,6 @@ def find_resume_json_weights(args):
 
 if __name__ == "__main__":
     args = process_args()
-
-    if args.resume and args.resume_subdir is not None:
-        find_resume_json_weights(args)
 
     print("\n\nSetup start: {}\n".format(time.ctime()))
     setup_start = time.time()
