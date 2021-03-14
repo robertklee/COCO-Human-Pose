@@ -157,4 +157,9 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
       heat_map_labels = self.generate_heatmaps(transformed_label)
       X[i,] = transformed_img
       y[i,] = heat_map_labels
-    return X, y
+
+      y_stacked = []
+      for j in range(self.num_hg_blocks):
+        y_stacked.append(y)
+
+    return X, y_stacked
