@@ -62,7 +62,7 @@ do
             rm $imgs_zip.zip
         fi
     else
-        echo "$imgs_zip.zip not found."
+        echo "$imgs_zip.zip not found. Ignoring zip-related instructions..."
     fi
 done
 
@@ -90,6 +90,6 @@ do
             rm $annos_zip.zip
         fi
     else
-        echo "$annos_zip.zip not found."
+        echo "$annos_zip.zip not found. Ignoring zip-related instructions..."
     fi
 done
