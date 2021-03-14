@@ -14,9 +14,13 @@ from tensorflow.keras.utils import Sequence
 
 from constants import *
 
-# TODO:
-# make heatmap at full resolution and then downscale to reduce issue of heat map centering
-# bounding box + x percent size (maybe 130% of bounding box size), and then varied through data augmentation 110% to 150%?
+# TODO: Data Augementation:
+# - bounding box varied through data augmentation 110% to 150%
+# - horizontal flips
+# - rotations
+# - brightness adjustments
+# - contrast
+# - noise/grain
 
 
 class DataGenerator(Sequence): # inherit from Sequence to access multicore functionality: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
@@ -51,20 +55,28 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
     return new_img, cropped_width, cropped_height, new_bbox[0], new_bbox[1]
   
   def transform_bbox(self,bbox):
-    x,y,w,h = [round(i) for i in bbox] # (x,y,w,h) anchored to top left
-    center_x = int(x+w/2)
-    center_y = int(y+h/2)
-    new_w = w if w >= h else round(h * self.input_dim[0]/self.input_dim[1])
-    new_h = h if w <  h else round(w * self.input_dim[1]/self.input_dim[0])
-    new_x = int(center_x - new_w/2)
-    new_y = int(center_y - new_h/2)
-    return (new_x,new_y,new_x+new_w,new_y+new_h)
+    x,y,w,h = [i for i in bbox] # (x,y,w,h) anchored to top left
+    center_x = x+w/2
+    center_y = y+h/2
+    if w >= h:
+        new_w = w
+    else:
+        new_w = h * self.input_dim[0]/self.input_dim[1]
+    if w < h:
+        new_h = h
+    else:
+        new_h = w * self.input_dim[1]/self.input_dim[0]
+    new_w*=BBOX_SLACK # add slack to bbox
+    new_h*=BBOX_SLACK # add slack to bbox
+    new_x = center_x - new_w/2
+    new_y = center_y - new_h/2
+    return (round(new_x),round(new_y),round(new_x+new_w),round(new_y+new_h))
 
   def transform_label(self,label, cropped_width, cropped_height,anchor_x,anchor_y):
     label = [int(v) for v in label]
     # adjust x/y coords to new resized img
     transformed_label = []
-    for x, y, v in zip(*[iter(label)]*3):
+    for x, y, v in zip(*[iter(label)]*NUM_COCO_KP_ATTRBS):
       x = round((x-anchor_x) * self.input_dim[0]/cropped_width)
       y = round((y-anchor_y) * self.input_dim[1]/cropped_height)
       # validate kps, throw away if out of bounds
@@ -83,9 +95,10 @@ class DataGenerator(Sequence): # inherit from Sequence to access multicore funct
       label_idx = i * NUM_COCO_KP_ATTRBS # index for label
       if label[label_idx + (NUM_COCO_KP_ATTRBS-1)] == 0: # generate empty heatmap for unlabelled kp
         continue
-      kpx = int(label[label_idx] * (self.output_dim[0]/self.input_dim[0]))     # How should kp coords be translated from 256*256 to 64*64, we lose precision here
-      kpy = int(label[label_idx + 1] * (self.output_dim[1]/self.input_dim[1])) #  this loss of precision results in clouds not perfectly centered around gt kp
-      heat_maps[:,:,i] = self.gaussian(heat_maps[:,:,i], (kpx,kpy),1.5) # what should sigma be?
+      kpx = int(label[label_idx])
+      kpy = int(label[label_idx + 1])
+      heat_map = self.gaussian(np.zeros(self.input_dim), (kpx,kpy),HEATMAP_SIGMA)
+      heat_maps[:,:,i] = cv2.resize(heat_map,self.output_dim,interpolation=cv2.INTER_LINEAR) # downscale heatmap resolution
     
     return heat_maps
 

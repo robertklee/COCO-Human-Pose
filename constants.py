@@ -27,6 +27,7 @@ COCO_VAL_ANNOT_PATH = DEFAULT_VAL_ANNOT_PATH
 
 # Model parameters
 INPUT_DIM = (256,256)
+INPUT_CHANNELS = 3
 OUTPUT_DIM = (64,64)
 INPUT_CHANNELS = 3
 NUM_CHANNELS = 256
@@ -35,9 +36,10 @@ NUM_CHANNELS = 256
 DEFAULT_BATCH_SIZE = 10 #NOTE need to test optimal batch size
 NUM_COCO_KEYPOINTS = 17 # Number of joints to detect
 NUM_COCO_KP_ATTRBS = 3 # (x,y,v) * 17 keypoints
+BBOX_SLACK = 1.3 # before augmentation, increase bbox size to 130%
+HEATMAP_SIGMA = 1.5 #NOTE what should sigma be?
+TRAIN_SHUFFLE = True # Can set to false for debug purposes
+VAL_SHUFFLE = False
 
 # Data filtering constants
 BBOX_MIN_SIZE = 900 # Filter out images smaller than 30x30, TODO tweak
-
-TRAIN_SHUFFLE = True # Can set to false for debug purposes
-VAL_SHUFFLE = False
