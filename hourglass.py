@@ -42,7 +42,7 @@ class HourglassNet(object):
         print(f"Unfiltered df contains {len(df)} anns")
         df = df.loc[df['is_crowd'] == 0] # drop crowd anns
         df = df.loc[df['num_keypoints'] != 0] # drop anns containing no kps
-        df = df.loc[df['bbox_area'] > MIN_BBOX_SIZE] # drop small bboxes
+        df = df.loc[df['bbox_area'] > BBOX_MIN_SIZE] # drop small bboxes
         print(f"Filtered df contains {len(df)} anns")
         train_df = df.loc[df['source'] == 0]
         val_df = df.loc[df['source'] == 1]
