@@ -8,6 +8,8 @@ DEFAULT_MODEL_BASE_DIR = 'models'
 DEFAULT_LOGS_BASE_DIR = 'logs'
 DEFAULT_OUTPUT_BASE_DIR = 'output'
 
+DEFAULT_RESUME_DIR_FLAG = '_resume_'
+
 # Dataset Constants
 if COLAB_TRAINING:
     # DEFAULT_TRAIN_ANNOT_PATH = '/content/gdrive/My Drive/COCO/2017/annotations/person_keypoints_train2017.json'
