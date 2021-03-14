@@ -9,6 +9,8 @@ DEFAULT_LOGS_BASE_DIR = 'logs'
 DEFAULT_OUTPUT_BASE_DIR = 'output'
 
 DEFAULT_RESUME_DIR_FLAG = '_resume_'
+HPE_EPOCH_PREFIX = 'hpe_epoch'
+HPE_HOURGLASS_STACKS_PREFIX = 'hpe_hourglass_stacks'
 
 # Dataset Constants
 if COLAB_TRAINING:
