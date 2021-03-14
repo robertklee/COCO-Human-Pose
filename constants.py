@@ -4,9 +4,9 @@ COLAB_TRAINING = False
 # Model Defaults
 DEFAULT_NUM_HG = 4 # NOTE in their final design, 8 were used
 DEFAULT_EPOCHS = 40
-DEFAULT_MODEL_PATH = 'models'
-DEFAULT_LOGS_PATH = 'logs'
-DEFAULT_OUTPUT_PATH = 'output'
+DEFAULT_MODEL_BASE_DIR = 'models'
+DEFAULT_LOGS_BASE_DIR = 'logs'
+DEFAULT_OUTPUT_BASE_DIR = 'output'
 
 # Dataset Constants
 if COLAB_TRAINING:

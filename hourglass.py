@@ -67,7 +67,7 @@ class HourglassNet(object):
 
         mc_val = ModelCheckpoint(modelSavePath, monitor='val_loss')
         mc_train = ModelCheckpoint(modelSavePath, monitor='loss')
-        tb = TensorBoard(log_dir=os.path.join(DEFAULT_LOGS_PATH, start_time_str + '_batchsize_' + str(batch_size)), histogram_freq=0, write_graph=True, write_images=True)
+        tb = TensorBoard(log_dir=os.path.join(DEFAULT_LOGS_BASE_DIR, start_time_str + '_batchsize_' + str(batch_size)), histogram_freq=0, write_graph=True, write_images=True)
 
         # TODO potentially add learning rate scheduler callback
 

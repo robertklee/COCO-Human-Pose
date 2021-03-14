@@ -36,7 +36,7 @@ def process_args():
     argparser = argparse.ArgumentParser(description='Training parameters')
     argparser.add_argument('-m',
                         '--model-save',
-                        default=DEFAULT_MODEL_PATH,
+                        default=DEFAULT_MODEL_BASE_DIR,
                         help='base directory for saving model weights')
     argparser.add_argument('-e',
                         '--epochs',
