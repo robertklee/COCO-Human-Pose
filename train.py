@@ -101,7 +101,7 @@ if __name__ == "__main__":
     if args.resume:
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
-        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs)
+        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir)
     else:
         hgnet.build_model(show=True)
 
