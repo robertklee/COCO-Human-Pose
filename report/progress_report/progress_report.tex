@@ -66,17 +66,10 @@ For qualitative assessment of the model, a method to visualize the estimated key
 
 \section{Plans and Progress To Date}
 
-We completed consultations of research papers and online articles. We completed the data generator and model training pipelines, enabling us to begin our first round of model training. The data generator has preliminary filtering and no augmentation, and the model training has variable architecture parameters and save/resume capability. We completed the majority of the Preparation milestone mentioned in our Proposal. The remaining task involves data augmentation, which was more complex than it appeared because the transformations need to be mirrored on the joint labels as well. A significant portion of the Architecture milestone is complete as well, with remaining work mostly in processing and evaluating the model output, and exploring techniques to improve training.
-
-We have held weekly standup meetings 
-
-\subsection{Julian - Data Generator Pipeline}
-
-\subsection{Robert - Model Architecture and Training Pipeline}
-Various model architecture types were evaluated on the following criteria: complexity, feasibility for this project timeline, and research paper results. The main resource was a survey paper outlining top 2D single-person pose estimation methods.
-
+We completed consultations of research papers and online articles, and held weekly standup meetings. We completed the data generator and model training pipelines, enabling us to begin our first round of model training. The data generator has preliminary filtering and no augmentation, and the model training has variable architecture parameters and save/resume capability. We completed the majority of the Preparation milestone mentioned in our Proposal. The remaining task involves data augmentation, which was more complex than it appeared because the transformations need to be mirrored on the joint labels as well. A significant portion of the Architecture milestone is complete as well, with remaining work mostly in processing and evaluating the model output, and exploring techniques to improve training. A breakdown of our individual tasks, specific experiments and our initial results are outlined in \nameref{SectionInitialResults}. The specific details of future experiments are outlined in \nameref{SectionTaskB}. 
 
 \section{Task Breakdown}
+\label{SectionTaskB}
 
 \subsection{Julian}
 Julian is planning on performing experiments to see how adding data augmentation to the input pipeline will affect model performance. These experiments will include: varying bounding box size from 110\% to 150\%, flipping images horizontally, rotating images slightly, and various adjustments to brightness, contrast, and noise/grain. Augmentation will be done online between batch fetches and will replace examples. Due to the long training times of the current model, Julian may explore the option of converting a keras model to a TPU compatible model, which can be run on Google Colab TPU’s to hopefully reduce training time. Finally, Julian would like to explore hyperparameter tuning and training of the model.
@@ -84,6 +77,7 @@ Julian is planning on performing experiments to see how adding data augmentation
 \subsection{Robert}
 
 \section{Initial Results}
+\label{SectionInitialResults}
 
 \subsection{Julian - Data Generator Pipeline}
 
@@ -140,17 +134,16 @@ The COCO dataset is more than 20GB so keeping the entire dataset in memory durin
 \end{figure}
 
 \subsection{Robert - Model Architecture and Training Pipeline}
+Various model architecture types were evaluated on the following criteria: complexity, feasibility for this project timeline, and research paper results. The main resource was a survey paper outlining top 2D single-person pose estimation methods shown in Table \ref{tab:table_2d_hpe}. The majority of the top performing systems were based on an Hourglass backbone. Thus, we selected the network shown in Fig. \ref{fig:stacked_hourglass}.
 
-\clearpage
-\section{Appendix}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{stacked_hourglass}
+    \caption{A stacked hourglass network for HPE \cite{newell2016stacked}}
+    \label{fig:stacked_hourglass}
+\end{figure}
 
-\begin{table}[h]
-   \centering
-   \caption{A summary of 2D single-person human pose estimation methods \cite{Chen_2020}}
-   \includegraphics[width=1\textwidth]{summary_2d_1ppl_hpe}
-   \label{tab:table_2d_hpe}
-\end{table}
-
+The network architecture was implemented in Keras with a TensorFlow backend. It includes capability to adjust the number of hourglass modules, feature channels, input and output resolution, and the type of 2D convolution block (separable vs normal). To verify model training, the Tensorboard logs for training sessions were analyzed. The results are discussed in \nameref{SectionInitialResults}.
 
 % TODO delete below, they’re comments here for reference on LaTeX style
 
@@ -179,5 +172,15 @@ The COCO dataset is more than 20GB so keeping the entire dataset in memory durin
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
+
+\clearpage
+\section{Appendix}
+
+\begin{table}[h]
+   \centering
+   \caption{A summary of 2D single-person human pose estimation methods \cite{Chen_2020}}
+   \includegraphics[width=1\textwidth]{summary_2d_1ppl_hpe}
+   \label{tab:table_2d_hpe}
+\end{table}
 
 \end{document}
