@@ -51,18 +51,38 @@ While there were many existing HPE datasets, very few perfectly matched our chos
 
 \section{Goals}
 
-The goal of this project is developing a HPE model that can perform with high accuracy and generalize well to unseen data. The success of the model will be measured using a subset of 2 quantifiable metrics common to the HPE literature [6]. 
+The goal of this project is developing a HPE model that can perform with high accuracy and generalize well to unseen data. The success of the model will be measured using a subset of 2 quantifiable metrics common to the HPE literature \cite{Babu_2019}. 
 
-The first metric that has been implemented for testing is Object Keypoint Similarity (OKS). OKS is commonly reported in the literature in terms of AR (average recall) and AP (average precision). It is implemented using the COCO keypoint evaluation server. COCO provides a Python API [9] to evaluate results and compute precision and recall of OKS across scales. It requires that our model outputs be formatted according to the COCO keypoint detection standard [10]. Beyond model evaluation, the API also provides methods for detailed analysis of errors with plots that can be further explored.
+The first metric that has been implemented for testing is Object Keypoint Similarity (OKS) as seen below in Figure \ref{fig:oks_evaluation_metrics}. OKS is commonly reported in the literature in terms of AR (average recall) and AP (average precision). It is implemented using the COCO keypoint evaluation server. COCO provides a Python API \cite{coco_keypoints} to evaluate results and compute precision and recall of OKS across scales. It requires that our model outputs be formatted according to the COCO keypoint detection standard \cite{coco_format_results}. Beyond model evaluation, the API also provides methods for detailed analysis of errors with plots that can be further explored.
 
-The second metric is Percentage of Correct Key Points (PCK) [7] which will need to be implemented ourselves, separately from the COCO evaluation API. A detected joint is considered correct if the distance between the predicted and the true joint is within a certain threshold (threshold varies). PCKh@0.5 is when the threshold = 50\% of the head bone link. PCK.0.2 is when the distance between the predicted and true joint is less than 0.2x torso diameter.
+\begin{figure}
+    \centering
+    \includegraphics[width=1\textwidth]{oks_evaluation_metrics.png}
+    \caption{COCO Evaluation OKS Metrics}
+    \label{fig:oks_evaluation_metrics}
+\end{figure}
 
-After initial implementations of evaluation metrics and more research, we have decided to not pursue two metrics we mentioned in our formal proposal. The Percentage of Correct Parts (PCP) [7] metric, where a detected joint is considered correct if the distance between the predicted joints and the true joint is at most half of the limb length, was determined to penalize shorter limbs and is not considered useful in practice. The other metric we chose not to include is Percentage of Detected Joints (PDJ) [7]. For PDJ a detected joint is correct if the distance between the predicted and the true joint is within a certain fraction of the torso diameter. This metric is not as sensitive to the shorter limb problem since smaller people have shorter limbs and smaller torsos. However, this metric can penalize images that have people in different folded positions or torsos that aren’t visible.
+The second metric is Percentage of Correct Key Points (PCK) \cite{Cbsudux_2019} which will need to be implemented ourselves, separately from the COCO evaluation API. A detected joint is considered correct if the distance between the predicted and the true joint is within a certain threshold (threshold varies). PCKh@0.5 is when the threshold = 50\% of the head bone link. PCK.0.2 is when the distance between the predicted and true joint is less than 0.2x torso diameter.
+
+After initial implementations of evaluation metrics and more research, we have decided to not pursue two metrics we mentioned in our formal proposal. The Percentage of Correct Parts (PCP) \cite{Cbsudux_2019} metric, where a detected joint is considered correct if the distance between the predicted joints and the true joint is at most half of the limb length, was determined to penalize shorter limbs and is not considered useful in practice. The other metric we chose not to include is Percentage of Detected Joints (PDJ) \cite{Cbsudux_2019}. For PDJ a detected joint is correct if the distance between the predicted and the true joint is within a certain fraction of the torso diameter. This metric is not as sensitive to the shorter limb problem since smaller people have shorter limbs and smaller torsos. However, this metric can penalize images that have people in different folded positions or torsos that aren’t visible.
 
 The viability of this API has been explored and is allowing us to avoid implementing all of our own functions for computing evaluation metrics and align with existing industry-standard evaluation techniques. We will likely add to this evaluation by implementing our own metric for PCK.
 
-For qualitative assessment of the model, a method to visualize the estimated keypoints and limbs overlayed on the input image has been implemented. This will be useful not only for visual demonstrations of the final product, but also to aid understanding the nature of any errors during the training/tuning phase. Should time permit, cross dataset evaluation will be used to demonstrate the model’s ability to generalize on a completely different data. Since different datasets have different labelling standards, some work will likely be required to format and prepare new datasets for evaluation. The COCO evaluation API will unfortunately not work with other dataset’s ground truth annotation data, however our implementation of PCK could still be used. The system should also perform with a reasonable latency.
+For qualitative assessment of the model, a method to visualize the estimated keypoints and limbs overlayed on the input image has been implemented, see below in Figure \ref{fig:coco_evaluation_annotation}. This will be useful not only for visual demonstrations of the final product, but also to aid understanding the nature of any errors during the training/tuning phase. Should time permit, cross dataset evaluation will be used to demonstrate the model’s ability to generalize on a completely different data. Since different datasets have different labelling standards, some work will likely be required to format and prepare new datasets for evaluation. The COCO evaluation API will unfortunately not work with other dataset’s ground truth annotation data, however our implementation of PCK could still be used. The system should also perform with a reasonable latency.
 
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=\linewidth]{annotated_evaluation_image.png}
+        \caption{Original COCO image \cite{coco_data}}
+    \end{subfigure}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=\linewidth]{original_evaluation_image.png}
+        \caption{COCO image with result annotation}
+    \end{subfigure}
+    \caption{COCO Evaluation Annotation}
+    \label{fig:coco_evaluation_annotation}
+\end{figure}
 
 \section{Plans and Progress To Date}
 
@@ -83,7 +103,7 @@ Wanze has been focusing on the multi-person extension mentioned above. However, 
 \subsection{Rafay}
 Rafay has worked on taking a set of test data provided by COCO and running evaluation metrics. So far the test data has been evaluated using the COCO API. The objective was to set up evaluation metrics that could be connected when necessary. Future steps will include adding metadata into the model’s output in order to run evaluation and implementing the Percentage of Correct Key Point metrics. Lastly, he will be focusing on tweaking the current loss functions or implementing a net new one.   
 \subsection{Nicole}
-Nicole is planning to work on implementing the Percentage of Correct Key Points metric that is not included in the COCO Evaluation API. Another evaluation metric will be helpful to observe changes and we can possibly benefit from using this metric on other datasets if time permits. The model’s output format also needs to be updated to work with the previously tested COCO evaluation API for the OKS metric. Lastly, she will focus on updating or changing the current loss function used in the model in order to get better results. 
+Nicole is planning to work on implementing the Percentage of Correct Key Points metric that is not included in the COCO Evaluation API with Rafay. Another evaluation metric will be helpful to observe changes and we can possibly benefit from using this metric on other datasets if time permits. The model’s output format also needs to be updated to work with the previously tested COCO evaluation API for the OKS metric. We will need to add in some metadata fields to the data generator to determine confidence scores from the generated heatmaps. Lastly, she will focus on updating or changing the current loss function used in the model in order to get better results.
 
 \section{Initial Results}
 \label{SectionInitialResults}
