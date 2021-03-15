@@ -85,12 +85,12 @@ Various metrics were gathered on the COCO dataset to help inform how the data sh
 
 \begin{figure}[h]
     \centering
-    \begin{subfigure}{0.4\linewidth}
-        \includegraphics[width=\textwidth]{imgs_vs_anns.png}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=\linewidth]{imgs_vs_anns.png}
         \caption{Number of images with a given number of annotations}
     \end{subfigure}
-    \begin{subfigure}{0.4\linewidth}
-        \includegraphics[width=\textwidth]{anns_vs_kps.png}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=\linewidth]{anns_vs_kps.png}
         \caption{Number of annotations with a given number of keypoints}
     \end{subfigure}
     \caption{COCO metrics}
@@ -99,11 +99,11 @@ Various metrics were gathered on the COCO dataset to help inform how the data sh
 
 \begin{figure}[h]
     \centering
-    \begin{subfigure}{0.4\linewidth}
-        \includegraphics[width=\textwidth]{zero_kp_skatepark.png}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=\linewidth]{zero_kp_skatepark.png}
     \end{subfigure}
-    \begin{subfigure}{0.4\linewidth}
-        \includegraphics[width=\textwidth]{zero_kp_elephant.png}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=\linewidth]{zero_kp_elephant.png}
     \end{subfigure}
     \caption{Examples of annotations with zero labelled keypoints}
     \label{fig:zero_kp_images}
@@ -113,20 +113,20 @@ The COCO dataset is more than 20GB so keeping the entire dataset in memory durin
 
 \begin{figure}[h]
     \centering
-    \begin{subfigure}{0.4\linewidth}
-        \includegraphics[width=\textwidth]{original_image.png}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{original_image.png}
         \caption{Original image}
     \end{subfigure}
-    \begin{subfigure}{0.4\linewidth}
-        \includegraphics[width=\textwidth]{original_w_gt.png}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{original_w_gt.png}
         \caption{Original image with ground truth annotations overlaid}
     \end{subfigure}
-    \begin{subfigure}{0.4\linewidth}
-        \includegraphics[width=\textwidth]{processed_image.png}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{processed_image.png}
         \caption{Processed image}
     \end{subfigure}
-    \begin{subfigure}{0.4\linewidth}
-        \includegraphics[width=\textwidth]{processed_image_w_anns.png}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{processed_image_w_anns.png}
         \caption{Processed image with translated keypoints and left hand heat map overlaid}
     \end{subfigure}
     \caption{Example of transformations applied by the data generator}
@@ -143,7 +143,11 @@ Various model architecture types were evaluated on the following criteria: compl
     \label{fig:stacked_hourglass}
 \end{figure}
 
-The network architecture was implemented in Keras with a TensorFlow backend. It includes capability to adjust the number of hourglass modules, feature channels, input and output resolution, and the type of 2D convolution block (separable vs normal). To verify model training, the Tensorboard logs for training sessions were analyzed. The results are discussed in \nameref{SectionInitialResults}.
+The network architecture was implemented in Keras with a TensorFlow backend. It includes capability to adjust the number of hourglass modules, feature channels, input and output resolution, and the type of 2D convolution block (separable vs normal). Since this is an extremely deep network, we elected to use intermediate training to help gradients propagate into the earlier stages of the network. To verify model training, the Tensorboard logs for training sessions were analyzed. The training and validation graphs are shown in Figs. \ref{fig:hg_4_train} and \ref{fig:hg_4_val}, respectively, for a 4-stack network. The layer closest to the input side is numbered 0, and the output layer is numbered 3. We note that the trend of the loss, except for a blip in validation layer 3, has a downward trend, which is a good sign the model is learning something. We have not fully determined how the accuracy is assessed, so the absolute value of the loss is not analyzed. However, the accuracy seems to be improving with training. There is a small concern with the training loss flattening out and nearing 0, which may affect back propagation because of vanishing gradients. 
+
+Google Colab training pipeline was finalized. We discovered that Colab had an issue accessing a mounted Google Drive folder containing more than 5,000 items. We first explored using symlinks that link on the Colab virtual machine (VM) disk to the mounted Google Drive shared folder. The files still needed to be visited once to add them to the cache. While this improved performance, we determined that it would be faster to download the dataset on the VM disk every time. Thus, we wrote a script that consistently sets up the Colab environment.
+
+Finally, since Colab instances are time-limited, model saving and resuming was essential. This was implemented by command line arguments when the training script was run.
 
 % TODO delete below, they’re comments here for reference on LaTeX style
 
@@ -182,5 +186,49 @@ The network architecture was implemented in Keras with a TensorFlow backend. It 
    \includegraphics[width=1\textwidth]{summary_2d_1ppl_hpe}
    \label{tab:table_2d_hpe}
 \end{table}
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{train_layer_0_acc.png}
+        \caption{Training Layer 0 Accuracy}
+    \end{subfigure}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{train_layer_0_loss.png}
+        \caption{Training Layer 0 Loss}
+    \end{subfigure}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{train_layer_3_acc.png}
+        \caption{Training Layer 3 Accuracy}
+    \end{subfigure}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{train_layer_3_loss.png}
+        \caption{Training Layer 3 Loss}
+    \end{subfigure}
+    \caption{Training accuracy and loss vs. epochs}
+    \label{fig:hg_4_train}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{val_layer_0_acc.png}
+        \caption{Validation Layer 0 Accuracy}
+    \end{subfigure}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{val_layer_0_loss.png}
+        \caption{Validation Layer 0 Loss}
+    \end{subfigure}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{val_layer_3_acc.png}
+        \caption{Validation Layer 3 Accuracy}
+    \end{subfigure}
+    \begin{subfigure}{0.4\textwidth}
+        \includegraphics[width=0.8\linewidth]{val_layer_3_loss.png}
+        \caption{Validation Layer 3 Loss}
+    \end{subfigure}
+    \caption{Validation accuracy and loss vs. epochs}
+    \label{fig:hg_4_val}
+\end{figure}
 
 \end{document}
