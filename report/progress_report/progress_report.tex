@@ -55,7 +55,7 @@ The goal of this project is developing a HPE model that can perform with high ac
 
 The first metric that has been implemented for testing is Object Keypoint Similarity (OKS). OKS is commonly reported in the literature in terms of AR (average recall) and AP (average precision). It is implemented using the COCO keypoint evaluation server. COCO provides a Python API [9] to evaluate results and compute precision and recall of OKS across scales. It requires that our model outputs be formatted according to the COCO keypoint detection standard [10]. Beyond model evaluation, the API also provides methods for detailed analysis of errors with plots that can be further explored.
 
-The second metric is Percentage of Correct Key Points (PCK) [7] which will need to be implemented ourselves, separately from the COCO evaluation API. A detected joint is considered correct if the distance between the predicted and the true joint is within a certain threshold (threshold varies). PCKh@0.5 is when the threshold = 50% of the head bone link. PCK.0.2 is when the distance between the predicted and true joint is less than 0.2x torso diameter.
+The second metric is Percentage of Correct Key Points (PCK) [7] which will need to be implemented ourselves, separately from the COCO evaluation API. A detected joint is considered correct if the distance between the predicted and the true joint is within a certain threshold (threshold varies). PCKh@0.5 is when the threshold = 50\% of the head bone link. PCK.0.2 is when the distance between the predicted and true joint is less than 0.2x torso diameter.
 
 After initial implementations of evaluation metrics and more research, we have decided to not pursue two metrics we mentioned in our formal proposal. The Percentage of Correct Parts (PCP) [7] metric, where a detected joint is considered correct if the distance between the predicted joints and the true joint is at most half of the limb length, was determined to penalize shorter limbs and is not considered useful in practice. The other metric we chose not to include is Percentage of Detected Joints (PDJ) [7]. For PDJ a detected joint is correct if the distance between the predicted and the true joint is within a certain fraction of the torso diameter. This metric is not as sensitive to the shorter limb problem since smaller people have shorter limbs and smaller torsos. However, this metric can penalize images that have people in different folded positions or torsos that aren’t visible.
 
@@ -77,9 +77,13 @@ We have explored the feasibility of multi-person extension mentioned in the Prop
 Julian is planning on performing experiments to see how adding data augmentation to the input pipeline will affect model performance. These experiments will include: varying bounding box size from 110\% to 150\%, flipping images horizontally, rotating images slightly, and various adjustments to brightness, contrast, and noise/grain. Augmentation will be done online between batch fetches and will replace examples. Due to the long training times of the current model, Julian may explore the option of converting a keras model to a TPU compatible model, which can be run on Google Colab TPU’s to hopefully reduce training time. Finally, Julian would like to explore hyperparameter tuning and training of the model.
 
 \subsection{Robert}
-Robert is planning to explore if there are better training metrics than accuracy and mean-squared error. These experiments will analyze whether the gradient of the loss value will approach zero too quickly and flatten out, which may cause the gradient to vanish. Robert may explore either data augmentation, visualizing the network layer outputs, or TPU conversion mentioned above. 
+Robert is planning to explore if there are better training metrics than accuracy and mean-squared error. These experiments will analyze whether the gradient of the loss value will approach zero too quickly and flatten out, which may cause the gradient to vanish. Robert may explore either data augmentation, layer output visualization, or TPU conversion mentioned above. 
 \subsection{Wanze}
 Wanze has been focusing on the multi-person extension mentioned above. However, since the extension might be out of scope of this project, Wanze will be switching to explore Data Augmentation with Julian.  If time permits, Wanze would love to come back to work on  multi-person extension again - improve the accuracy of human localization within an image. 
+\subsection{Rafay}
+Rafay has worked on taking a set of test data provided by COCO and running evaluation metrics. So far the test data has been evaluated using the COCO API. The objective was to set up evaluation metrics that could be connected when necessary. Future steps will include adding metadata into the model’s output in order to run evaluation and implementing the Percentage of Correct Key Point metrics. Lastly, he will be focusing on tweaking the current loss functions or implementing a net new one.   
+\subsection{Nicole}
+Nicole is planning to work on implementing the Percentage of Correct Key Points metric that is not included in the COCO Evaluation API. Another evaluation metric will be helpful to observe changes and we can possibly benefit from using this metric on other datasets if time permits. The model’s output format also needs to be updated to work with the previously tested COCO evaluation API for the OKS metric. Lastly, she will focus on updating or changing the current loss function used in the model in order to get better results. 
 
 \section{Initial Results}
 \label{SectionInitialResults}
@@ -150,14 +154,14 @@ Various model architecture types were evaluated on the following criteria: compl
     \label{fig:stacked_hourglass}
 \end{figure}
 
-The network architecture was implemented in Keras with a TensorFlow backend. It includes capability to adjust the number of hourglass modules, feature channels, input and output resolution, and the type of 2D convolution block (separable vs normal). Since this is an extremely deep network, we elected to use intermediate training to help gradients propagate into the earlier stages of the network. To verify model training, the Tensorboard logs for training sessions were analyzed. The training and validation graphs are shown in Figs. \ref{fig:hg_4_train} and \ref{fig:hg_4_val}, respectively, for a 4-stack network. The layer closest to the input side is numbered 0, and the output layer is numbered 3. We note that the trend of the loss, except for a blip in validation layer 3, has a downward trend, which is a good sign the model is learning something. We have not fully determined how the accuracy is assessed, so the absolute value of the loss is not analyzed. However, the accuracy seems to be improving with training. There is a small concern with the training loss flattening out and nearing 0 with values in the range of 1e-3, which may affect back propagation because of vanishing gradients. 
+The network architecture was implemented in Keras with a TensorFlow backend. It includes capability to adjust the number of hourglass modules, feature channels, input and output resolution, and the type of 2D convolution block (separable vs normal). Since this is an extremely deep network, we elected to use intermediate training to help gradients propagate into the earlier stages of the network. To verify model training, the Tensorboard logs for training sessions were analyzed. The training and validation graphs are shown in Figs. \ref{fig:hg_4_train} and \ref{fig:hg_4_val}, respectively, for a 4-stack network. The layer closest to the input side is numbered 0, and the output layer is numbered 3. We note that the trend of the loss, except for a blip in validation layer 3, has a downward trend, which is a good sign the model is learning something. We have not fully determined how the accuracy is assessed, so the absolute value of the loss is not analyzed. However, the accuracy seems to be improving with training. There is a small concern with the training loss flattening out and nearing 0 with values in the range of 1e-3, which may affect back propagation because of vanishing gradients. We hypothesize that mean-squared error may be inadequate because we use a heat map for each joint. Since the mean value is relatively consistent for our ground truth labels, a model guessing the mean may perform adequately for minimizing the loss, but perform horribly for the problem.
 
 Google Colab training pipeline was finalized. We discovered that Colab had an issue accessing a mounted Google Drive folder containing more than 5,000 items. We first explored using symlinks that link on the Colab virtual machine (VM) disk to the mounted Google Drive shared folder. The files still needed to be visited once to add them to the cache. While this improved performance, we determined that it would be faster to download the dataset on the VM disk every time. Thus, we wrote a script that consistently sets up the Colab environment.
 
 Finally, since Colab instances are time-limited, model saving and resuming was essential. This was implemented by command line arguments when the training script was run.
 
 
-\subsection{Wanze}
+\subsection{Wanze - Multi-Person Detector}
 A few architectures of human detection have been implemented and experimented. Here are a couple of examples with pros and cons indicated. 
 
 \begin{itemize}
@@ -168,6 +172,9 @@ A few architectures of human detection have been implemented and experimented. H
 \end{itemize}
 
 All in all, there is a trade-off between efficiency and accuracy, which we have not yet found a healthy balance of. Given the limited time and resources, this extension may not be included in the final product.
+
+
+
 
 % TODO delete below, they’re comments here for reference on LaTeX style
 
