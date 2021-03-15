@@ -68,14 +68,18 @@ For qualitative assessment of the model, a method to visualize the estimated key
 
 We completed consultations of research papers and online articles, and held weekly standup meetings. We completed the data generator and model training pipelines, enabling us to begin our first round of model training. The data generator has preliminary filtering and no augmentation, and the model training has variable architecture parameters and save/resume capability. We completed the majority of the Preparation milestone mentioned in our Proposal. The remaining task involves data augmentation, which was more complex than it appeared because the transformations need to be mirrored on the joint labels as well. A significant portion of the Architecture milestone is complete as well, with remaining work mostly in processing and evaluating the model output, and exploring techniques to improve training. A breakdown of our individual tasks, specific experiments and our initial results are outlined in \nameref{SectionInitialResults}. The specific details of future experiments are outlined in \nameref{SectionTaskB}. 
 
+We have explored the feasibility of multi-person extension mentioned in the Proposal. The goal for this extension is to have the model perform and predict on images containing multiple humans. The theoretical process of achieving this is to have humans localized in the image, draw bounding boxes around them and then feed the image with multiple bounding boxes into the model. The model can then focus on each bounding box and treat it as a single-person input. A few different architectures, such as built-in HOG function and state-of-art human-detectors, have been explored. Please refer to \nameref{SectionInitialResults} for more details. Please also note that due to the limit of time and resources, multi-person extension is still in the experimental stage and may not be included in the final product.   
+
+
 \section{Task Breakdown}
 \label{SectionTaskB}
-
 \subsection{Julian}
 Julian is planning on performing experiments to see how adding data augmentation to the input pipeline will affect model performance. These experiments will include: varying bounding box size from 110\% to 150\%, flipping images horizontally, rotating images slightly, and various adjustments to brightness, contrast, and noise/grain. Augmentation will be done online between batch fetches and will replace examples. Due to the long training times of the current model, Julian may explore the option of converting a keras model to a TPU compatible model, which can be run on Google Colab TPU’s to hopefully reduce training time. Finally, Julian would like to explore hyperparameter tuning and training of the model.
 
 \subsection{Robert}
 Robert is planning to explore if there are better training metrics than accuracy and mean-squared error. These experiments will analyze whether the gradient of the loss value will approach zero too quickly and flatten out, which may cause the gradient to vanish. Robert may explore either data augmentation, layer output visualization, or TPU conversion mentioned above. 
+\subsection{Wanze}
+Wanze has been focusing on the multi-person extension mentioned above. However, since the extension might be out of scope of this project, Wanze will be switching to explore Data Augmentation with Julian.  If time permits, Wanze would love to come back to work on  multi-person extension again - improve the accuracy of human localization within an image. 
 
 \section{Initial Results}
 \label{SectionInitialResults}
@@ -110,6 +114,7 @@ Various metrics were gathered on the COCO dataset to help inform how the data sh
     \label{fig:zero_kp_images}
 \end{figure}
 
+
 The COCO dataset is more than 20GB so keeping the entire dataset in memory during training is not an option. Image preprocessing needs to be done to get the images and annotations in a format that can be passed to the model. A data generator was developed to tackle these two tasks. To prevent the generator from being the bottleneck of the training process, it makes use of multiple cores. The generator fetches images from disk in batches and the next batch can be fetched and processed while the model is performing the front and back propagation on the current batch. The preprocessing responsibilities of the data generator include: cropping to the ground truth bounding box of a person, resizing to the models input resolution and dimensions, and converting ground truth annotations for each keypoint to a heatmap for the cropped images. Fig. \ref{fig:data_gen_ex} shows an example of the transformations. Fig. \ref{fig:data_gen_ex} only shows the cropping for one person but since there are 4 annotated people, the image would get split into 4 images, each centered on the person of interest. Fig. \ref{fig:data_gen_ex} also only shows the heat map of the left hand, but since COCO annotations contain 17 keypoints, it produces 17 heatmaps per annotation. 
 
 \begin{figure}[h]
@@ -134,6 +139,7 @@ The COCO dataset is more than 20GB so keeping the entire dataset in memory durin
     \label{fig:data_gen_ex}
 \end{figure}
 
+
 \subsection{Robert - Model Architecture and Training Pipeline}
 Various model architecture types were evaluated on the following criteria: complexity, feasibility for this project timeline, and research paper results. The main resource was a survey paper outlining top 2D single-person pose estimation methods shown in Table \ref{tab:table_2d_hpe}. The majority of the top performing systems were based on an Hourglass backbone. Thus, we selected the network shown in Fig. \ref{fig:stacked_hourglass}.
 
@@ -144,11 +150,24 @@ Various model architecture types were evaluated on the following criteria: compl
     \label{fig:stacked_hourglass}
 \end{figure}
 
-The network architecture was implemented in Keras with a TensorFlow backend. It includes capability to adjust the number of hourglass modules, feature channels, input and output resolution, and the type of 2D convolution block (separable vs normal). Since this is an extremely deep network, we elected to use intermediate training to help gradients propagate into the earlier stages of the network. To verify model training, the Tensorboard logs for training sessions were analyzed. The training and validation graphs are shown in Figs. \ref{fig:hg_4_train} and \ref{fig:hg_4_val}, respectively, for a 4-stack network. The layer closest to the input side is numbered 0, and the output layer is numbered 3. We note that the trend of the loss, except for a blip in validation layer 3, has a downward trend, which is a good sign the model is learning something. We have not fully determined how the accuracy is assessed, so the absolute value of the loss is not analyzed. However, the accuracy seems to be improving with training. There is a small concern with the training loss flattening out and nearing 0 with values in the range of 1e-3, which may affect back propagation because of vanishing gradients. We hypothesize that mean-squared error may be inadequate because we use a heat map for each joint. Since the mean value is relatively consistent for our ground truth labels, a model guessing the mean may perform adequately for minimizing the loss, but perform horribly for the problem.
+The network architecture was implemented in Keras with a TensorFlow backend. It includes capability to adjust the number of hourglass modules, feature channels, input and output resolution, and the type of 2D convolution block (separable vs normal). Since this is an extremely deep network, we elected to use intermediate training to help gradients propagate into the earlier stages of the network. To verify model training, the Tensorboard logs for training sessions were analyzed. The training and validation graphs are shown in Figs. \ref{fig:hg_4_train} and \ref{fig:hg_4_val}, respectively, for a 4-stack network. The layer closest to the input side is numbered 0, and the output layer is numbered 3. We note that the trend of the loss, except for a blip in validation layer 3, has a downward trend, which is a good sign the model is learning something. We have not fully determined how the accuracy is assessed, so the absolute value of the loss is not analyzed. However, the accuracy seems to be improving with training. There is a small concern with the training loss flattening out and nearing 0 with values in the range of 1e-3, which may affect back propagation because of vanishing gradients. 
 
 Google Colab training pipeline was finalized. We discovered that Colab had an issue accessing a mounted Google Drive folder containing more than 5,000 items. We first explored using symlinks that link on the Colab virtual machine (VM) disk to the mounted Google Drive shared folder. The files still needed to be visited once to add them to the cache. While this improved performance, we determined that it would be faster to download the dataset on the VM disk every time. Thus, we wrote a script that consistently sets up the Colab environment.
 
 Finally, since Colab instances are time-limited, model saving and resuming was essential. This was implemented by command line arguments when the training script was run.
+
+
+\subsection{Wanze}
+A few architectures of human detection have been implemented and experimented. Here are a couple of examples with pros and cons indicated. 
+
+\begin{itemize}
+    \item \textbf{Built-in HOG function}: 
+    The advantages of using HOG function is the relatively high efficiency. Training time is significantly shorter than any other state-of-art architectures. However, the accuracy is not ideal. HOG uses colour gradient decent to identify human. It performs very well on images with clear human boundaries but very poorly if there’s any overlap involved.  
+    \item \textbf{State-of-art human-detector}: 
+    The advantages of using state-of-art solutions is that the accuracy significantly improves. As we can see the architecture correctly identifies all the human within this image. However, the inference time is a bit unbearable. It is safe to say that it would be too ambitious to predict on all multi-person images within the dataset with this architecture. 
+\end{itemize}
+
+All in all, there is a trade-off between efficiency and accuracy, which we have not yet found a healthy balance of. Given the limited time and resources, this extension may not be included in the final product.
 
 % TODO delete below, they’re comments here for reference on LaTeX style
 
@@ -180,13 +199,14 @@ Finally, since Colab instances are time-limited, model saving and resuming was e
 
 \clearpage
 \section{Appendix}
-
+ 
 \begin{table}[h]
-   \centering
-   \caption{A summary of 2D single-person human pose estimation methods \cite{Chen_2020}}
-   \includegraphics[width=1\textwidth]{summary_2d_1ppl_hpe}
-   \label{tab:table_2d_hpe}
+  \centering
+  \caption{A summary of 2D single-person human pose estimation methods \cite{Chen_2020}}
+  \includegraphics[width=1\textwidth]{summary_2d_1ppl_hpe}
+  \label{tab:table_2d_hpe}
 \end{table}
+
 
 \begin{figure}[h]
     \centering
@@ -231,5 +251,7 @@ Finally, since Colab instances are time-limited, model saving and resuming was e
     \caption{Validation accuracy and loss vs. epochs}
     \label{fig:hg_4_val}
 \end{figure}
+
+
 
 \end{document}
