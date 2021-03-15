@@ -21,7 +21,7 @@
 % location for images
 \graphicspath{ {./figures/} }
 
-\setlength{\parskip}{1em}
+% \setlength{\parskip}{1em}
 
 \title{\textbf{Human Pose Estimation: Progress Report}}
 \author{Robert Lee, Julian Rocha, Wanze Zhang, Nicole Peverley, Rafay Chaudhry, Corey Koelewyn}
@@ -46,16 +46,50 @@ There are many variations of HPE systems, which can be roughly categorized into 
 
 There are three different types of models used with full body HPE: kinematic, contour, and volumetric, as shown in Fig. \ref{fig:body_model} \cite{Chen_2020}. A kinematic model consists of points on each human joint connected by straight lines, similar to a stick-figure skeleton. The contour model consists of 2D squares and rectangles that represent the body, and the volumetric model represents the body with 3D cylinders. Further high-fidelity models implement meshes that capture more details of the human pose. The kinematic model is the simplest model to perform loss metric computations, and thus is preferred by our group as a scope-limiting decision. Using a basic kinematic model will simplify the problem space and encourage us to focus on tangible results that can be used in real life applications. Our goal is to estimate a kinematic model for the individual in each picture.
 
-While there were many existing HPE datasets, very few perfectly matched our chosen requirements for the project. Any available datasets would need to be cleaned and processed. Many datasets contained assorted images that used different types of models for the pose estimation or consisted of multiple people in each image. Our primary choice is the COCO dataset \cite{coco_data}. This dataset consists of 330 K images, of which 200 K are labelled. There are pre-sorted subsets of this dataset specific for HPE competitions: COCO16 and COCO17. These contain 147 K images labelled with bounding boxes, joint locations, and human body masks. We decided to use COCO17 for our generator because. We have decided against using DensePose \cite{densepose}, which is a highly detailed manually annotated subset of the COCO dataset, because it does not offer joint coordinate labels. We hope to use the MPII dataset \cite{mpii}, which consists of 41 K labelled images split into 29 K train and 12 K test, for validating our model’s performance if time permits. 
+While there were many existing HPE datasets, very few perfectly matched our chosen requirements for the project. Any available datasets would need to be cleaned and processed. Many datasets contained assorted images that used different types of models for the pose estimation or consisted of multiple people in each image. Our primary choice is the COCO dataset \cite{coco_data}. This dataset consists of 330 K images, of which 200 K are labelled. There are pre-sorted subsets of this dataset specific for HPE competitions: COCO16 and COCO17. These contain 147 K images labelled with bounding boxes, joint locations, and human body masks. We decided to use COCO17 for our generator because. We have decided against using DensePose \cite{densepose}, which is a highly detailed manually annotated subset of the COCO dataset, because it does not offer joint coordinate labels. We still hope to use the MPII dataset \cite{mpii}, which consists of 41 K labelled images split into 29 K train and 12 K test, for validating our model’s performance if time permits. 
 
 
 \section{Goals}
 
+The goal of this project is developing a HPE model that can perform with high accuracy and generalize well to unseen data. The success of the model will be measured using a subset of 2 quantifiable metrics common to the HPE literature [6]. 
+
+The first metric that has been implemented for testing is Object Keypoint Similarity (OKS). OKS is commonly reported in the literature in terms of AR (average recall) and AP (average precision). It is implemented using the COCO keypoint evaluation server. COCO provides a Python API [9] to evaluate results and compute precision and recall of OKS across scales. It requires that our model outputs be formatted according to the COCO keypoint detection standard [10]. Beyond model evaluation, the API also provides methods for detailed analysis of errors with plots that can be further explored.
+
+The second metric is Percentage of Correct Key Points (PCK) [7] which will need to be implemented ourselves, separately from the COCO evaluation API. A detected joint is considered correct if the distance between the predicted and the true joint is within a certain threshold (threshold varies). PCKh@0.5 is when the threshold = 50% of the head bone link. PCK.0.2 is when the distance between the predicted and true joint is less than 0.2x torso diameter.
+
+After initial implementations of evaluation metrics and more research, we have decided to not pursue two metrics we mentioned in our formal proposal. The Percentage of Correct Parts (PCP) [7] metric, where a detected joint is considered correct if the distance between the predicted joints and the true joint is at most half of the limb length, was determined to penalize shorter limbs and is not considered useful in practice. The other metric we chose not to include is Percentage of Detected Joints (PDJ) [7]. For PDJ a detected joint is correct if the distance between the predicted and the true joint is within a certain fraction of the torso diameter. This metric is not as sensitive to the shorter limb problem since smaller people have shorter limbs and smaller torsos. However, this metric can penalize images that have people in different folded positions or torsos that aren’t visible.
+
+The viability of this API has been explored and is allowing us to avoid implementing all of our own functions for computing evaluation metrics and align with existing industry-standard evaluation techniques. We will likely add to this evaluation by implementing our own metric for PCK.
+
+For qualitative assessment of the model, a method to visualize the estimated keypoints and limbs overlayed on the input image has been implemented. This will be useful not only for visual demonstrations of the final product, but also to aid understanding the nature of any errors during the training/tuning phase. Should time permit, cross dataset evaluation will be used to demonstrate the model’s ability to generalize on a completely different data. Since different datasets have different labelling standards, some work will likely be required to format and prepare new datasets for evaluation. The COCO evaluation API will unfortunately not work with other dataset’s ground truth annotation data, however our implementation of PCK could still be used. The system should also perform with a reasonable latency.
+
 
 \section{Plans and Progress To Date}
-Various metrics were gathered on the COCO dataset to help inform how the data should be processed as well as how the model should handle different scenarios. The two metrics most impactful to the project thus far are documented in Fig. \ref{fig:coco_metrics}. There are 66’808 images in the dataset containing a total of 273’469 annotations. Despite the fact that we have chosen to tackle single person and not multi person pose estimation, a large number of the COCO images contain more than one annotated person. It would be desirable if we did not have to discard these images, so cropping to a bounding box can allow us to convert a multi person image into a single person image. Most of the annotations in the dataset do not have all 17 key points of the body labelled. The model should not expect a perfect human image with all key points visible in frame. The model should instead output a dynamic number of keypoints based on what it can find. But what is the purpose of an annotation with 0 labelled keypoints? Fig. \ref{fig:zero_kp_images} shows two examples of these 0 keypoint annotations. Clearly the bounding boxes of these annotations denote people, but because there are no labeled keypoints, these examples may confuse our model. Therefore, despite the fact that 0 keypoint annotations make up 42.89\% of the total dataset annotations, these annotations will be filtered out during training.
 
-\begin{figure}
+We completed consultations of research papers and online articles. We completed the data generator and model training pipelines, enabling us to begin our first round of model training. The data generator has preliminary filtering and no augmentation, and the model training has variable architecture parameters and save/resume capability. We completed the majority of the Preparation milestone mentioned in our Proposal. The remaining task involves data augmentation, which was more complex than it appeared because the transformations need to be mirrored on the joint labels as well. A significant portion of the Architecture milestone is complete as well, with remaining work mostly in processing and evaluating the model output, and exploring techniques to improve training.
+
+We have held weekly standup meetings 
+
+\subsection{Julian - Data Generator Pipeline}
+
+\subsection{Robert - Model Architecture and Training Pipeline}
+Various model architecture types were evaluated on the following criteria: complexity, feasibility for this project timeline, and research paper results. The main resource was a survey paper outlining top 2D single-person pose estimation methods.
+
+
+\section{Task Breakdown}
+
+\subsection{Julian}
+Julian is planning on performing experiments to see how adding data augmentation to the input pipeline will affect model performance. These experiments will include: varying bounding box size from 110\% to 150\%, flipping images horizontally, rotating images slightly, and various adjustments to brightness, contrast, and noise/grain. Augmentation will be done online between batch fetches and will replace examples. Due to the long training times of the current model, Julian may explore the option of converting a keras model to a TPU compatible model, which can be run on Google Colab TPU’s to hopefully reduce training time. Finally, Julian would like to explore hyperparameter tuning and training of the model.
+
+\subsection{Robert}
+
+\section{Initial Results}
+
+\subsection{Julian - Data Generator Pipeline}
+
+Various metrics were gathered on the COCO dataset to help inform how the data should be processed as well as how the model should handle different scenarios. The two metrics most impactful to the project thus far are documented in Fig. \ref{fig:coco_metrics}. There are 66,808 images in the dataset containing a total of 273,469 annotations. Despite the fact that we have chosen to tackle single person and not multi person pose estimation, a large number of the COCO images contain more than one annotated person. It would be desirable if we did not have to discard these images, so cropping to a bounding box can allow us to convert a multi person image into a single person image. Most of the annotations in the dataset do not have all 17 key points of the body labelled. The model should not expect a perfect human image with all key points visible in frame. The model should instead output a dynamic number of keypoints based on what it can find. But what is the purpose of an annotation with 0 labelled keypoints? Fig. \ref{fig:zero_kp_images} shows two examples of these 0 keypoint annotations. Clearly the bounding boxes of these annotations denote people, but because there are no labeled keypoints, these examples may confuse our model. Therefore, despite the fact that 0 keypoint annotations make up 42.89\% of the total dataset annotations, these annotations will be filtered out during training.
+
+\begin{figure}[h]
     \centering
     \begin{subfigure}{0.4\linewidth}
         \includegraphics[width=\textwidth]{imgs_vs_anns.png}
@@ -69,7 +103,7 @@ Various metrics were gathered on the COCO dataset to help inform how the data sh
     \label{fig:coco_metrics}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \begin{subfigure}{0.4\linewidth}
         \includegraphics[width=\textwidth]{zero_kp_skatepark.png}
@@ -83,7 +117,7 @@ Various metrics were gathered on the COCO dataset to help inform how the data sh
 
 The COCO dataset is more than 20GB so keeping the entire dataset in memory during training is not an option. Image preprocessing needs to be done to get the images and annotations in a format that can be passed to the model. A data generator was developed to tackle these two tasks. To prevent the generator from being the bottleneck of the training process, it makes use of multiple cores. The generator fetches images from disk in batches and the next batch can be fetched and processed while the model is performing the front and back propagation on the current batch. The preprocessing responsibilities of the data generator include: cropping to the ground truth bounding box of a person, resizing to the models input resolution and dimensions, and converting ground truth annotations for each keypoint to a heatmap for the cropped images. Fig. \ref{fig:data_gen_ex} shows an example of the transformations. Fig. \ref{fig:data_gen_ex} only shows the cropping for one person but since there are 4 annotated people, the image would get split into 4 images, each centered on the person of interest. Fig. \ref{fig:data_gen_ex} also only shows the heat map of the left hand, but since COCO annotations contain 17 keypoints, it produces 17 heatmaps per annotation. 
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \begin{subfigure}{0.4\linewidth}
         \includegraphics[width=\textwidth]{original_image.png}
@@ -105,13 +139,17 @@ The COCO dataset is more than 20GB so keeping the entire dataset in memory durin
     \label{fig:data_gen_ex}
 \end{figure}
 
+\subsection{Robert - Model Architecture and Training Pipeline}
 
-\section{Task Breakdown}
-Julian is planning on performing experiments to see how adding data augmentation to the input pipeline will affect model performance. These experiments will include: varying bounding box size from 110\% to 150\%, flipping images horizontally, rotating images slightly, and various adjustments to brightness, contrast, and noise/grain. Augmentation will be done online between batch fetches and will amplify rather than replace examples. Due to the long training times of the current model, Julian may explore the option of converting a keras model to a TPU compatible model, which can be run on Google Collab TPU’s to hopefully reduce training time. Finally, Julian would like to explore hyperparameter tuning and training of the model.
+\clearpage
+\section{Appendix}
 
-
-\section{Initial Results}
-
+\begin{table}[h]
+   \centering
+   \caption{A summary of 2D single-person human pose estimation methods \cite{Chen_2020}}
+   \includegraphics[width=1\textwidth]{summary_2d_1ppl_hpe}
+   \label{tab:table_2d_hpe}
+\end{table}
 
 
 % TODO delete below, they’re comments here for reference on LaTeX style
@@ -137,7 +175,7 @@ Julian is planning on performing experiments to see how adding data augmentation
 %     E=mc^2
 % \end{equation}
 
-\newpage
+\clearpage
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
