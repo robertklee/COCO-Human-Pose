@@ -54,7 +54,7 @@ While there were many existing HPE datasets, very few perfectly matched our chos
 
 The goal of this project is developing a HPE model that can perform with high accuracy and generalize well to unseen data. The success of the model will be measured using a subset of 2 quantifiable metrics common to the HPE literature \cite{Babu_2019}. 
 
-The first metric that has been implemented for testing is Object Keypoint Similarity (OKS) as seen below in Figure \ref{fig:oks_evaluation_metrics}. OKS is commonly reported in the literature in terms of AR (average recall) and AP (average precision). It is implemented using the COCO keypoint evaluation server. COCO provides a Python API \cite{coco_keypoints} to evaluate results and compute precision and recall of OKS across scales. It requires that our model outputs be formatted according to the COCO keypoint detection standard \cite{coco_format_results}. Beyond model evaluation, the API also provides methods for detailed analysis of errors with plots that can be further explored.
+The first metric that has been implemented for testing is Object Keypoint Similarity (OKS) as seen below in Fig. \ref{fig:oks_evaluation_metrics}. OKS is commonly reported in the literature in terms of AR (average recall) and AP (average precision). It is implemented using the COCO keypoint evaluation server. COCO provides a Python API \cite{coco_keypoints} to evaluate results and compute precision and recall of OKS across scales. It requires that our model outputs be formatted according to the COCO keypoint detection standard \cite{coco_format_results}. Beyond model evaluation, the API also provides methods for detailed analysis of errors with plots that can be further explored.
 
 \begin{figure}
     \centering
@@ -69,7 +69,7 @@ After initial implementations of evaluation metrics and more research, we have d
 
 The viability of this API has been explored and is allowing us to avoid implementing all of our own functions for computing evaluation metrics and align with existing industry-standard evaluation techniques. We will likely add to this evaluation by implementing our own metric for PCK.
 
-For qualitative assessment of the model, a method to visualize the estimated keypoints and limbs overlayed on the input image has been implemented, see below in Figure \ref{fig:coco_evaluation_annotation}. This will be useful not only for visual demonstrations of the final product, but also to aid understanding the nature of any errors during the training/tuning phase. Should time permit, cross dataset evaluation will be used to demonstrate the model’s ability to generalize on a completely different data. Since different datasets have different labelling standards, some work will likely be required to format and prepare new datasets for evaluation. The COCO evaluation API will unfortunately not work with other dataset’s ground truth annotation data, however our implementation of PCK could still be used. The system should also perform with a reasonable latency.
+For qualitative assessment of the model, a method to visualize the estimated keypoints and limbs overlayed on the input image has been implemented, see below in Fig. \ref{fig:coco_evaluation_annotation}. This will be useful not only for visual demonstrations of the final product, but also to aid understanding the nature of any errors during the training/tuning phase. Should time permit, cross dataset evaluation will be used to demonstrate the model’s ability to generalize on a completely different data. Since different datasets have different labelling standards, some work will likely be required to format and prepare new datasets for evaluation. The COCO evaluation API will unfortunately not work with other dataset’s ground truth annotation data, however our implementation of PCK could still be used. The system should also perform with a reasonable latency.
 
 \begin{figure}[h]
     \centering
@@ -200,11 +200,9 @@ A few architectures of human detection have been implemented and experimented. H
     The advantages of using HOG function is the relatively high efficiency. Training time is significantly shorter than any other state-of-art architectures. However, the accuracy is not ideal. HOG uses colour gradient decent to identify human. It performs very well on images with clear human boundaries but very poorly if there’s any overlap involved.	
     \item \textbf{Pre-trained CNN \cite{pre_trained_architecture}}: 
     The advantages of using pre-trained solutions is that the accuracy significantly improves. As we can see the architecture correctly identifies all the human within this image. However, the inference time is a bit unbearable. It is safe to say that it would be too ambitious to predict on all multi-person images within the dataset with this architecture. 
-
 \end{itemize}
 
-
-All in all, there is a trade-off between efficiency and accuracy, which we have not yet found a healthy balance of. Given the limited time and resources, this extension may not be included in the final product.
+There is a trade-off between efficiency and accuracy, but given the limited time and resources, this extension may not be included in the final product.
 
 \subsection{Rafay \& Nicole - Evaluation}
 Please refer to \nameref{SectionGoals} for the results.
