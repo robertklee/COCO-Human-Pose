@@ -35,7 +35,7 @@
 
 Human pose estimation (HPE) is the problem domain of identifying body keypoints to construct a body model. Many existing systems accept images as input, with some implementations accepting data such as point cloud or videos. The application of HPE is widespread and benefits many industries. In particular, HPE can revolutionize industries such as augmented reality, animation, gaming, and robotics \cite{fritz_ai_hpe}. There are examples where a person’s gait can be used as an unique fingerprint for tracking or identifying individuals in videos \cite{ZENG_2012_92}. Another subset of HPE is hand pose estimation which can be used to translate sign language. HPE is a difficult problem domain due to challenges such as variability in human appearance and physique, environment lighting and weather, occlusions from other objects, self-occlusions from overlapping joints, complexity of movements of the human skeleton, and the inherent loss of information with a 2D image input \cite{Sigal2014}. This largely unsolved problem enables us to explore many novel and creative approaches, enriching our learning experience. We are excited to explore these applications, but we decided to limit our scope to a general version of the problem so we could reference the abundance of research available.
 
-There are many variations of HPE systems, which can be roughly categorized into 2D vs 3D, single-person vs multi-person, and different body models. Our group plans to focus on single-frame monocular RGB images containing a single individual rather than a photo with multiple individuals. We believe it will be more feasible to train a deep neural network (NN) with one individual based upon the research papers available and in the given timeframe. Given success with single individuals, we may explore multi-person HPE. Current state-of-the-art techniques for 2D single-person HPE can be categorized into two categories: regression on absolute joint position, or detection on joint locations with heat maps. Since a direct mapping from the input space to joint coordinates is a highly non-linear problem, heat-map-based approaches have proven to be more robust by including small-region information \cite{Chen_2020}. Thus, we have used the heat map approach.
+There are many variations of HPE systems, which can be roughly categorized into 2D vs 3D, single-person vs multi-person, and different body models. Our group has focused on single-frame monocular RGB images containing a single individual rather than a photo with multiple individuals. We believe this will be more feasible to complete. Given success with single individuals, we may explore multi-person HPE. Current state-of-the-art techniques for 2D single-person HPE can be categorized into two categories: regression on absolute joint position, or detection on joint locations with heat maps. Since a direct mapping from the input space to joint coordinates is a highly non-linear problem, heat-map-based approaches have proven to be more robust by including small-region information \cite{Chen_2020}. Thus, we have used the heat map approach.
 
 \begin{figure}
     \centering
@@ -50,6 +50,7 @@ While there were many existing HPE datasets, very few perfectly matched our chos
 
 
 \section{Goals}
+\label{SectionGoals}
 
 The goal of this project is developing a HPE model that can perform with high accuracy and generalize well to unseen data. The success of the model will be measured using a subset of 2 quantifiable metrics common to the HPE literature \cite{Babu_2019}. 
 
@@ -88,22 +89,26 @@ For qualitative assessment of the model, a method to visualize the estimated key
 
 We completed consultations of research papers and online articles, and held weekly standup meetings. We completed the data generator and model training pipelines, enabling us to begin our first round of model training. The data generator has preliminary filtering and no augmentation, and the model training has variable architecture parameters and save/resume capability. We completed the majority of the Preparation milestone mentioned in our Proposal. The remaining task involves data augmentation, which was more complex than it appeared because the transformations need to be mirrored on the joint labels as well. A significant portion of the Architecture milestone is complete as well, with remaining work mostly in processing and evaluating the model output, and exploring techniques to improve training. A breakdown of our individual tasks, specific experiments and our initial results are outlined in \nameref{SectionInitialResults}. The specific details of future experiments are outlined in \nameref{SectionTaskB}. 
 
-We have explored the feasibility of multi-person extension mentioned in the Proposal. The goal for this extension is to have the model perform and predict on images containing multiple humans. The theoretical process of achieving this is to have humans localized in the image, draw bounding boxes around them and then feed the image with multiple bounding boxes into the model. The model can then focus on each bounding box and treat it as a single-person input. A few different architectures, such as built-in HOG function and state-of-art human-detectors, have been explored. Please refer to \nameref{SectionInitialResults} for more details. Please also note that due to the limit of time and resources, multi-person extension is still in the experimental stage and may not be included in the final product.   
+We have explored the feasibility of multi-person extension mentioned in the Proposal. The goal for this extension is to have the model perform and predict on images containing multiple humans. The theoretical process of achieving this is to have humans localized in the image, draw bounding boxes around them and then feed the image with multiple bounding boxes into the model. The model can then focus on each bounding box and treat it as a single-person input. A few different architectures, such as pre-trained HOG-based or CNN human detectors, have been explored. Please refer to \nameref{SectionInitialResults} for more details. Please also note that due to the limit of time and resources, multi-person extension is still in the experimental stage and may not be included in the final product.
 
 
 \section{Task Breakdown}
 \label{SectionTaskB}
+
+All group members plan to work on hyperparameter tuning, which involves a number of parameters such as number of hourglass stacks, learning rate scheduler, loss function, batch size, feature depth at bottleneck, and data generator filtering options.
 \subsection{Julian}
 Julian is planning on performing experiments to see how adding data augmentation to the input pipeline will affect model performance. These experiments will include: varying bounding box size from 110\% to 150\%, flipping images horizontally, rotating images slightly, and various adjustments to brightness, contrast, and noise/grain. Augmentation will be done online between batch fetches and will replace examples. Due to the long training times of the current model, Julian may explore the option of converting a keras model to a TPU compatible model, which can be run on Google Colab TPU’s to hopefully reduce training time. Finally, Julian would like to explore hyperparameter tuning and training of the model.
 
 \subsection{Robert}
-Robert is planning to explore if there are better training metrics than accuracy and mean-squared error. These experiments will analyze whether the gradient of the loss value will approach zero too quickly and flatten out, which may cause the gradient to vanish. Robert may explore either data augmentation, layer output visualization, or TPU conversion mentioned above. 
+Robert is planning to explore if there are better training metrics than accuracy and mean-squared error. These experiments will analyze whether the gradient of the loss value will approach zero too quickly and flatten out, which may cause the gradient to vanish. Robert will explore either data augmentation, visualization of intermediate layer heat maps, or TPU conversion mentioned above. He may also work on processing the model output to determine keypoints from the heatmap. 
 \subsection{Wanze}
-Wanze has been focusing on the multi-person extension mentioned above. However, since the extension might be out of scope of this project, Wanze will be switching to explore Data Augmentation with Julian.  If time permits, Wanze would love to come back to work on  multi-person extension again - improve the accuracy of human localization within an image. 
+Wanze has been focusing on the multi-person extension mentioned above. However, since the extension might be out of scope of this project, Wanze will be switching to explore Data Augmentation with Julian and model visualizations. If time permits, Wanze would love to come back to work on  multi-person extension again - improve the accuracy of human localization within an image. 
 \subsection{Rafay}
 Rafay has worked on taking a set of test data provided by COCO and running evaluation metrics. So far the test data has been evaluated using the COCO API. The objective was to set up evaluation metrics that could be connected when necessary. Future steps will include adding metadata into the model’s output in order to run evaluation and implementing the Percentage of Correct Key Point metrics. Lastly, he will be focusing on tweaking the current loss functions or implementing a net new one.   
 \subsection{Nicole}
 Nicole is planning to work on implementing the Percentage of Correct Key Points metric that is not included in the COCO Evaluation API with Rafay. Another evaluation metric will be helpful to observe changes and we can possibly benefit from using this metric on other datasets if time permits. The model’s output format also needs to be updated to work with the previously tested COCO evaluation API for the OKS metric. We will need to add in some metadata fields to the data generator to determine confidence scores from the generated heatmaps. Lastly, she will focus on updating or changing the current loss function used in the model in order to get better results.
+\subsection{Corey}
+Corey is planning to work on t. 
 
 \section{Initial Results}
 \label{SectionInitialResults}
@@ -182,19 +187,22 @@ Finally, since Colab instances are time-limited, model saving and resuming was e
 
 
 \subsection{Wanze - Multi-Person Detector}
-A few architectures of human detection have been implemented and experimented. Here are a couple of examples with pros and cons indicated. 
+A few architectures of human detection have been implemented and experimented. Here are a couple of examples with pros and cons indicated. Please refer to Fig. \ref{fig:multi_person_results} for visualizations.
 
 \begin{itemize}
-    \item \textbf{Built-in HOG function}: 
-    The advantages of using HOG function is the relatively high efficiency. Training time is significantly shorter than any other state-of-art architectures. However, the accuracy is not ideal. HOG uses colour gradient decent to identify human. It performs very well on images with clear human boundaries but very poorly if there’s any overlap involved.  
-    \item \textbf{State-of-art human-detector}: 
-    The advantages of using state-of-art solutions is that the accuracy significantly improves. As we can see the architecture correctly identifies all the human within this image. However, the inference time is a bit unbearable. It is safe to say that it would be too ambitious to predict on all multi-person images within the dataset with this architecture. 
+    \item \textbf{HOG-based}: 
+    The advantages of using HOG function is the relatively high efficiency. Training time is significantly shorter than any other state-of-art architectures. However, the accuracy is not ideal. HOG uses colour gradient decent to identify human. It performs very well on images with clear human boundaries but very poorly if there’s any overlap 
+involved.	
+    \item \textbf{Pre-trained CNN \cite{pre_trained_architecture}}: 
+    The advantages of using pre-trained solutions is that the accuracy significantly improves. As we can see the architecture correctly identifies all the human within this image. However, the inference time is a bit unbearable. It is safe to say that it would be too ambitious to predict on all multi-person images within the dataset with this architecture. 
+
 \end{itemize}
+
 
 All in all, there is a trade-off between efficiency and accuracy, which we have not yet found a healthy balance of. Given the limited time and resources, this extension may not be included in the final product.
 
-
-
+\subsection{Rafay \& Nicole - Evaluation}
+Please refer to \nameref{SectionGoals} for the results.
 
 % TODO delete below, they’re comments here for reference on LaTeX style
 
@@ -238,18 +246,22 @@ All in all, there is a trade-off between efficiency and accuracy, which we have 
 \begin{figure}[h]
     \centering
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{train_layer_0_acc.png}
         \caption{Training Layer 0 Accuracy}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{train_layer_0_loss.png}
         \caption{Training Layer 0 Loss}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{train_layer_3_acc.png}
         \caption{Training Layer 3 Accuracy}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{train_layer_3_loss.png}
         \caption{Training Layer 3 Loss}
     \end{subfigure}
@@ -260,18 +272,22 @@ All in all, there is a trade-off between efficiency and accuracy, which we have 
 \begin{figure}[h]
     \centering
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{val_layer_0_acc.png}
         \caption{Validation Layer 0 Accuracy}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{val_layer_0_loss.png}
         \caption{Validation Layer 0 Loss}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{val_layer_3_acc.png}
         \caption{Validation Layer 3 Accuracy}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{val_layer_3_loss.png}
         \caption{Validation Layer 3 Loss}
     \end{subfigure}
@@ -279,6 +295,21 @@ All in all, there is a trade-off between efficiency and accuracy, which we have 
     \label{fig:hg_4_val}
 \end{figure}
 
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.4\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{multi-person_HOG_bbox.png}
+        \caption{multi-person bounding box with HOG}
+    \end{subfigure}
+    \begin{subfigure}{0.4\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{multi-person_pre-trained_bbox.png}
+        \caption{multi-person bounding box with pre-trained architecture}
+    \end{subfigure}
+    \caption{Validation accuracy and loss vs. epochs}
+    \label{fig:multi_person_results}
+\end{figure}
 
 
 \end{document}
