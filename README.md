@@ -2,6 +2,16 @@
 
 This repository contains the work-in-progress for SENG 474 Data Mining project using deep neural networks to perform human pose estimation. A brief excerpt from our project proposal is copied below.
 
+## Getting Started
+- init submodules
+- install pycocotools
+```
+pip install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
+```
+
+## Troubleshooting
+pycocotools: https://stackoverflow.com/questions/49311195/how-to-install-coco-pythonapi-in-python3
+
 ## The Problem
 Human pose estimation (HPE) is the problem domain of identifying body keypoints to construct a body model. Many existing systems accept images as input, with some implementations accepting formats such as point cloud and videos. The application of HPE is widespread and benefits many industries. In particular, HPE is used for animation in both the film and gaming industries. A more sinister application of HPE can be used for identification of individuals over multiple frames (i.e., videos). Another subset of HPE is hand pose estimation which can be used to translate sign language. HPE is a difficult problem domain due to a number of challenges. These include variability in human appearance and physique, environment lighting and weather, occlusions from other objects, self-occlusions from overlapping joints, complexity of movements of the human skeleton, and the inherent loss of information with a 2D image input [1]. This largely unsolved problem enables us to explore many novel and creative approaches, enriching our learning experience. We are excited to explore these applications, but we decided to limit our scope to a general version of the problem so we could reference the abundance of research available.
 
