@@ -120,10 +120,12 @@ Various metrics were gathered on the COCO dataset to help inform how the data sh
 \begin{figure}[h]
     \centering
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=\linewidth]{imgs_vs_anns.png}
         \caption{Number of images with a given number of annotations}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=\linewidth]{anns_vs_kps.png}
         \caption{Number of annotations with a given number of keypoints}
     \end{subfigure}
@@ -149,18 +151,22 @@ The COCO dataset is more than 20GB so keeping the entire dataset in memory durin
 \begin{figure}[h]
     \centering
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{original_image.png}
         \caption{Original image}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{original_w_gt.png}
         \caption{Original image with ground truth annotations overlaid}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{processed_image.png}
         \caption{Processed image}
     \end{subfigure}
     \begin{subfigure}{0.4\textwidth}
+        \centering
         \includegraphics[width=0.8\linewidth]{processed_image_w_anns.png}
         \caption{Processed image with translated keypoints and left hand heat map overlaid}
     \end{subfigure}
@@ -191,8 +197,7 @@ A few architectures of human detection have been implemented and experimented. H
 
 \begin{itemize}
     \item \textbf{HOG-based}: 
-    The advantages of using HOG function is the relatively high efficiency. Training time is significantly shorter than any other state-of-art architectures. However, the accuracy is not ideal. HOG uses colour gradient decent to identify human. It performs very well on images with clear human boundaries but very poorly if there’s any overlap 
-involved.	
+    The advantages of using HOG function is the relatively high efficiency. Training time is significantly shorter than any other state-of-art architectures. However, the accuracy is not ideal. HOG uses colour gradient decent to identify human. It performs very well on images with clear human boundaries but very poorly if there’s any overlap involved.	
     \item \textbf{Pre-trained CNN \cite{pre_trained_architecture}}: 
     The advantages of using pre-trained solutions is that the accuracy significantly improves. As we can see the architecture correctly identifies all the human within this image. However, the inference time is a bit unbearable. It is safe to say that it would be too ambitious to predict on all multi-person images within the dataset with this architecture. 
 
