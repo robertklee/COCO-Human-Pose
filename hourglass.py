@@ -51,7 +51,7 @@ class HourglassNet(object):
         print(f"Train/Val dfs contains {len(train_df)}/{len(val_df)} anns")
         return train_df.reset_index(), val_df.reset_index()
 
-    def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset=1.0):
+    def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset):
         self._compile_model()
 
         train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
@@ -90,14 +90,14 @@ class HourglassNet(object):
         self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
 
-    def train(self, batch_size, model_save_base_dir, epochs):
+    def train(self, batch_size, model_save_base_dir, epochs, subset):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
         model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks)
 
-        self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=0, model_subdir=model_subdir, current_time=current_time)
+        self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset)
     
-    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir):
+    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset):
         if resume_subdir is not None:
             print('Automatically locating model architecture .json and weights .hdf5...')
 
@@ -118,7 +118,7 @@ class HourglassNet(object):
 
         model_subdir = orig_model_subdir + DEFAULT_RESUME_DIR_FLAG + current_time
 
-        self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time)
+        self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset)
     
     def _compile_model(self):
         # TODO Update optimizer and/or learning rate?

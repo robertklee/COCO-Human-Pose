@@ -54,6 +54,11 @@ def process_args():
                         type=int,
                         default=DEFAULT_NUM_HG,
                         help='number of hourglass blocks')
+    argparser.add_argument('-sub',
+                        '--subset',
+                        type=float,
+                        default=1.0,
+                        help='percentage of train and val to train on, default 1.0')
     # Resume model training arguments
     # TODO make a consistent way to generate and retrieve epoch checkpoint filenames
     argparser.add_argument('-r',
@@ -101,14 +106,14 @@ if __name__ == "__main__":
     if args.resume:
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
-        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir)
+        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir, args.subset)
     else:
         hgnet.build_model(show=True)
 
         print("\n\nTraining start: {}\n".format(time.ctime()))
-        print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}".format(args.hourglass, args.epochs, args.batch))
+        print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.3f}".format(args.hourglass, args.epochs, args.batch, args.subset))
 
-        hgnet.train(args.batch, args.model_save, args.epochs)
+        hgnet.train(args.batch, args.model_save, args.epochs, args.subset)
 
     print("\n\nTraining end:   {}\n".format(time.ctime()))
 
@@ -119,4 +124,4 @@ if __name__ == "__main__":
 
     print("Total setup time: {}".format(str(timedelta(seconds=setup_time))))
     print("Total train time: {}".format(str(timedelta(seconds=training_time))))
-    print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}".format(args.hourglass, args.epochs, args.batch))
+    print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(args.hourglass, args.epochs, args.batch, args.subset))
