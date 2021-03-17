@@ -8,6 +8,7 @@ from keras import backend as k
 
 from constants import *
 from hourglass import HourglassNet
+from util import *
 
 # TODO
 # Add command line parameter for learning rate?
@@ -36,8 +37,8 @@ def process_args():
     argparser = argparse.ArgumentParser(description='Training parameters')
     argparser.add_argument('-m',
                         '--model-save',
-                        default=DEFAULT_MODEL_PATH,
-                        help='path to save model')
+                        default=DEFAULT_MODEL_BASE_DIR,
+                        help='base directory for saving model weights')
     argparser.add_argument('-e',
                         '--epochs',
                         default=DEFAULT_EPOCHS,
@@ -70,9 +71,15 @@ def process_args():
                         default=None,
                         type=int,
                         help='Epoch to resume training')
+    argparser.add_argument('--resume-subdir',
+                        default=None,
+                        help='Subdirectory containing architecture json and weights')
 
     # Convert string arguments to appropriate type
     args = argparser.parse_args()
+
+    if args.resume and args.resume_subdir is not None:
+        find_resume_json_weights(args)
 
     return args
 
@@ -92,9 +99,9 @@ if __name__ == "__main__":
     training_start = time.time()
 
     if args.resume:
-        print("\n\Resume training start: {}\n".format(time.ctime()))
+        print("\n\nResume training start: {}\n".format(time.ctime()))
 
-        hgnet.resume_train(args.batch, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs)
+        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir)
     else:
         hgnet.build_model(show=True)
 

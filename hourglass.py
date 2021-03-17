@@ -36,7 +36,7 @@ class HourglassNet(object):
         if show:
             self.model.summary()
     
-    def load_and_filter_annotations(self,path_to_train_anns,path_to_val_anns, subset=1.0):
+    def load_and_filter_annotations(self, path_to_train_anns,path_to_val_anns, subset):
         df = coco_df.get_df(path_to_train_anns,path_to_val_anns)
         # apply filters here
         print(f"Unfiltered df contains {len(df)} anns")
@@ -51,32 +51,35 @@ class HourglassNet(object):
         print(f"Train/Val dfs contains {len(train_df)}/{len(val_df)} anns")
         return train_df.reset_index(), val_df.reset_index()
 
-    def train(self, batch_size, model_path, epochs, subset):
-        current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
+    def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset=1.0):
+        self._compile_model()
 
-        train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH, subset)
+        train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
 
         train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=TRAIN_SHUFFLE, batch_size=batch_size)
         val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=VAL_SHUFFLE, batch_size=batch_size)
         
-        csv_logger = CSVLogger(os.path.join(model_path, 'csv_tr' + current_time + '.csv'))
 
-        modelDir = os.path.join(model_path, current_time +  '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks))
-        modelSavePath = os.path.join(modelDir, 'hpe_epoch{epoch:02d}_val_loss_{val_loss:.4f}_train_loss_{loss:.4f}.hdf5')
+        modelDir = os.path.join(model_base_dir, model_subdir)
+        logsDir = os.path.join(DEFAULT_LOGS_BASE_DIR, model_subdir)
+
+        modelSavePath = os.path.join(modelDir, '{prefix}{{epoch:02d}}_val_loss_{{val_loss:.4f}}_train_loss_{{loss:.4f}}.hdf5'.format(prefix=HPE_EPOCH_PREFIX))
 
         if not os.path.exists(modelDir):
             print("Model save directory created: {}".format(modelDir))
             os.makedirs(modelDir)
 
+        # Create callbacks
         mc_val = ModelCheckpoint(modelSavePath, monitor='val_loss')
         mc_train = ModelCheckpoint(modelSavePath, monitor='loss')
-        tb = TensorBoard(log_dir=os.path.join(DEFAULT_LOGS_PATH, current_time + '_batchsize_' + str(batch_size)), histogram_freq=0, write_graph=True, write_images=True)
+        csv_logger = CSVLogger(os.path.join(modelDir, 'csv_tr' + current_time + '.csv'))
+        tb = TensorBoard(log_dir=logsDir, histogram_freq=0, write_graph=True, write_images=True)
 
         # TODO potentially add learning rate scheduler callback
 
         callbacks = [mc_val, mc_train, tb, csv_logger]
 
-        architecture_json_file = os.path.join(modelDir, 'hpe_hourglass_{:2d}_stacks_{:3d}_epochs_{:2d}_batch_size.json'.format(self.num_stacks, epochs, batch_size))
+        architecture_json_file = os.path.join(modelDir, '{}_{:02d}_batchsize_{:03d}.json'.format(HPE_HOURGLASS_STACKS_PREFIX, self.num_stacks, batch_size))
         if not os.path.exists(architecture_json_file):
             with open(architecture_json_file, 'w') as f:
                 print("Model architecture json saved to: {}".format(architecture_json_file))
@@ -85,13 +88,44 @@ class HourglassNet(object):
         print("Model checkpoints saved to: {}".format(modelSavePath))
 
         self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
-            validation_steps=len(val_generator), epochs=epochs, callbacks=callbacks)
-    
-    # TODO resume and load model
-    def resume_train(self, batch_size, model_json, model_weights, init_epoch, epochs):
-        # TODO
-        pass
+            validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
 
-    def load_model(self, modeljson, modelfile):
-        # TODO
-        pass
+    def train(self, batch_size, model_save_base_dir, epochs):
+        current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
+
+        model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks)
+
+        self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=0, model_subdir=model_subdir, current_time=current_time)
+    
+    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir):
+        if resume_subdir is not None:
+            print('Automatically locating model architecture .json and weights .hdf5...')
+
+        print('Restoring model architecture json: {}'.format(model_json))
+        print('Restoring model weights: {}'.format(model_weights))
+
+        self._load_model(model_json, model_weights)
+
+        current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
+
+        # for consistency, identify original model subdirectory and create a new subdir of the same name, suffixed by a resume time flag
+        orig_model_subdir = os.path.basename(os.path.dirname(model_weights))
+
+        # If resuming a previously resumed training session (to prevent _resume_ from appended over and over)
+        if DEFAULT_RESUME_DIR_FLAG in orig_model_subdir:
+            # strip everything after resume flag
+            orig_model_subdir = orig_model_subdir[:orig_model_subdir.find(DEFAULT_RESUME_DIR_FLAG)]
+
+        model_subdir = orig_model_subdir + DEFAULT_RESUME_DIR_FLAG + current_time
+
+        self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time)
+    
+    def _compile_model(self):
+        # TODO Update optimizer and/or learning rate?
+        rms = RMSprop(lr=5e-4)
+        self.model.compile(optimizer=rms, loss=mean_squared_error, metrics=["accuracy"])
+
+    def _load_model(self, model_json, model_weights):
+        with open(model_json) as f:
+            self.model = model_from_json(f.read())
+        self.model.load_weights(model_weights)

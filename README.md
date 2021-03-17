@@ -4,9 +4,13 @@ This repository contains the work-in-progress for SENG 474 Data Mining project u
 
 ## Getting Started
 - init submodules
+- install requirements
+```
+pip3 install -r requirements.txt
+```
 - install pycocotools
 ```
-pip install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
+pip3 install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
 ```
 
 ## Troubleshooting
