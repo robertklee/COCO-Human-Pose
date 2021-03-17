@@ -111,7 +111,7 @@ if __name__ == "__main__":
         hgnet.build_model(show=True)
 
         print("\n\nTraining start: {}\n".format(time.ctime()))
-        print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.3f}".format(args.hourglass, args.epochs, args.batch, args.subset))
+        print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(args.hourglass, args.epochs, args.batch, args.subset))
 
         hgnet.train(args.batch, args.model_save, args.epochs, args.subset)
 
