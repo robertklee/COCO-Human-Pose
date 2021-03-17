@@ -4,9 +4,13 @@ COLAB_TRAINING = False
 # Model Defaults
 DEFAULT_NUM_HG = 4 # NOTE in their final design, 8 were used
 DEFAULT_EPOCHS = 40
-DEFAULT_MODEL_PATH = 'models'
-DEFAULT_LOGS_PATH = 'logs'
-DEFAULT_OUTPUT_PATH = 'output'
+DEFAULT_MODEL_BASE_DIR = 'models'
+DEFAULT_LOGS_BASE_DIR = 'logs'
+DEFAULT_OUTPUT_BASE_DIR = 'output'
+
+DEFAULT_RESUME_DIR_FLAG = '_resume_'
+HPE_EPOCH_PREFIX = 'hpe_epoch'
+HPE_HOURGLASS_STACKS_PREFIX = 'hpe_hourglass_stacks'
 
 # Dataset Constants
 if COLAB_TRAINING:
