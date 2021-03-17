@@ -1,9 +1,12 @@
 # %% Load Annotations into dataframes
+import hourglass
+import imp
+imp.reload(hourglass)
 from hourglass import HourglassNet
 from constants import *
 
 h = HourglassNet(NUM_COCO_KEYPOINTS,DEFAULT_NUM_HG,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
-train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH)
+train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
 
 # %% Declare function  to display ground truth images
 import skimage.io as io
@@ -54,7 +57,6 @@ def display_img(annId):
 
 # %% Test the generator
 import data_generator
-import imp
 imp.reload(data_generator)
 from data_generator import DataGenerator
 

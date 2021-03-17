@@ -36,22 +36,25 @@ class HourglassNet(object):
         if show:
             self.model.summary()
     
-    def load_and_filter_annotations(self,path_to_train_anns,path_to_val_anns):
+    def load_and_filter_annotations(self,path_to_train_anns,path_to_val_anns, subset=1.0):
         df = coco_df.get_df(path_to_train_anns,path_to_val_anns)
         # apply filters here
         print(f"Unfiltered df contains {len(df)} anns")
         df = df.loc[df['is_crowd'] == 0] # drop crowd anns
         df = df.loc[df['num_keypoints'] != 0] # drop anns containing no kps
         df = df.loc[df['bbox_area'] > BBOX_MIN_SIZE] # drop small bboxes
-        print(f"Filtered df contains {len(df)} anns")
         train_df = df.loc[df['source'] == 0]
         val_df = df.loc[df['source'] == 1]
+        if subset != 1.0:
+            train_df = train_df.sample(frac=subset)
+            val_df = val_df.sample(frac=subset)
+        print(f"Train/Val dfs contains {len(train_df)}/{len(val_df)} anns")
         return train_df.reset_index(), val_df.reset_index()
 
-    def train(self, batch_size, model_path, epochs):
+    def train(self, batch_size, model_path, epochs, subset):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
-        train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH)
+        train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH, subset)
 
         train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=TRAIN_SHUFFLE, batch_size=batch_size)
         val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=VAL_SHUFFLE, batch_size=batch_size)
