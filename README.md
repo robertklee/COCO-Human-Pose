@@ -4,6 +4,9 @@ This repository contains the work-in-progress for SENG 474 Data Mining project u
 
 ## Getting Started
 - init submodules
+```
+git submodule update --init --recursive
+```
 - install requirements
 ```
 pip3 install -r requirements.txt
