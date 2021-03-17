@@ -107,6 +107,7 @@ class DataGenerator(Sequence):
             heat_maps[:, :, i] = cv2.resize(
                 heat_map, self.output_dim, interpolation=cv2.INTER_LINEAR)
             heat_maps[:, :, i] /= (heat_maps[:, :, i].max()) # normalize heatmap to [0,1]
+            heat_maps[:, :, i] *= HEATMAP_SCALE # scale up to place more importance on correctly identifying kp regions
 
         return heat_maps
 

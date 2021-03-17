@@ -36,7 +36,8 @@ DEFAULT_BATCH_SIZE = 10 #NOTE need to test optimal batch size
 NUM_COCO_KEYPOINTS = 17 # Number of joints to detect
 NUM_COCO_KP_ATTRBS = 3 # (x,y,v) * 17 keypoints
 BBOX_SLACK = 1.3 # before augmentation, increase bbox size to 130%
-HEATMAP_SIGMA = 1.5 #NOTE what should sigma be?
+HEATMAP_SIGMA = 1 # As per https://towardsdatascience.com/human-pose-estimation-with-stacked-hourglass-network-and-tensorflow-c4e9f84fd3ce
+HEATMAP_SCALE = 82 # There are 82 times background pixels to foreground pixels in 7*7 patch of 64*64 heatmap, see same link for HEATMAP_SIGMA
 TRAIN_SHUFFLE = True # Can set to false for debug purposes
 VAL_SHUFFLE = False
 
