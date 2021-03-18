@@ -7,6 +7,7 @@ from keras.callbacks import CSVLogger, ModelCheckpoint, TensorBoard, LearningRat
 from keras.losses import mean_squared_error
 from keras.models import load_model, model_from_json
 from keras.optimizers import Adam, RMSprop
+import tensorflow as tf
 
 from hourglass_blocks import (bottleneck_block, bottleneck_mobile,
                               create_hourglass_network)
@@ -86,7 +87,7 @@ class HourglassNet(object):
 
         print("Model checkpoints saved to: {}".format(modelSavePath))
 
-        self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
+        self.model.fit(train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
 
     def train(self, batch_size, model_save_base_dir, epochs, subset):
@@ -120,9 +121,21 @@ class HourglassNet(object):
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset)
     
     def _compile_model(self):
-        # TODO Update optimizer and/or learning rate?
-        rms = RMSprop(lr=5e-4)
-        self.model.compile(optimizer=rms, loss=mean_squared_error, metrics=["accuracy"])
+        tf.keras.backend.clear_session()
+
+        resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='grpc://' + os.environ['COLAB_TPU_ADDR'])
+        tf.config.experimental_connect_to_cluster(resolver)
+        # This is the TPU initialization code that has to be at the beginning.
+        tf.tpu.experimental.initialize_tpu_system(resolver)
+        print("All devices: ", tf.config.list_logical_devices('TPU'))
+
+        strategy = tf.distribute.TPUStrategy(resolver)
+
+        with strategy.scope():
+            model = create_hourglass_network(self.num_classes, self.num_stacks, self.num_channels, self.inres, self.outres, bottleneck_block)
+            model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=5e-4), loss=mean_squared_error, metrics=["accuracy"])
+            # TODO Update optimizer and/or learning rate?
+        self.model = model
 
     def _load_model(self, model_json, model_weights):
         with open(model_json) as f:

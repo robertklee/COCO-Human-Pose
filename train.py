@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timedelta
 
 import tensorflow as tf
-from keras import backend as k
+from tensorflow.compat.v1.keras import backend as k
 
 from constants import *
 from hourglass import HourglassNet
@@ -21,7 +21,7 @@ def tensorflow_setup():
     # os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpuID)
 
     # TensorFlow wizardry
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
 
     # Don't pre-allocate memory; allocate as-needed
     config.gpu_options.allow_growth = True
@@ -31,7 +31,7 @@ def tensorflow_setup():
     config.gpu_options.per_process_gpu_memory_fraction = 1.0
 
     # Create a session with the above options specified.
-    k.tensorflow_backend.set_session(tf.Session(config=config))
+    k.set_session(tf.compat.v1.Session(config=config))
 
 def process_args():
     argparser = argparse.ArgumentParser(description='Training parameters')
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
         hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir, args.subset)
     else:
-        hgnet.build_model(show=True)
+        # hgnet.build_model(show=True)
 
         print("\n\nTraining start: {}\n".format(time.ctime()))
         print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(args.hourglass, args.epochs, args.batch, args.subset))

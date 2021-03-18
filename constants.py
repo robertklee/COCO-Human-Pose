@@ -1,5 +1,5 @@
 # Colab Training
-COLAB_TRAINING = False
+COLAB_TRAINING = True
 
 # Model Defaults
 DEFAULT_NUM_HG = 4 # NOTE in their final design, 8 were used
