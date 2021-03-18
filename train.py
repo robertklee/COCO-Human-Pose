@@ -58,7 +58,7 @@ def process_args():
                         '--subset',
                         type=float,
                         default=1.0,
-                        help='percentage of train and val to train on, default 1.0')
+                        help='fraction of train set to train on, default 1.0')
     # Resume model training arguments
     # TODO make a consistent way to generate and retrieve epoch checkpoint filenames
     argparser.add_argument('-r',
@@ -82,6 +82,9 @@ def process_args():
 
     # Convert string arguments to appropriate type
     args = argparser.parse_args()
+
+    # Validate arguments
+    assert (args.subset > 0 and args.subset <= 1.0), "Subset must be fraction between 0 and 1.0"
 
     if args.resume and args.resume_subdir is not None:
         find_resume_json_weights(args)

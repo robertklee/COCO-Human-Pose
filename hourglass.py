@@ -47,7 +47,6 @@ class HourglassNet(object):
         val_df = df.loc[df['source'] == 1]
         if subset != 1.0:
             train_df = train_df.sample(frac=subset)
-            val_df = val_df.sample(frac=subset)
         print(f"Train/Val dfs contains {len(train_df)}/{len(val_df)} anns")
         return train_df.reset_index(), val_df.reset_index()
 
