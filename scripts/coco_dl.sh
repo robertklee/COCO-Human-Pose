@@ -1,4 +1,4 @@
-# Credit to https://gist.github.com/mkocabas/a6177fc00315403d31572e17700d7fd9
+# Adapted from https://gist.github.com/mkocabas/a6177fc00315403d31572e17700d7fd9
 
 dataset_root_path="./data"
 
