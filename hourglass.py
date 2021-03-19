@@ -89,10 +89,16 @@ class HourglassNet(object):
         self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
 
-    def train(self, batch_size, model_save_base_dir, epochs, subset):
+    def train(self, batch_size, model_save_base_dir, epochs, subset, notes):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
         model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks)
+
+        if subset < 1.0:
+            model_subdir += '_subset_{:.2f}'.format(subset)
+        
+        if notes is not None:
+            model_subdir += notes
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset)
     

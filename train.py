@@ -79,6 +79,10 @@ def process_args():
     argparser.add_argument('--resume-subdir',
                         default=None,
                         help='Subdirectory containing architecture json and weights')
+    # Misc
+    argparser.add_argument('--notes',
+                        default=None,
+                        help='Any notes to save with the model path. Prefer no spaces')
 
     # Convert string arguments to appropriate type
     args = argparser.parse_args()
@@ -95,6 +99,10 @@ def process_args():
         
         assert args.resume_json is not None and args.resume_weights is not None, \
             "Resume model training enabled, but no parameters received for: --resume-subdir, or both --resume-json and --resume-weights"
+
+    if args.notes is not None:
+        # Clean notes so it can be used in directory name
+        args.notes = slugify(args.notes)
 
     return args
 
@@ -123,7 +131,7 @@ if __name__ == "__main__":
         print("\n\nTraining start: {}\n".format(time.ctime()))
         print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(args.hourglass, args.epochs, args.batch, args.subset))
 
-        hgnet.train(args.batch, args.model_save, args.epochs, args.subset)
+        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes)
 
     print("\n\nTraining end:   {}\n".format(time.ctime()))
 
