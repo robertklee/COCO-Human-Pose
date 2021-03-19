@@ -1,18 +1,38 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Oct 19 08:20:58 2018
+from enum import Enum
 
-@OS: Ubuntu 18.04
-@IDE: Spyder3
-@author: Aldi Faizal Dimara (Steam ID: phenomos)
-"""
-
-# Credit to https://github.com/aldi-dimara/keras-focal-loss/blob/master/focal_loss.py
-
+import keras
 import keras.backend as K
 import tensorflow as tf
 
+from constants import LossFunctionOptions
+
+
+def _print_options():
+    print('Loss function was not found in possible options.')
+    print('Available options are:')
+    available_losses = [name for name, member in LossFunctionOptions.__members__.items()]
+    print(available_losses)
+    exit(1)
+
+def get_loss_from_string(loss_str):
+    try:
+        loss = LossFunctionOptions[loss_str]
+    except KeyError:
+        _print_options()
+    
+    if loss is LossFunctionOptions.keras_mse:
+        return keras.losses.mean_squared_error
+    elif loss is LossFunctionOptions.euclidean_loss:
+        return euclidean_loss
+    elif loss is LossFunctionOptions.weighted_mse:
+        return weighted_mean_squared_error
+    elif loss is LossFunctionOptions.focal_loss:
+        return focal_loss
+    else:
+        _print_options()
+
+# categorical_focal_loss and binary_focal_loss credit to 
+# https://github.com/aldi-dimara/keras-focal-loss/blob/master/focal_loss.py
 def categorical_focal_loss(gamma=2.0, alpha=0.25):
     """
     Implementation of Focal Loss from the paper in multiclass classification
@@ -91,32 +111,58 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
 
 # Compatible with tensorflow backend
 
-def focal_loss(gamma=2., alpha=.25):
-	def focal_loss_fixed(y_true, y_pred):
+def focal_loss_fixed(gamma=2., alpha=.25):
+	def focal_loss_fixed_func(y_true, y_pred):
 		pt_1 = tf.where(tf.equal(y_true, 1), y_pred, tf.ones_like(y_pred))
 		pt_0 = tf.where(tf.equal(y_true, 0), y_pred, tf.zeros_like(y_pred))
 		return -K.mean(alpha * K.pow(1. - pt_1, gamma) * K.log(pt_1)) - K.mean((1 - alpha) * K.pow(pt_0, gamma) * K.log(1. - pt_0))
-	return focal_loss_fixed
+	return focal_loss_fixed_func
 
+# This isn't ideal since it uses tf operations, but I think the investment required to validate any translation we do
+# to Keras backend is lower priority than other backlog items
+# The original focal loss was developed for large class imbalance categorical outputs, 
+# but it looks like this has been adapted for heat maps
+def focal_loss(hm_true, hm_pred):
+    """
+    Computes focal loss for heatmap.
+    This function was taken from:
+        https://github.com/MioChiu/TF_CenterNet/blob/master/loss.py
+    :param hm_true: gt heatmap
+    :param hm_pred: predicted heatmap
+    :return: loss value
+    """
+    pos_mask = tf.cast(tf.equal(hm_true, 1.0), dtype=tf.float32)
+    neg_mask = tf.cast(tf.less(hm_true, 1.0), dtype=tf.float32)
+    neg_weights = tf.pow(1.0 - hm_true, 4)
 
-def weighted_MSE():
-    # Shout out to: https://towardsdatascience.com/human-pose-estimation-with-stacked-hourglass-network-and-tensorflow-c4e9f84fd3ce
-    def _weighted_mean_squared_error(y_true, y_pred):
-        loss = 0
-        # vanilla version
-        # loss += tf.math.reduce_mean(tf.math.square(y_true - y_pred))
-        # improved version
-        weights = tf.cast(y_true > 0, dtype=tf.float32) * 81 + 1
-        loss += tf.math.reduce_mean(tf.math.square(y_true - y_pred) * weights)
+    pos_loss = -tf.math.log(tf.clip_by_value(hm_pred, 1e-5, 1.0 - 1e-5)) * tf.math.pow(1.0 - hm_pred, 2.0) * pos_mask
+    neg_loss = (
+        -tf.math.log(tf.clip_by_value(1.0 - hm_pred, 1e-5, 1.0 - 1e-5))
+        * tf.math.pow(hm_pred, 2.0)
+        * neg_weights
+        * neg_mask
+    )
 
-        return loss
+    num_pos = tf.reduce_sum(pos_mask)
+    pos_loss = tf.reduce_sum(pos_loss)
+    neg_loss = tf.reduce_sum(neg_loss)
+
+    loss = tf.cond(tf.greater(num_pos, 0), lambda: (pos_loss + neg_loss) / num_pos, lambda: neg_loss)
+    return loss
+
+# Shout out to: https://towardsdatascience.com/human-pose-estimation-with-stacked-hourglass-network-and-tensorflow-c4e9f84fd3ce
+def weighted_mean_squared_error(y_true, y_pred):
+    loss = 0
+    # vanilla version
+    # loss += tf.math.reduce_mean(tf.math.square(y_true - y_pred))
+    # improved version
+    weights = tf.cast(y_true > 0, dtype=tf.float32) * 81 + 1
+    loss += tf.math.reduce_mean(tf.math.square(y_true - y_pred) * weights)
+
+    return loss
     
-    def mean_squared_error(y_true, y_pred):
-        return K.mean(K.square(y_pred - y_true), axis=-1)
-    
-    def weighted_mse(y_true, y_pred):
-        weights = K.cast(K.greater(y_true, 0), dtype=K.float32)
-
+def vanilla_mean_squared_error(y_true, y_pred):
+    return K.mean(K.square(y_pred - y_true), axis=-1)
 
 def euclidean_loss(x, y):
     return K.sqrt(K.sum(K.square(x - y)))
