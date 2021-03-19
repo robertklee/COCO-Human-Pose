@@ -1,3 +1,5 @@
+from enum import Enum
+
 # Colab Training
 COLAB_TRAINING = False
 
@@ -11,6 +13,14 @@ DEFAULT_OUTPUT_BASE_DIR = 'output'
 DEFAULT_RESUME_DIR_FLAG = '_resume_'
 HPE_EPOCH_PREFIX = 'hpe_epoch'
 HPE_HOURGLASS_STACKS_PREFIX = 'hpe_hourglass_stacks'
+
+# Loss Functions
+class LossFunctionOptions(Enum):
+    keras_mse = 0
+    weighted_mse = 1
+    euclidean_loss = 2
+    focal_loss = 3
+
 
 # Dataset Constants
 if COLAB_TRAINING:
