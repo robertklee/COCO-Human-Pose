@@ -129,7 +129,7 @@ class HourglassNet(object):
     def _compile_model(self):
         # TODO Update optimizer and/or learning rate?
         rms = RMSprop(lr=5e-4)
-        self.model.compile(optimizer=rms, loss=mean_squared_error, metrics=[f1_score, precision, recall])
+        self.model.compile(optimizer=rms, loss=mean_squared_error, metrics=[mean_iou])
 
     def _load_model(self, model_json, model_weights):
         with open(model_json) as f:
