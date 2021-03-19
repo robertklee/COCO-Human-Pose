@@ -19,8 +19,10 @@ def f1(y_true, y_pred):
     recall = recall(y_true, y_pred)
     return 2*((precision*recall)/(precision+recall+K.epsilon()))
 
+# Broken
+# https://ai-pool.com/d/keras_iou_implementation
 def mean_iou(y_true, y_pred):
     y_pred = K.cast(K.greater(y_pred, .25), dtype='float32') # .5 is the threshold
-    inter = K.sum(K.sum(K.squeeze(y_true * y_pred, axis=3), axis=2), axis=1)
-    union = K.sum(K.sum(K.squeeze(y_true + y_pred, axis=3), axis=2), axis=1) - inter
+    inter = K.sum(K.sum(K.sum(y_true * y_pred, axis=3), axis=2), axis=1)
+    union = K.sum(K.sum(K.sum(y_true + y_pred, axis=3), axis=2), axis=1) - inter
     return K.mean((inter + K.epsilon()) / (union + K.epsilon()))

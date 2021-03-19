@@ -88,3 +88,35 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
         return loss
     
     return focal_loss    
+
+# Compatible with tensorflow backend
+
+def focal_loss(gamma=2., alpha=.25):
+	def focal_loss_fixed(y_true, y_pred):
+		pt_1 = tf.where(tf.equal(y_true, 1), y_pred, tf.ones_like(y_pred))
+		pt_0 = tf.where(tf.equal(y_true, 0), y_pred, tf.zeros_like(y_pred))
+		return -K.mean(alpha * K.pow(1. - pt_1, gamma) * K.log(pt_1)) - K.mean((1 - alpha) * K.pow(pt_0, gamma) * K.log(1. - pt_0))
+	return focal_loss_fixed
+
+
+def weighted_MSE():
+    # Shout out to: https://towardsdatascience.com/human-pose-estimation-with-stacked-hourglass-network-and-tensorflow-c4e9f84fd3ce
+    def _weighted_mean_squared_error(y_true, y_pred):
+        loss = 0
+        # vanilla version
+        # loss += tf.math.reduce_mean(tf.math.square(y_true - y_pred))
+        # improved version
+        weights = tf.cast(y_true > 0, dtype=tf.float32) * 81 + 1
+        loss += tf.math.reduce_mean(tf.math.square(y_true - y_pred) * weights)
+
+        return loss
+    
+    def mean_squared_error(y_true, y_pred):
+        return K.mean(K.square(y_pred - y_true), axis=-1)
+    
+    def weighted_mse(y_true, y_pred):
+        weights = K.cast(K.greater(y_true, 0), dtype=K.float32)
+
+
+def euclidean_loss(x, y):
+    return K.sqrt(K.sum(K.square(x - y)))

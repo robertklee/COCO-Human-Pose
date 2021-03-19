@@ -14,6 +14,7 @@ from data_generator import DataGenerator
 import coco_df
 from constants import *
 from metrics import *
+from loss import euclidean_loss
 
 # Some code adapted from https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/master/src/net/hourglass.py
 
@@ -129,7 +130,7 @@ class HourglassNet(object):
     def _compile_model(self):
         # TODO Update optimizer and/or learning rate?
         rms = RMSprop(lr=5e-4)
-        self.model.compile(optimizer=rms, loss=mean_squared_error, metrics=[mean_iou])
+        self.model.compile(optimizer=rms, loss=euclidean_loss, metrics=[f1, precision, recall])
 
     def _load_model(self, model_json, model_weights):
         with open(model_json) as f:
