@@ -10,8 +10,8 @@ def find_resume_json_weights(args):
     model_jsons         = [f for f in files if (".json" in f and HPE_HOURGLASS_STACKS_PREFIX in f)]
     model_saved_weights = [f for f in files if (".hdf5" in f and "{prefix}{epoch:02d}".format(prefix=HPE_EPOCH_PREFIX, epoch=args.resume_epoch) in f)]
     
-    assert len(model_jsons) > 0
-    assert len(model_saved_weights) > 0
+    assert len(model_jsons) > 0, "Subdirectory does not contain any model architecture json files"
+    assert len(model_saved_weights) > 0, "Subdirectory does not contain any saved model weights"
 
     args.resume_json = os.path.join(enclosing_dir, model_jsons[0])
     args.resume_weights = os.path.join(enclosing_dir, model_saved_weights[0])

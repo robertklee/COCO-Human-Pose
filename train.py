@@ -86,8 +86,15 @@ def process_args():
     # Validate arguments
     assert (args.subset > 0 and args.subset <= 1.0), "Subset must be fraction between 0 and 1.0"
 
-    if args.resume and args.resume_subdir is not None:
-        find_resume_json_weights(args)
+    if args.resume:
+        assert args.resume_epoch > 0, "Resume epoch number must be greater than 0."
+
+        # Automatically locate architecture json and model weights
+        if args.resume_subdir is not None:
+            find_resume_json_weights(args)
+        
+        assert args.resume_json is not None and args.resume_weights is not None, \
+            "Resume model training enabled, but no parameters received for: --resume-subdir, or both --resume-json and --resume-weights"
 
     return args
 
