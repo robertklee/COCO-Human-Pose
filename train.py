@@ -59,6 +59,10 @@ def process_args():
                         type=float,
                         default=1.0,
                         help='fraction of train set to train on, default 1.0')
+    argparser.add_argument('-l',
+                        '--loss',
+                        default=LossFunctionOptions.keras_mse.name,
+                        help='Loss function for model training')
     # Resume model training arguments
     # TODO make a consistent way to generate and retrieve epoch checkpoint filenames
     argparser.add_argument('-r',
@@ -124,14 +128,14 @@ if __name__ == "__main__":
     if args.resume:
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
-        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir, args.subset)
+        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir, args.subset, loss_str=args.loss)
     else:
         hgnet.build_model(show=True)
 
         print("\n\nTraining start: {}\n".format(time.ctime()))
         print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(args.hourglass, args.epochs, args.batch, args.subset))
 
-        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes)
+        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes, loss_str=args.loss)
 
     print("\n\nTraining end:   {}\n".format(time.ctime()))
 
