@@ -100,7 +100,7 @@ class HourglassNet(object):
             model_subdir += '_subset_{:.2f}'.format(subset)
         
         if notes is not None:
-            model_subdir += notes
+            model_subdir += '_' + notes
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset)
     
