@@ -8,3 +8,4 @@ opencv-python==4.4.0.42
 matplotlib
 numpy
 requests
+pycocotools @ git+https://github.com/philferriere/cocoapi.git@2929bd2ef6b451054755dfd7ceb09278f935f7ad#subdirectory=PythonAPI

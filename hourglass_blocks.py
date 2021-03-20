@@ -185,7 +185,3 @@ def create_heads(prelayerfeatures, rf1, num_classes, hgid, num_channels):
 
     head_next_stage = Add()([head, head_m, prelayerfeatures])
     return head_next_stage, head_parts
-
-
-def euclidean_loss(x, y):
-    return K.sqrt(K.sum(K.square(x - y)))

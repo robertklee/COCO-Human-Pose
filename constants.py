@@ -1,3 +1,5 @@
+from enum import Enum
+
 # Colab Training
 COLAB_TRAINING = False
 
@@ -11,6 +13,14 @@ DEFAULT_OUTPUT_BASE_DIR = 'output'
 DEFAULT_RESUME_DIR_FLAG = '_resume_'
 HPE_EPOCH_PREFIX = 'hpe_epoch'
 HPE_HOURGLASS_STACKS_PREFIX = 'hpe_hourglass_stacks'
+
+# Loss Functions
+class LossFunctionOptions(Enum):
+    keras_mse = 0
+    weighted_mse = 1
+    euclidean_loss = 2
+    focal_loss = 3
+
 
 # Dataset Constants
 if COLAB_TRAINING:
@@ -41,6 +51,8 @@ NUM_COCO_KEYPOINTS = 17 # Number of joints to detect
 NUM_COCO_KP_ATTRBS = 3 # (x,y,v) * 17 keypoints
 BBOX_SLACK = 1.3 # before augmentation, increase bbox size to 130%
 HEATMAP_SIGMA = 1 # As per https://towardsdatascience.com/human-pose-estimation-with-stacked-hourglass-network-and-tensorflow-c4e9f84fd3ce
+
+# Don't use, the scale is applied in the loss function.
 HEATMAP_SCALE = 1 #TODO figure out if we want to scale heatmaps, set to 1 for no effect. There are 82 times background pixels to foreground pixels in 7*7 patch of 64*64 heatmap, see same link for HEATMAP_SIGMA
 TRAIN_SHUFFLE = True # Can set to false for debug purposes
 VAL_SHUFFLE = False

@@ -59,6 +59,10 @@ def process_args():
                         type=float,
                         default=1.0,
                         help='fraction of train set to train on, default 1.0')
+    argparser.add_argument('-l',
+                        '--loss',
+                        default=LossFunctionOptions.keras_mse.name,
+                        help='Loss function for model training')
     # Resume model training arguments
     # TODO make a consistent way to generate and retrieve epoch checkpoint filenames
     argparser.add_argument('-r',
@@ -79,6 +83,10 @@ def process_args():
     argparser.add_argument('--resume-subdir',
                         default=None,
                         help='Subdirectory containing architecture json and weights')
+    # Misc
+    argparser.add_argument('--notes',
+                        default=None,
+                        help='Any notes to save with the model path. Prefer no spaces')
 
     # Convert string arguments to appropriate type
     args = argparser.parse_args()
@@ -86,8 +94,19 @@ def process_args():
     # Validate arguments
     assert (args.subset > 0 and args.subset <= 1.0), "Subset must be fraction between 0 and 1.0"
 
-    if args.resume and args.resume_subdir is not None:
-        find_resume_json_weights(args)
+    if args.resume:
+        assert args.resume_epoch > 0, "Resume epoch number must be greater than 0."
+
+        # Automatically locate architecture json and model weights
+        if args.resume_subdir is not None:
+            find_resume_json_weights(args)
+        
+        assert args.resume_json is not None and args.resume_weights is not None, \
+            "Resume model training enabled, but no parameters received for: --resume-subdir, or both --resume-json and --resume-weights"
+
+    if args.notes is not None:
+        # Clean notes so it can be used in directory name
+        args.notes = slugify(args.notes)
 
     return args
 
@@ -109,14 +128,14 @@ if __name__ == "__main__":
     if args.resume:
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
-        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir, args.subset)
+        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir, args.subset, loss_str=args.loss)
     else:
         hgnet.build_model(show=True)
 
         print("\n\nTraining start: {}\n".format(time.ctime()))
         print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(args.hourglass, args.epochs, args.batch, args.subset))
 
-        hgnet.train(args.batch, args.model_save, args.epochs, args.subset)
+        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes, loss_str=args.loss)
 
     print("\n\nTraining end:   {}\n".format(time.ctime()))
 

@@ -13,6 +13,8 @@ from hourglass_blocks import (bottleneck_block, bottleneck_mobile,
 from data_generator import DataGenerator
 import coco_df
 from constants import *
+from metrics import *
+from loss import *
 
 # Some code adapted from https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/master/src/net/hourglass.py
 
@@ -24,6 +26,7 @@ class HourglassNet(object):
         self.num_channels = num_channels
         self.inres = inres
         self.outres = outres
+        self.loss = None
 
     def build_model(self, mobile=False, show=False):
         if mobile:
@@ -89,14 +92,24 @@ class HourglassNet(object):
         self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
 
-    def train(self, batch_size, model_save_base_dir, epochs, subset):
+    def train(self, batch_size, model_save_base_dir, epochs, subset, notes=None, loss_str=None):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
         model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks)
 
+        if subset < 1.0:
+            model_subdir += '_subset_{:.2f}'.format(subset)
+        
+        print('Loss function selected: {}'.format(loss_str))
+        self.loss = get_loss_from_string(loss_str)
+        model_subdir += '_loss_{}'.format(loss_str)
+
+        if notes is not None:
+            model_subdir += '_' + notes
+
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset)
     
-    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset):
+    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset, loss_str):
         if resume_subdir is not None:
             print('Automatically locating model architecture .json and weights .hdf5...')
 
@@ -104,6 +117,11 @@ class HourglassNet(object):
         print('Restoring model weights: {}'.format(model_weights))
 
         self._load_model(model_json, model_weights)
+        # Load loss. NOTE: I'm pretty sure the loss function is not saved in the architecture json, so 
+        # ensure the loss option matches across training sessions
+        # TODO automatically determine correct loss option from subdir notes
+        print('Loss function selected: {}'.format(loss_str))
+        self.loss = get_loss_from_string(loss_str)
 
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
@@ -122,7 +140,12 @@ class HourglassNet(object):
     def _compile_model(self):
         # TODO Update optimizer and/or learning rate?
         rms = RMSprop(lr=5e-4)
-        self.model.compile(optimizer=rms, loss=mean_squared_error, metrics=["accuracy"])
+
+        if self.loss is None:
+            print("No loss function provided. Using default of keras.losses.mean_squared_error")
+            self.loss = mean_squared_error
+
+        self.model.compile(optimizer=rms, loss=self.loss, metrics=[f1_m, precision_m, recall_m])
 
     def _load_model(self, model_json, model_weights):
         with open(model_json) as f:
