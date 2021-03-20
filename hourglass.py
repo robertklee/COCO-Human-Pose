@@ -73,11 +73,12 @@ class HourglassNet(object):
         mc_val = ModelCheckpoint(modelSavePath, monitor='val_loss')
         mc_train = ModelCheckpoint(modelSavePath, monitor='loss')
         csv_logger = CSVLogger(os.path.join(modelDir, 'csv_tr' + current_time + '.csv'))
-        tb = TensorBoard(log_dir=logsDir, histogram_freq=0, write_graph=True, write_images=True)
+        #tb = TensorBoard(log_dir=logsDir, histogram_freq=0, write_graph=True, write_images=True)
 
         # TODO potentially add learning rate scheduler callback
 
-        callbacks = [mc_val, mc_train, tb, csv_logger]
+        #callbacks = [mc_val, mc_train, tb, csv_logger]
+        callbacks = [mc_val, mc_train, csv_logger]
 
         architecture_json_file = os.path.join(modelDir, '{}_{:02d}_batchsize_{:03d}.json'.format(HPE_HOURGLASS_STACKS_PREFIX, self.num_stacks, batch_size))
         if not os.path.exists(architecture_json_file):
