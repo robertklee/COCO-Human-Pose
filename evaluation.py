@@ -1,6 +1,8 @@
+# %% Evaluation Imports
 import argparse
 from hourglass import HourglassNet
 from data_generator import DataGenerator
+from submodules.HeatMap import HeatMap # https://github.com/LinShanify/HeatMap
 from constants import *
 from util import *
 
@@ -9,15 +11,48 @@ from datetime import timedelta
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+import sys
 import glob
 import cv2
 
-def predict(hourglass, model_json, model_weights, subset):
-    hgnet = HourglassNet(num_classes=NUM_COCO_KEYPOINTS, num_stacks=hourglass, num_channels=NUM_CHANNELS, inres=INPUT_DIM,
+# %% Declare function to horizontally stack images
+# https://stackoverflow.com/questions/30227466/combine-several-images-horizontally-with-python
+def stack_images(images, filename):
+    widths, heights = zip(*(i.size for i in images))
+
+    total_width = sum(widths)
+    max_height = max(heights)
+
+    new_im = Image.new('RGB', (total_width, max_height))
+
+    x_offset = 0
+    for im in images:
+        new_im.paste(im, (x_offset,0))
+        x_offset += im.size[0]
+
+    new_im.save(filename)
+
+# %% Declare function to resize and vertically stack images
+# https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
+def vconcat_resize(img_list, interpolation= cv2.INTER_CUBIC):
+    # take minimum width 
+    w_min = min(img.shape[1] for img in img_list) 
+      
+    # resizing images 
+    im_list_resize = [cv2.resize(img, 
+                      (w_min, int(img.shape[0] * w_min / img.shape[1])), 
+                                 interpolation = interpolation) 
+                      for img in img_list] 
+    # return final image 
+    return cv2.vconcat(im_list_resize) 
+
+# %% Declare function to predict heatmaps
+def predict(hourglass_num, model_json, model_weights, subset):
+    hgnet = HourglassNet(num_classes=NUM_COCO_KEYPOINTS, num_stacks=hourglass_num, num_channels=NUM_CHANNELS, inres=INPUT_DIM,
                             outres=OUTPUT_DIM)
     hgnet._load_model(model_json, model_weights)
 
-    val_df = hgnet.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
+    train_df, val_df = hgnet.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
 
     generator = DataGenerator(
         df=val_df,
@@ -31,39 +66,51 @@ def predict(hourglass, model_json, model_weights, subset):
 
     # Select image to predict heatmaps
     X_batch, y_stacked = generator[168]
-    X = X_batch[0] # take first example of batch
+    y_batch = y_stacked[0] # take first hourglass section
+    X, y = X_batch[0], y_batch[0] # take first example of batch
+
+    image_list = []
+    # Save ground truth heatmaps
+    for i in range(NUM_COCO_KEYPOINTS):
+        heatmap = y[:,:,i]
+        hm = HeatMap(X,heatmap)
+        hm.save(f'ground_truth_heatmap{i}','png', transparency=0.5)
+        image_list.append(f'ground_truth_heatmap{i}.png')
+
+    images = [Image.open(x) for x in image_list]
+    stack_images(images, 'stacked_ground_truth_heatmaps.png')
 
     X = X.reshape(1, 256, 256, 3) # predict needs shape (1, 256, 256, 3)
     output = hgnet.model.predict(X)
     output = np.array(output) # output shape is (hourglass_num, 1, 64, 64, 17)
 
     # Save output heatmaps
-    for i in range(NUM_COCO_KEYPOINTS):
-        plt.figure(i)
-        plt.imsave(f'image{i}.png', output[3, 0, :, :, i])
+    result_list = []
+    for h in range(hourglass_num):
+        image_list = []
+        for i in range(NUM_COCO_KEYPOINTS):
+            plt.figure(i)
+            plt.imsave(f'hourglass{h}_heatmap{i}.png', output[h, 0, :, :, i])
+            image_list.append(f'hourglass{h}_heatmap{i}.png')
 
-    # Overlay heatmaps
-    # https://automaticaddison.com/how-to-blend-multiple-images-using-opencv/
-    # Import all image files with image*.png
-    files = glob.glob ("image*.png")
-    image_data = []
-    for my_file in files:
-        this_image = cv2.imread(my_file, 1)
-        image_data.append(this_image)
+        images = [Image.open(x) for x in image_list]
+        stack_images(images, f'stacked_heatmaps_hourglass{h}.png')
+        result_list.append(f'stacked_heatmaps_hourglass{h}.png')
+
+    result_list.append('stacked_ground_truth_heatmaps.png')
+
+    # Stack each hourglass and ground truth heatmaps into evaluation.png
+    result_imgs = []
+    for x in result_list:
+        result_imgs.append(cv2.imread(x))
+
+    # Resize and vertically stack heatmap images
+    img_v_resize = vconcat_resize(result_imgs) 
     
-    # Calculate blended image
-    dst = image_data[0]
-    for i in range(len(image_data)):
-        if i == 0:
-            pass
-        else:
-            alpha = 1.0/(i + 1)
-            beta = 1.0 - alpha
-            dst = cv2.addWeighted(image_data[i], alpha, dst, beta, 0.0)
- 
-    # Save blended heatmap image
-    cv2.imwrite('result.png', dst)
+    # Save the output heatmaps with ground truth
+    cv2.imwrite('evaluation.png', img_v_resize) 
 
+# %% Declare function to process args
 def process_args():
     argparser = argparse.ArgumentParser(description='Evaluation parameters')
     argparser.add_argument('--model-json',
@@ -98,13 +145,14 @@ def process_args():
 
     return args
 
+# %% Declare main function
 if __name__ == "__main__":
     args = process_args()
 
     print("\n\nModel evaluation start: {}\n".format(time.ctime()))
     evaluation_start = time.time()
 
-    predict(hourglass=args.hourglass, model_json=args.model_json, model_weights=args.model_weights, subset=args.subset)
+    predict(hourglass_num=args.hourglass, model_json=args.model_json, model_weights=args.model_weights, subset=args.subset)
 
     print("\n\nModel evaluation end:   {}\n".format(time.ctime()))
     evaluation_end = time.time()
