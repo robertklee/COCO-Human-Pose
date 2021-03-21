@@ -16,6 +16,11 @@ pip3 install -r requirements.txt
 pip3 install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
 ```
 
+- install dataset (requires just under 30 GB after unzipping, but will require at least 45 GB free disk space to unzip a ~18 GB training set)
+```
+bash ./scripts/coco_dl.sh
+```
+
 ## Troubleshooting
 pycocotools: https://stackoverflow.com/questions/49311195/how-to-install-coco-pythonapi-in-python3
 
