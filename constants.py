@@ -36,6 +36,9 @@ else:
     DEFAULT_TRAIN_IMG_PATH = 'data/coco'
     DEFAULT_VAL_IMG_PATH = 'data/coco'
 
+COCO_KEYPOINT_LABEL_ARR = ["nose","left_eye","right_eye","left_ear","right_ear","left_shoulder","right_shoulder","left_elbow","right_elbow","left_wrist","right_wrist","left_hip","right_hip","left_knee","right_knee","left_ankle","right_ankle"]
+
+# Backcompatability constants. 
 COCO_TRAIN_ANNOT_PATH = DEFAULT_TRAIN_ANNOT_PATH
 COCO_VAL_ANNOT_PATH = DEFAULT_VAL_ANNOT_PATH
 
@@ -50,9 +53,11 @@ DEFAULT_BATCH_SIZE = 10 #NOTE need to test optimal batch size
 NUM_COCO_KEYPOINTS = 17 # Number of joints to detect
 NUM_COCO_KP_ATTRBS = 3 # (x,y,v) * 17 keypoints
 BBOX_SLACK = 1.3 # before augmentation, increase bbox size to 130%
-HEATMAP_SIGMA = 1 # As per https://towardsdatascience.com/human-pose-estimation-with-stacked-hourglass-network-and-tensorflow-c4e9f84fd3ce
 
-# Don't use, the scale is applied in the loss function.
+# NOTE: The effective sigma is downscaled by a factor of 4 (from (256,256) to (64,64)) on each side, so ensure the sigma is appropriately sized
+HEATMAP_SIGMA = 4 # As per https://towardsdatascience.com/human-pose-estimation-with-stacked-hourglass-network-and-tensorflow-c4e9f84fd3ce
+
+# NOTE: Don't use, the scale is applied in the loss function.
 HEATMAP_SCALE = 1 #TODO figure out if we want to scale heatmaps, set to 1 for no effect. There are 82 times background pixels to foreground pixels in 7*7 patch of 64*64 heatmap, see same link for HEATMAP_SIGMA
 TRAIN_SHUFFLE = True # Can set to false for debug purposes
 VAL_SHUFFLE = False
