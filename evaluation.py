@@ -1,161 +1,101 @@
-# %% Evaluation Imports
-import argparse
-from hourglass import HourglassNet
-from data_generator import DataGenerator
 from submodules.HeatMap import HeatMap # https://github.com/LinShanify/HeatMap
 from constants import *
-from util import *
+# from util import *
 
-import time
-from datetime import timedelta
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-import sys
-import glob
 import cv2
 
-# %% Declare function to horizontally stack images
-# https://stackoverflow.com/questions/30227466/combine-several-images-horizontally-with-python
-def stack_images(images, filename):
-    widths, heights = zip(*(i.size for i in images))
+class Evaluation():
 
-    total_width = sum(widths)
-    max_height = max(heights)
+    def __init__(self, model, weights, df, num_hg_blocks, batch_size=1):
+        self.model = model              # json of model to be evaluated
+        self.weights = weights          # weights of model to be evaluated
+        self.df = df                    # df of the the annotations we want
+        self.num_hg_blocks = num_hg_blocks
+        self.batch_size = batch_size
 
-    new_im = Image.new('RGB', (total_width, max_height))
+    # https://stackoverflow.com/questions/30227466/combine-several-images-horizontally-with-python
+    def hstack_images(self, images, filename):
+        widths, heights = zip(*(i.size for i in images))
 
-    x_offset = 0
-    for im in images:
-        new_im.paste(im, (x_offset,0))
-        x_offset += im.size[0]
+        total_width = sum(widths)
+        max_height = max(heights)
 
-    new_im.save(filename)
+        new_im = Image.new('RGB', (total_width, max_height))
 
-# %% Declare function to resize and vertically stack images
-# https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
-def vconcat_resize(img_list, interpolation= cv2.INTER_CUBIC):
-    # take minimum width 
-    w_min = min(img.shape[1] for img in img_list) 
-      
-    # resizing images 
-    im_list_resize = [cv2.resize(img, 
-                      (w_min, int(img.shape[0] * w_min / img.shape[1])), 
-                                 interpolation = interpolation) 
-                      for img in img_list] 
-    # return final image 
-    return cv2.vconcat(im_list_resize) 
+        x_offset = 0
+        for im in images:
+            new_im.paste(im, (x_offset,0))
+            x_offset += im.size[0]
 
-# %% Declare function to predict heatmaps
-def predict(hourglass_num, model_json, model_weights, subset):
-    hgnet = HourglassNet(num_classes=NUM_COCO_KEYPOINTS, num_stacks=hourglass_num, num_channels=NUM_CHANNELS, inres=INPUT_DIM,
-                            outres=OUTPUT_DIM)
-    hgnet._load_model(model_json, model_weights)
+        new_im.save(filename)
 
-    train_df, val_df = hgnet.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
+    # https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
+    def vstack_images(self, img_list, interpolation=cv2.INTER_CUBIC):
+        # take minimum width 
+        w_min = min(img.shape[1] for img in img_list) 
+        
+        # resizing images 
+        im_list_resize = [cv2.resize(img, 
+                        (w_min, int(img.shape[0] * w_min / img.shape[1])), 
+                                    interpolation = interpolation) 
+                        for img in img_list] 
+        # return final image 
+        return cv2.vconcat(im_list_resize) 
 
-    generator = DataGenerator(
-        df=val_df,
-        base_dir=DEFAULT_TRAIN_IMG_PATH,
-        input_dim=INPUT_DIM,
-        output_dim=OUTPUT_DIM,
-        num_hg_blocks=DEFAULT_NUM_HG,
-        shuffle=False,  
-        batch_size=1,
-        online_fetch=False)
+    # Returns np array of predicted heatmaps for a given image and model
+    def predict_heatmaps(self, h, X):
+        h._load_model(self.model, self.weights)
 
-    # Select image to predict heatmaps
-    X_batch, y_stacked = generator[168]
-    y_batch = y_stacked[0] # take first hourglass section
-    X, y = X_batch[0], y_batch[0] # take first example of batch
+        X = X.reshape(1, 256, 256, 3) # predict needs shape (1, 256, 256, 3)
+        predict_heatmaps = h.model.predict(X)
+        predict_heatmaps = np.array(predict_heatmaps) # output shape is (num_hg_blocks, 1, 64, 64, 17)
+        return predict_heatmaps
 
-    image_list = []
-    # Save ground truth heatmaps
-    for i in range(NUM_COCO_KEYPOINTS):
-        heatmap = y[:,:,i]
-        hm = HeatMap(X,heatmap)
-        hm.save(f'ground_truth_heatmap{i}','png', transparency=0.5)
-        image_list.append(f'ground_truth_heatmap{i}.png')
-
-    images = [Image.open(x) for x in image_list]
-    stack_images(images, 'stacked_ground_truth_heatmaps.png')
-
-    X = X.reshape(1, 256, 256, 3) # predict needs shape (1, 256, 256, 3)
-    output = hgnet.model.predict(X)
-    output = np.array(output) # output shape is (hourglass_num, 1, 64, 64, 17)
-
-    # Save output heatmaps
-    result_list = []
-    for h in range(hourglass_num):
-        image_list = []
+    #  Returns filename of saved stacked ground truth heatmaps and saves all ground truth heatmaps
+    def save_stacked_ground_truth_heatmaps(self, X, y):
+        ground_truth_heatmaps = []
         for i in range(NUM_COCO_KEYPOINTS):
-            plt.figure(i)
-            plt.imsave(f'hourglass{h}_heatmap{i}.png', output[h, 0, :, :, i])
-            image_list.append(f'hourglass{h}_heatmap{i}.png')
+            heatmap = y[:,:,i]
+            hm = HeatMap(X,heatmap)
+            hm.save(f'ground_truth_heatmap{i}','png', transparency=0.5)
+            ground_truth_heatmaps.append(f'ground_truth_heatmap{i}.png')
 
-        images = [Image.open(x) for x in image_list]
-        stack_images(images, f'stacked_heatmaps_hourglass{h}.png')
-        result_list.append(f'stacked_heatmaps_hourglass{h}.png')
+        images = [Image.open(x) for x in ground_truth_heatmaps]
+        filename = 'stacked_ground_truth_heatmaps.png'
+        self.hstack_images(images, filename)
+        return filename
 
-    result_list.append('stacked_ground_truth_heatmaps.png')
+    #  Returns list of saved stacked predicted heatmaps and saves all predicted heatmaps
+    def save_stacked_predict_heatmaps(self, predict_heatmaps):
+        stacked_predict_heatmaps = []
+        for h in range(self.num_hg_blocks):
+            heatmaps = []
+            for i in range(NUM_COCO_KEYPOINTS):
+                plt.figure(i)
+                plt.imsave(f'hourglass{h}_heatmap{i}.png', predict_heatmaps[h, 0, :, :, i])
+                heatmaps.append(f'hourglass{h}_heatmap{i}.png')
 
-    # Stack each hourglass and ground truth heatmaps into evaluation.png
-    result_imgs = []
-    for x in result_list:
-        result_imgs.append(cv2.imread(x))
+            images = [Image.open(x) for x in heatmaps]
+            self.hstack_images(images, f'stacked_heatmaps_hourglass{h}.png')
+            stacked_predict_heatmaps.append(f'stacked_heatmaps_hourglass{h}.png')
 
-    # Resize and vertically stack heatmap images
-    img_v_resize = vconcat_resize(result_imgs) 
-    
-    # Save the output heatmaps with ground truth
-    cv2.imwrite('evaluation.png', img_v_resize) 
+        return stacked_predict_heatmaps
 
-# %% Declare function to process args
-def process_args():
-    argparser = argparse.ArgumentParser(description='Evaluation parameters')
-    argparser.add_argument('--model-json',
-                        default=None,
-                        help='Model architecture for re-loading weights to evaluate')
-    argparser.add_argument('--model-weights',
-                        default=None,
-                        help='Model weights file to evaluate')
-    argparser.add_argument('--model-subdir',
-                        default=None,
-                        help='Subdirectory containing evaluation architecture json and weights') 
-    argparser.add_argument('--subset',
-                        type=float,
-                        default=1.0,
-                        help='fraction of train set to train on, default 1.0')
-    argparser.add_argument('--hourglass',
-                        type=int,
-                        default=DEFAULT_NUM_HG,
-                        help='number of hourglass blocks')
-    # Convert string arguments to appropriate type
-    args = argparser.parse_args()
+    #  Saves stacked predicted heatmaps and stacked ground truth heatmaps in one evaluation image
+    def save_stacked_evaluation_heatmaps(self, stacked_predict_heatmaps, stacked_ground_truth_heatmaps):
+        heatmaps = []
+        for x in stacked_predict_heatmaps:
+            heatmaps.append(x)
+        heatmaps.append(stacked_ground_truth_heatmaps)
+        # Stack each hourglass and ground truth heatmaps into heatmap_evaluation.png
+        heatmap_imgs = []
+        for x in heatmaps:
+            heatmap_imgs.append(cv2.imread(x))
 
-     # Validate arguments
-    assert (args.subset > 0 and args.subset <= 1.0), "Subset must be fraction between 0 and 1.0"
-
-    if args.model_subdir:
-        # Automatically locate architecture json and model weights
-        find_resume_json_weights(args)
-    
-    assert args.model_json is not None and args.model_weights is not None, \
-        "Model evaluation enabled, but no parameters received for: --model-subdir, or both --model-json and --model-weights"
-
-    return args
-
-# %% Declare main function
-if __name__ == "__main__":
-    args = process_args()
-
-    print("\n\nModel evaluation start: {}\n".format(time.ctime()))
-    evaluation_start = time.time()
-
-    predict(hourglass_num=args.hourglass, model_json=args.model_json, model_weights=args.model_weights, subset=args.subset)
-
-    print("\n\nModel evaluation end:   {}\n".format(time.ctime()))
-    evaluation_end = time.time()
-
-    evaluation_time = evaluation_end - evaluation_start
-    print("Total Model evaluation time: {}".format(str(timedelta(seconds=evaluation_time))))
+        # Resize and vertically stack heatmap images
+        img_v_resize = self.vstack_images(heatmap_imgs) 
+        
+        cv2.imwrite('heatmap_evaluation.png', img_v_resize) 
