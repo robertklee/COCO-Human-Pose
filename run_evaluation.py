@@ -16,8 +16,8 @@ train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAUL
 
 # %% Declare evaluation class instance
 eval = Evaluation(
-    # ensure model and weights file exists in current directory and num_hg_blocks match model
-    model='hpe_hourglass_stacks_04_batchsize_012.json',
+    # ensure model_json and weights files exist in current directory and num_hg_blocks matches model_json
+    model_json='hpe_hourglass_stacks_04_batchsize_012.json',
     weights='hpe_epoch71_val_loss_0.0417_train_loss_0.0163.hdf5',
     df=val_df,
     num_hg_blocks=DEFAULT_NUM_HG,
