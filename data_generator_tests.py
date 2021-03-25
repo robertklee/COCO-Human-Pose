@@ -76,7 +76,7 @@ import matplotlib.pyplot as plt
 import pylab
 pylab.rcParams['figure.figsize'] = (10.0, 10.0)
 
-from submodules.HeatMap import HeatMap # https://github.com/LinShanify/HeatMap
+from HeatMap import HeatMap # https://github.com/LinShanify/HeatMap
 
 start = time.time()
 X_batch, y_stacked = generator[168]
