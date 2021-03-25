@@ -142,8 +142,6 @@ class DataGenerator(Sequence):
     def convert_imgaug_kpsoi_to_coco_kp(self, kpsoi_aug, valid, image_aug):
         transformed_label = []
 
-        # Keypoint is visible
-        VALID_KP_V = 1
         for i in range(NUM_COCO_KEYPOINTS):
             kp = kpsoi_aug[i]
             if (not valid[i]) or kp.is_out_of_image(image_aug):
@@ -151,11 +149,7 @@ class DataGenerator(Sequence):
             else:
                 x = kp.x
                 y = kp.y
-                v = VALID_KP_V
-                ## NOTE: Uncomment below if we wish to keep visibility 1,2 flag
-                # label_idx = i * NUM_COCO_KP_ATTRBS  # index for label
-                # visibility = label[label_idx + (NUM_COCO_KP_ATTRBS-1)]
-                # v = visibility
+                v = 1 
 
             transformed_label.append(x)
             transformed_label.append(y)
@@ -197,9 +191,26 @@ class DataGenerator(Sequence):
 
     # returns batch at index idx
 
+    """
+    Returns a batch from the dataset
+
+    ### Parameters:
+    idx : {int-type} Batch number to retrieve
+
+    ### Returns:
+    Tuple of (X, y) where:
+
+    X : ndarray of shape (batch number, input_dim1, input_dim2, 3)
+        This corresponds to a batch of images, normalized from [0,255] to [0,1]
+
+    y : list of ndarrays where each list element corresponds to an intermediate (or final) layer of the hourglass,
+        and has shape (batch number, output_dim1, output_dim2, 17). The list length is num_hg_blocks
+
+        Each output corresponds to a heatmap, which currently is a Gaussian and has range [0,1]
+    """
     def __getitem__(self, idx):
         # Initialize Batch:
-        X = np.empty((self.batch_size, *self.input_dim, 3))
+        X = np.empty((self.batch_size, *self.input_dim, INPUT_CHANNELS))
 
         # Order of last dimension: (heatmap for each kp) repeated num_hg_blocks times
         y = np.empty((self.batch_size, *self.output_dim, NUM_COCO_KEYPOINTS))
