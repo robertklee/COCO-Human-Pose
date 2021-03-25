@@ -1,4 +1,4 @@
-from submodules.HeatMap import HeatMap # https://github.com/LinShanify/HeatMap
+from HeatMap import HeatMap # https://github.com/LinShanify/HeatMap
 from constants import *
 
 import matplotlib.pyplot as plt
@@ -32,7 +32,7 @@ class Evaluation():
     def predict_heatmaps(self, h, X):
         h._load_model(self.model_json, self.weights)
 
-        X = X.reshape(1, 256, 256, 3) # predict needs shape (1, 256, 256, 3)
+        X = np.expand_dims(X, axis=0) # add "batch" dimension of 1 because predict needs shape (1, 256, 256, 3)
         predict_heatmaps = h.model.predict(X)
         predict_heatmaps = np.array(predict_heatmaps) # output shape is (num_hg_blocks, 1, 64, 64, 17)
         return predict_heatmaps
@@ -65,8 +65,17 @@ class Evaluation():
                 stacked_hourglass_heatmaps = np.vstack((stacked_hourglass_heatmaps, stacked_predict_heatmaps))
         return stacked_hourglass_heatmaps
 
-    #  Saves stacked predicted heatmaps and stacked ground truth heatmaps in one evaluation image
-    def save_stacked_evaluation_heatmaps(self, stacked_predict_heatmaps_file, stacked_ground_truth_heatmaps_file, filename):
+    #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
+    def save_stacked_evaluation_heatmaps(self, h, X, y, stacked_predict_heatmaps_file, stacked_ground_truth_heatmaps_file, filename):
+        predict_heatmaps=self.predict_heatmaps(h, X)
+        stacked_predict_heatmaps=self.stacked_predict_heatmaps(predict_heatmaps)
+        stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
+
+        # Save stacked images to disk
+        plt.imsave(stacked_predict_heatmaps_file, stacked_predict_heatmaps)
+        plt.imsave(stacked_ground_truth_heatmaps_file, stacked_ground_truth_heatmaps)
+        filename = filename
+        
         heatmap_imgs = []
         heatmap_imgs.append(cv2.imread(stacked_predict_heatmaps_file))
         heatmap_imgs.append(cv2.imread(stacked_ground_truth_heatmaps_file))

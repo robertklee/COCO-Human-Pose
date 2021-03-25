@@ -41,19 +41,11 @@ X_batch, y_stacked = generator[168] # choose one image for evaluation
 y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 
-# Retrieve prediction and ground truth heatmaps
-predict_heatmaps=eval.predict_heatmaps(h, X)
-print("Received predicted heatmaps")
-stacked_predict_heatmaps=eval.stacked_predict_heatmaps(predict_heatmaps)
-print("Received stacked predicted heatmaps")
-stacked_ground_truth_heatmaps=eval.stacked_ground_truth_heatmaps(X, y)
-print("Received stacked ground truth heatmaps")
-
-# Save stacked images to disk
-plt.imsave('stacked_predict_heatmaps.png', stacked_predict_heatmaps)
-plt.imsave('stacked_ground_truth_heatmaps.png', stacked_ground_truth_heatmaps)
+# Save stacked heatmap images to disk
+stacked_predict_heatmaps_file = 'stacked_predict_heatmaps.png'
+stacked_ground_truth_heatmaps_file = 'stacked_ground_truth_heatmaps.png'
 filename = 'heatmap_evaluation.png'
-eval.save_stacked_evaluation_heatmaps('stacked_predict_heatmaps.png', 'stacked_ground_truth_heatmaps.png', filename)
-print(f"Saved stacked evaluation heatmaps as {filename}")
+eval.save_stacked_evaluation_heatmaps(h, X, y, stacked_predict_heatmaps_file, stacked_ground_truth_heatmaps_file, filename)
+print(f"Saved stacked evaluation heatmaps as {filename} to disk")
 
 # %%
