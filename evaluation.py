@@ -3,7 +3,6 @@ from constants import *
 
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
 import cv2
 
 class Evaluation():
@@ -15,22 +14,7 @@ class Evaluation():
         self.num_hg_blocks = num_hg_blocks
         self.batch_size = batch_size
 
-    # https://stackoverflow.com/questions/30227466/combine-several-images-horizontally-with-python
-    def _hstack_images(self, images, filename):
-        widths, heights = zip(*(i.size for i in images))
-
-        total_width = sum(widths)
-        max_height = max(heights)
-
-        new_im = Image.new('RGB', (total_width, max_height))
-
-        x_offset = 0
-        for im in images:
-            new_im.paste(im, (x_offset,0))
-            x_offset += im.size[0]
-
-        new_im.save(filename)
-
+    # Vertically stack images of different widths
     # https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
     def _vstack_images(self, img_list, interpolation=cv2.INTER_CUBIC):
         # take minimum width 
@@ -53,48 +37,41 @@ class Evaluation():
         predict_heatmaps = np.array(predict_heatmaps) # output shape is (num_hg_blocks, 1, 64, 64, 17)
         return predict_heatmaps
 
-    #  Returns filename of saved stacked ground truth heatmaps and saves all ground truth heatmaps
-    def save_stacked_ground_truth_heatmaps(self, X, y):
+    #  Returns np array of stacked ground truth heatmaps for a given image and label
+    def stacked_ground_truth_heatmaps(self, X, y):
         ground_truth_heatmaps = []
         for i in range(NUM_COCO_KEYPOINTS):
             heatmap = y[:,:,i]
             hm = HeatMap(X,heatmap)
-            hm.save(f'ground_truth_heatmap{i}','png', transparency=0.5)
-            ground_truth_heatmaps.append(f'ground_truth_heatmap{i}.png')
+            heatmap_array = hm.get_heatmap_array(transparency=0.5)
+            ground_truth_heatmaps.append(heatmap_array)
+        for i, heatmap in enumerate(ground_truth_heatmaps):
+            if(i == 0):
+                stacked_ground_truth_heatmaps = ground_truth_heatmaps[0]
+            else:
+                stacked_ground_truth_heatmaps = np.hstack((stacked_ground_truth_heatmaps, heatmap))
+        return stacked_ground_truth_heatmaps
 
-        images = [Image.open(x) for x in ground_truth_heatmaps]
-        filename = 'stacked_ground_truth_heatmaps.png'
-        self._hstack_images(images, filename)
-        return filename
-
-    #  Returns list of saved stacked predicted heatmaps and saves all predicted heatmaps
-    def save_stacked_predict_heatmaps(self, predict_heatmaps):
-        stacked_predict_heatmaps = []
+    #  Returns np array of stacked predicted heatmaps
+    def stacked_predict_heatmaps(self, predict_heatmaps):
         for h in range(self.num_hg_blocks):
-            heatmaps = []
+            stacked_predict_heatmaps = np.array(predict_heatmaps[h, 0, :, :, 0])
             for i in range(NUM_COCO_KEYPOINTS):
-                plt.figure(i)
-                plt.imsave(f'hourglass{h}_heatmap{i}.png', predict_heatmaps[h, 0, :, :, i])
-                heatmaps.append(f'hourglass{h}_heatmap{i}.png')
-
-            images = [Image.open(x) for x in heatmaps]
-            self._hstack_images(images, f'stacked_heatmaps_hourglass{h}.png')
-            stacked_predict_heatmaps.append(f'stacked_heatmaps_hourglass{h}.png')
-
-        return stacked_predict_heatmaps
+                if(i != 0):
+                    stacked_predict_heatmaps = np.hstack((stacked_predict_heatmaps, predict_heatmaps[h, 0, :, :, i]))
+            if(h == 0):
+                stacked_hourglass_heatmaps = np.array(stacked_predict_heatmaps)
+            else:
+                stacked_hourglass_heatmaps = np.vstack((stacked_hourglass_heatmaps, stacked_predict_heatmaps))
+        return stacked_hourglass_heatmaps
 
     #  Saves stacked predicted heatmaps and stacked ground truth heatmaps in one evaluation image
-    def save_stacked_evaluation_heatmaps(self, stacked_predict_heatmaps, stacked_ground_truth_heatmaps):
-        heatmaps = []
-        for x in stacked_predict_heatmaps:
-            heatmaps.append(x)
-        heatmaps.append(stacked_ground_truth_heatmaps)
-        # Stack each hourglass and ground truth heatmaps into heatmap_evaluation.png
+    def save_stacked_evaluation_heatmaps(self, stacked_predict_heatmaps_file, stacked_ground_truth_heatmaps_file, filename):
         heatmap_imgs = []
-        for x in heatmaps:
-            heatmap_imgs.append(cv2.imread(x))
+        heatmap_imgs.append(cv2.imread(stacked_predict_heatmaps_file))
+        heatmap_imgs.append(cv2.imread(stacked_ground_truth_heatmaps_file))
 
         # Resize and vertically stack heatmap images
         img_v_resize = self._vstack_images(heatmap_imgs) 
         
-        cv2.imwrite('heatmap_evaluation.png', img_v_resize) 
+        cv2.imwrite(filename, img_v_resize) 

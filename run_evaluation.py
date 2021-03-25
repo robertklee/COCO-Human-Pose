@@ -10,6 +10,7 @@ import evaluation
 imp.reload(evaluation)
 from evaluation import Evaluation
 from constants import *
+import matplotlib.pyplot as plt
 
 h = HourglassNet(NUM_COCO_KEYPOINTS,DEFAULT_NUM_HG,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
 train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
@@ -40,13 +41,19 @@ X_batch, y_stacked = generator[168] # choose one image for evaluation
 y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 
+# Retrieve prediction and ground truth heatmaps
 predict_heatmaps=eval.predict_heatmaps(h, X)
 print("Received predicted heatmaps")
-stacked_predict_heatmaps=eval.save_stacked_predict_heatmaps(predict_heatmaps)
-print("Saved predicted heatmaps")
-stacked_ground_truth_heatmaps=eval.save_stacked_ground_truth_heatmaps(X, y)
-print("Saved ground truth heatmaps")
-eval.save_stacked_evaluation_heatmaps(stacked_predict_heatmaps, stacked_ground_truth_heatmaps)
-print("Saved stacked evaluation heatmaps")
+stacked_predict_heatmaps=eval.stacked_predict_heatmaps(predict_heatmaps)
+print("Received stacked predicted heatmaps")
+stacked_ground_truth_heatmaps=eval.stacked_ground_truth_heatmaps(X, y)
+print("Received stacked ground truth heatmaps")
+
+# Save stacked images to disk
+plt.imsave('stacked_predict_heatmaps.png', stacked_predict_heatmaps)
+plt.imsave('stacked_ground_truth_heatmaps.png', stacked_ground_truth_heatmaps)
+filename = 'heatmap_evaluation.png'
+eval.save_stacked_evaluation_heatmaps('stacked_predict_heatmaps.png', 'stacked_ground_truth_heatmaps.png', filename)
+print(f"Saved stacked evaluation heatmaps as {filename}")
 
 # %%
