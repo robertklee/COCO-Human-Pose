@@ -2,17 +2,6 @@
 # Import utilities
 from imgaug.augmenters.meta import OneOf
 import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-
-import os
-
-# Import Image manipulation
-from PIL import Image
-
-# Import data visualization
-from matplotlib import pyplot as plt
-import matplotlib.patches as patches
-import matplotlib
 
 # import the library and helpers
 import imageio
@@ -40,151 +29,211 @@ def get_strength_enum_from_string(img_aug_strength_str):
     
     return strength
 
-def get_pipeline(strength):
-    if strength is ImageAugmentationStrength.none:
-        return None
-    elif strength is ImageAugmentationStrength.light:
-        return light_augmentation()
-    elif strength is ImageAugmentationStrength.medium:
-        return medium_augmentation()
-    elif strength is ImageAugmentationStrength.heavy:
-        return heavy_augmentation()
-    else:
-        _print_options()
+# %% Initialize augmentation pipeline
 
 # Not applied transformations but would be interesting to try:
 # - iaa.CoarseDropout - Randomly erases a larger chunk of the image - meant to improve robustness for occlusions
 # - iaa.SaltAndPepper - Different type of noise
 
-def light_augmentation():
-    aug_pipeline = iaa.Sequential([
-        iaa.Sometimes(0.3, iaa.GaussianBlur((0, 1.0))), # apply Gaussian blur with a sigma between 0 and 2 to 30% of the images # used to be [0,3] on 50% images
-        iaa.Sometimes(0.5, iaa.Fliplr(1.0)), # horizontally flip 50% of the time
-        # apply from 0 to 3 of the augmentations from the list
-        iaa.SomeOf((0, 2),[
-            iaa.Dropout((0, 0.03), per_channel=0.5), # randomly remove up to 3% of the pixels
-            iaa.AddToHueAndSaturation((-15, 15)),  # change their color
-            iaa.OneOf([
-                iaa.AddToBrightness((-20,20)),
-                # Strengthen or weaken the contrast in each image.
-                iaa.LinearContrast((0.8, 1.2)),
-            ]),
-            # Add gaussian noise.
-            # For 50% of all images, we sample the noise once per pixel.
-            # For the other 50% of all images, we sample the noise per pixel AND
-            # channel. This can change the color (not only brightness) of the
-            # pixels.
-            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.03*255), per_channel=0.5),
-        ]),
-        # Only apply one of the following because otherwise there is a risk that keypoints will 
-        # be pointing to a non-existent part of the image
-        iaa.SomeOf((0,1),[
-            iaa.CropAndPad(percent=(-0.15, 0.15), keep_size=True, sample_independently=False), # crop and pad 50% of the images
-            iaa.Rotate((-15,15)), # rotate between [-30, 30] degrees
-        ])
-    ],
-    random_order=True # apply the augmentations in random order
-    )
-
-    ## We may need this line so our pipeline will apply the same operations to keypoints as well as images
-    ## Disabled because we will just pass both the keypoints and the image to the seq pipeline
-    ## which eliminates the possibility that different augmentations will be applied on the 
-    ## original image and keypoints 
-    # aug_pipeline_det = aug_pipeline.to_deterministic()
-
-    return aug_pipeline
-
-def medium_augmentation():
-    aug_pipeline = iaa.Sequential([
-        iaa.Sometimes(0.3, iaa.GaussianBlur((0, 2.0))), # apply Gaussian blur with a sigma between 0 and 2 to 30% of the images # used to be [0,3] on 50% images
-        iaa.Sometimes(0.5, iaa.Fliplr(1.0)), # horizontally flip 50% of the time
-        # apply from 0 to 3 of the augmentations from the list
-        iaa.SomeOf((0, 3),[
-            iaa.Dropout((0, 0.05), per_channel=0.5), # randomly remove up to 5% of the pixels # used to be 10%
-            iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)), # sharpen images
-            iaa.AddToHueAndSaturation((-20, 20)),  # change their color #(-60, 60)
-            iaa.OneOf([
-                iaa.AddToBrightness((-25,25)),
-                # Strengthen or weaken the contrast in each image.
-                iaa.LinearContrast((0.75, 1.25)),
-            ]),
-            # Add gaussian noise.
-            # For 50% of all images, we sample the noise once per pixel.
-            # For the other 50% of all images, we sample the noise per pixel AND
-            # channel. This can change the color (not only brightness) of the
-            # pixels.
-            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
-        ]),
-        # Only apply one of the following because otherwise there is a risk that keypoints will 
-        # be pointing to a non-existent part of the image
-        iaa.SomeOf((0,1),[
-            iaa.CropAndPad(percent=(-0.20, 0.20), keep_size=True, sample_independently=False), # crop and pad 50% of the images
-            iaa.Rotate((-25,25)), # rotate 50% of the images between [-30, 30] degrees
-        ])
-    ],
-    random_order=True # apply the augmentations in random order
-    )
-
-    ## We may need this line so our pipeline will apply the same operations to keypoints as well as images
-    ## Disabled because we will just pass both the keypoints and the image to the seq pipeline
-    ## which eliminates the possibility that different augmentations will be applied on the 
-    ## original image and keypoints 
-    # aug_pipeline_det = aug_pipeline.to_deterministic()
-
-    return aug_pipeline
-
-# %% init augmentation pipeline
 # NOTE: DO NOT APPLY AFFINE SCALE AFTER CROP
 # Keypoints that should have disappeared will be part of the image again:
 # https://github.com/aleju/imgaug/issues/187
-def heavy_augmentation():
-    # Perform data augmentation randomly
-            # - Rotation (+/- 30 deg)
-            # - Scaling (.75 to 1.25)
-            # - Horizontal flip (left to right) with probability 50%
-            # - Gaussian noise 
-            # - Random brightness
-            # - Random gamma (contrast)
-            # - Random dropout (fine dropout. Coarse may drop out the area where our keypoint is)
 
-    # define an augmentation pipeline
-    aug_pipeline = iaa.Sequential([
-        iaa.Sometimes(0.3, iaa.GaussianBlur((0, 2.0))), # apply Gaussian blur with a sigma between 0 and 2 to 30% of the images # used to be [0,3] on 50% images
-        iaa.Sometimes(0.5, iaa.Fliplr(1.0)), # horizontally flip 50% of the time
-        # apply from 0 to 3 of the augmentations from the list
-        iaa.SomeOf((0, 3),[
-            iaa.Dropout((0, 0.1), per_channel=0.5), # randomly remove up to 5% of the pixels # used to be 10%
-            iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)), # sharpen images
-            iaa.AddToHueAndSaturation((-30, 30)),  # change their color #(-60, 60)
+def get_augmenter_pipeline(strength_enum):
+    """
+    Data augmentation package
+
+    ### Parameters:
+    strength_enum : {ImageAugmentationStrength enum}
+        Corresponds to the level of data augmentation that should be applied.
+    
+    ### Returns:
+    Data augmentation pipeline that handles images and corresponding keypoints simultaneously.
+    NOTE that both the keypoints and the images must be passed in one call, or different 
+    transformations will be applied to them, rendering them useless.
+
+    #### Options:
+    ImageAugmentationStrength.heavy:
+        - Blur with probability 30% with sigma              2.0
+        - Horizontal flip (left to right) with probability  50%
+        - Up to 3 of the following:
+            - Sharpening                                    0.8 to 1.2, blending factor between (0,1)
+            - Hue and saturation change of                  -30 to 30 out of 255
+            - One of:
+                - Brightness change of                      -30 to 30 out of 255
+                - Contrast change of                        0.75 to 1.25
+            - One of:
+                - Pixel dropout up to                       10% of pixels
+                - Gaussian noise up to                      5% of 255
+        - Scaling                                           (+/- 25 %)
+        - Rotation                                          (+/- 30 deg)
+    ImageAugmentationStrength.medium:
+        - Blur with probability 30% with sigma              1.5
+        - Horizontal flip (left to right) with probability  50%
+        - Up to 3 of the following:
+            - Sharpening                                    0.85 to 1.15, blending factor between (0,0.5)
+            - Hue and saturation change of                  -20 to 20 out of 255
+            - One of:
+                - Brightness change of                      -25 to 25 out of 255
+                - Contrast change of                        0.85 to 1.15
+            - One of:
+                - Pixel dropout up to                       5% of pixels
+                - Gaussian noise up to                      3% of 255
+        - Scaling                                           (+/- 20 %)
+        - Rotation                                          (+/- 25 deg)
+    ImageAugmentationStrength.light:
+        - Blur with probability 30% with sigma              1
+        - Horizontal flip (left to right) with probability  50%
+        - Up to 2 of the following:
+            - Sharpening                                    None
+            - Hue and saturation change of                  -15 to 15 out of 255
+            - One of:
+                - Brightness change of                      -20 to 20 out of 255
+                - Contrast change of                        0.9 to 1.1
+            - One of:
+                - Pixel dropout up to                       3% of pixels
+                - Gaussian noise up to                      1% of 255
+        - Scaling                                           (+/- 15 %)
+        - Rotation                                          (+/- 15 deg)
+    """
+
+    if strength_enum is ImageAugmentationStrength.heavy:
+        iaaGaussianBlurSigmaMax                 = 2.0
+
+        iaaMaxNumberImageAppearanceOperations   = 3
+        # Image appearance operations
+        iaaApplySharpening                      = True
+        iaaSharpenAlphaMax                      = 1
+        iaaSharpenLightnessMin                  = 0.8
+        iaaSharpenLightnessMax                  = 1.2
+        iaaHueSaturationMin                     = -30
+        iaaHueSaturationMax                     = 30
+        iaaBrightnessMin                        = -30
+        iaaBrightnessMax                        = 30
+        iaaLinearContrastMin                    = 0.75
+        iaaLinearContrastMax                    = 1.25
+        # Picture quality operations, apply only one
+        iaaApplyDropoutAndGaussian              = True
+        iaaDropoutPercentPixels                 = 0.1
+        iaaAdditiveGaussianNoiseScale           = 0.05
+
+        # Only up to one of the image size/rotation operations
+        iaaCropAndPadPercentMagnitude           = 0.25 # add and subtract this from 1.00 (100%, no scaling)
+        iaaRotateDegreesMagnitude               = 30 # add and subtract this from 0 deg
+    elif strength_enum is ImageAugmentationStrength.medium:
+        iaaGaussianBlurSigmaMax                 = 1.5
+
+        iaaMaxNumberImageAppearanceOperations   = 3
+        # Image appearance operations
+        iaaApplySharpening                      = True
+        iaaSharpenAlphaMax                      = 0.5
+        iaaSharpenLightnessMin                  = 0.85
+        iaaSharpenLightnessMax                  = 1.15
+        # Colour and contrast
+        iaaHueSaturationMin                     = -20
+        iaaHueSaturationMax                     = 20
+        iaaBrightnessMin                        = -25
+        iaaBrightnessMax                        = 25
+        iaaLinearContrastMin                    = 0.85
+        iaaLinearContrastMax                    = 1.15
+        # Picture quality operations, apply only one
+        iaaApplyDropoutAndGaussian              = True
+        iaaDropoutPercentPixels                 = 0.05
+        iaaAdditiveGaussianNoiseScale           = 0.03
+
+        # Only up to one of the image size/rotation operations
+        iaaCropAndPadPercentMagnitude           = 0.20 # add and subtract this from 1.00 (100%, no scaling)
+        iaaRotateDegreesMagnitude               = 25 # add and subtract this from 0 deg
+    elif strength_enum is ImageAugmentationStrength.light:
+        iaaGaussianBlurSigmaMax                 = 1
+
+        iaaMaxNumberImageAppearanceOperations   = 2
+        # Image appearance operations
+        iaaApplySharpening                      = False
+        iaaSharpenAlphaMax                      = 0
+        iaaSharpenLightnessMin                  = 1
+        iaaSharpenLightnessMax                  = 1
+        # Colour and contrast
+        iaaHueSaturationMin                     = -15
+        iaaHueSaturationMax                     = 15
+        iaaBrightnessMin                        = -20
+        iaaBrightnessMax                        = 20
+        iaaLinearContrastMin                    = 0.9
+        iaaLinearContrastMax                    = 1.1
+        # Picture quality operations, apply only one
+        iaaApplyDropoutAndGaussian              = True
+        iaaDropoutPercentPixels                 = 0.03
+        iaaAdditiveGaussianNoiseScale           = 0.01
+
+        # Only up to one of the image size/rotation operations
+        iaaCropAndPadPercentMagnitude           = 0.15 # add and subtract this from 1.00 (100%, no scaling)
+        iaaRotateDegreesMagnitude               = 15 # add and subtract this from 0 deg
+    else:
+        _print_options()
+
+    # Verify that min are lower than max
+    assert iaaSharpenLightnessMin   <= iaaSharpenLightnessMax
+    assert iaaHueSaturationMin      <= iaaHueSaturationMax
+    assert iaaBrightnessMin         <= iaaBrightnessMax
+    assert iaaLinearContrastMin     <= iaaLinearContrastMax
+    # Verify that the magnitude is given
+    assert iaaCropAndPadPercentMagnitude >= 0
+    assert iaaRotateDegreesMagnitude     >= 0
+
+    iaaSomeOfImageAppearance = [
+            # change their color
+            iaa.AddToHueAndSaturation((iaaHueSaturationMin, iaaHueSaturationMax)),  
             iaa.OneOf([
-                iaa.AddToBrightness((-30,30)),
-                # Strengthen or weaken the contrast in each image.
-                iaa.LinearContrast((0.75, 1.5)),
+                iaa.AddToBrightness((iaaBrightnessMin,iaaBrightnessMax)),
+                iaa.LinearContrast((iaaLinearContrastMin, iaaLinearContrastMax)),
             ]),
+        ]
+    
+    if iaaApplySharpening:
+        iaaSomeOfImageAppearance.append(
+            # sharpen images
+            iaa.Sharpen(alpha=(0, iaaSharpenAlphaMax), lightness=(iaaSharpenLightnessMin, iaaSharpenLightnessMax)), 
+        )
+    if iaaApplyDropoutAndGaussian:
+        iaaSomeOfImageAppearance.append(iaa.OneOf([
+            # randomly remove up to x % of the pixels
+            iaa.Dropout((0, iaaDropoutPercentPixels), per_channel=0.5), 
             # Add gaussian noise.
             # For 50% of all images, we sample the noise once per pixel.
             # For the other 50% of all images, we sample the noise per pixel AND
-            # channel. This can change the color (not only brightness) of the
-            # pixels.
-            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5),
-        ]),
+            # channel. This can change the color (not only brightness) of the pixels.
+            iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, iaaAdditiveGaussianNoiseScale*255), per_channel=0.2),
+        ]))
+    
+    """
+    All augmentation options will have horizontal flip 50% of the time.
+    """
+
+    # define an augmentation pipeline
+    aug_pipeline = iaa.Sequential([
+        # apply Gaussian blur with a sigma between 0 and x to 30% of the images
+        iaa.Sometimes(0.3, iaa.GaussianBlur((0, iaaGaussianBlurSigmaMax))), 
+        # horizontally flip 50% of the time
+        iaa.Sometimes(0.5, iaa.Fliplr(1.0)), 
+        iaa.SomeOf((0, iaaMaxNumberImageAppearanceOperations), 
+            iaaSomeOfImageAppearance
+        ),
         # Only apply one of the following because otherwise there is a risk that keypoints will 
         # be pointing to a non-existent part of the image
         iaa.SomeOf((0,1),[
-            iaa.CropAndPad(percent=(-0.25, 0.25), keep_size=True, sample_independently=False), # crop and pad 50% of the images
-            iaa.Rotate((-30,30)), # rotate 50% of the images between [-30, 30] degrees
+            iaa.CropAndPad(percent=(-1 * iaaCropAndPadPercentMagnitude, iaaCropAndPadPercentMagnitude), keep_size=True, sample_independently=False), # crop and pad 50% of the images
+            iaa.Rotate((-1 * iaaRotateDegreesMagnitude, iaaRotateDegreesMagnitude)), # rotate 50% of the images between [-30, 30] degrees
         ])
     ],
     random_order=True # apply the augmentations in random order
     )
 
-    ## We may need this line so our pipeline will apply the same operations to keypoints as well as images
-    ## Disabled because we will just pass both the keypoints and the image to the seq pipeline
-    ## which eliminates the possibility that different augmentations will be applied on the 
-    ## original image and keypoints 
+    ## Usually, we need this line, but as long as we call the pipeline with both the image and keypoint
+    ## passed in together, identical augmentations will be applied to both the image and keypoint
     # aug_pipeline_det = aug_pipeline.to_deterministic()
 
     return aug_pipeline
+
 
 # %% Load sample image
 if __name__ == '__main__':
@@ -216,7 +265,7 @@ if __name__ == '__main__':
     print(kpsoi.keypoints)
 
 # %% Randomly augment several images
-    seq = heavy_augmentation()
+    seq = get_augmenter_pipeline(ImageAugmentationStrength.light)
 
     # First element is original image and keypoints
     images_aug = [image]

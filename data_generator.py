@@ -44,7 +44,7 @@ class DataGenerator(Sequence):
         # If true, images will be loaded from url over network rather than filesystem
         self.online_fetch = online_fetch
         if img_aug_strength is not None:
-            self.augmenter = get_pipeline(img_aug_strength) 
+            self.augmenter = get_augmenter_pipeline(img_aug_strength) 
         else:
             self.augmenter = None 
         
