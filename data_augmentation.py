@@ -70,6 +70,7 @@ def get_augmenter_pipeline(strength_enum):
                 - Gaussian noise up to                      5% of 255
         - Scaling                                           (+/- 25 %)
         - Rotation                                          (+/- 30 deg)
+
     ImageAugmentationStrength.medium:
         - Blur with probability 30% with sigma              1.5
         - Horizontal flip (left to right) with probability  50%
@@ -84,6 +85,7 @@ def get_augmenter_pipeline(strength_enum):
                 - Gaussian noise up to                      3% of 255
         - Scaling                                           (+/- 20 %)
         - Rotation                                          (+/- 25 deg)
+        
     ImageAugmentationStrength.light:
         - Blur with probability 30% with sigma              1
         - Horizontal flip (left to right) with probability  50%
@@ -195,10 +197,10 @@ def get_augmenter_pipeline(strength_enum):
     # Conditionally add the following transformations
     if iaaApplySharpening:
         iaaSomeOfImageAppearance.append(
-            # sharpen images
             iaa.Sharpen(alpha=(0, iaaSharpenAlphaMax), lightness=(iaaSharpenLightnessMin, iaaSharpenLightnessMax)), 
         )
     if iaaApplyDropoutAndGaussian:
+        # Only apply one of the following because they may overlap and do the same thing
         iaaSomeOfImageAppearance.append(iaa.OneOf([
             # randomly remove up to x % of the pixels
             iaa.Dropout((0, iaaDropoutPercentPixels), per_channel=0.5), 
@@ -221,8 +223,8 @@ def get_augmenter_pipeline(strength_enum):
         # Only apply one of the following because otherwise there is a risk that keypoints will 
         # be pointing to a non-existent part of the image
         iaa.SomeOf((0,1),[
-            iaa.CropAndPad(percent=(-1 * iaaCropAndPadPercentMagnitude, iaaCropAndPadPercentMagnitude), keep_size=True, sample_independently=False), # crop and pad 50% of the images
-            iaa.Rotate((-1 * iaaRotateDegreesMagnitude, iaaRotateDegreesMagnitude)), # rotate 50% of the images between [-30, 30] degrees
+            iaa.CropAndPad(percent=(-1 * iaaCropAndPadPercentMagnitude, iaaCropAndPadPercentMagnitude), keep_size=True, sample_independently=False), 
+            iaa.Rotate((-1 * iaaRotateDegreesMagnitude, iaaRotateDegreesMagnitude)),
         ])
     ],
     random_order=True # apply the augmentations in random order
