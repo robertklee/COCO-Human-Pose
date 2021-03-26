@@ -238,7 +238,6 @@ def get_augmenter_pipeline(strength_enum):
 
     return aug_pipeline
 
-
 # %% Load sample image
 if __name__ == '__main__':
     image = imageio.imread('./data/Macropus_rufogriseus_rufogriseus_Bruny.jpg')
@@ -279,13 +278,10 @@ if __name__ == '__main__':
         image_aug, kpsoi_aug = seq(image=image, keypoints=kpsoi)
         images_aug.append(image_aug)
         kpsois_aug.append(kpsoi_aug)
+        # We _could_ use kpsois_aug.clip_out_of_image() to remove all keypoints outside of bounds,
+        # but we need keypoint order to manually set heatmaps to 0
 
     ia.imshow(
         np.hstack([kpsois_aug[i].draw_on_image(images_aug[i], size=7) for i in range(len(images_aug))])
     )
-
-    # TODO need to check if keypoint is out of image is_out_of_image(image_aug)
-
-    # We _could_ use kpsois_aug[i].clip_out_of_image() to remove all keypoints outside of bounds,
-    # but we need keypoint order to manually set heatmaps to 0
 # %%
