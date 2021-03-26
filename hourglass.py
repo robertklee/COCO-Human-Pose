@@ -28,8 +28,6 @@ class HourglassNet(object):
         self.num_channels = num_channels
         self.inres = inres
         self.outres = outres
-        self.loss = None
-        self.img_aug_strength = None
 
     def build_model(self, mobile=False, show=False):
         if mobile:
@@ -56,13 +54,16 @@ class HourglassNet(object):
         print(f"Train/Val dfs contains {len(train_df)}/{len(val_df)} anns")
         return train_df.reset_index(), val_df.reset_index()
 
-    def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset):
-        self._compile_model()
+    def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset, loss_str, image_aug_str):
+        loss = get_loss_from_string(loss_str)
+        self._compile_model(loss)
 
         train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
 
+        img_aug_strength = get_strength_enum_from_string(image_aug_str)
+
         train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=TRAIN_SHUFFLE, \
-            batch_size=batch_size, img_aug_strength=self.img_aug_strength)
+            batch_size=batch_size, img_aug_strength=img_aug_strength)
         # Validation does not shuffle and does not augment images, by default.
         val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=VAL_SHUFFLE, batch_size=batch_size, img_aug_strength=None)
         
@@ -98,29 +99,25 @@ class HourglassNet(object):
         self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
 
-    def train(self, batch_size, model_save_base_dir, epochs, subset, notes=None, loss_str=DEFAULT_LOSS, image_aug_strength=DEFAULT_AUGMENT):
+    def train(self, batch_size, model_save_base_dir, epochs, subset, notes=None, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
-        model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks)
+        model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks) \
+            + '_loss_{}'.format(loss_str) + '_aug_{}'.format(image_aug_str) + '_sigma{}'.format(HEATMAP_SIGMA)
 
         if subset < 1.0:
             model_subdir += '_subset_{:.2f}'.format(subset)
         
         print('Loss function selected: {}'.format(loss_str))
-        self.loss = get_loss_from_string(loss_str)
-        model_subdir += '_loss_{}'.format(loss_str)
-
-        print('Image augmentation strength selected: {}'.format(image_aug_strength))
-        self.img_aug_strength = get_strength_enum_from_string(image_aug_strength)
-        model_subdir += '_aug_{}'.format(image_aug_strength)
+        print('Image augmentation strength selected: {}'.format(image_aug_str))
 
         if notes is not None:
             model_subdir += '_' + notes
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
-            initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset)
+            initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset, loss_str=loss_str, image_aug_str=image_aug_str)
     
-    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset, loss_str=DEFAULT_LOSS, image_aug_strength=DEFAULT_AUGMENT):
+    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT):
         if resume_subdir is not None:
             print('Automatically locating model architecture .json and weights .hdf5...')
 
@@ -131,11 +128,9 @@ class HourglassNet(object):
         # Load loss. NOTE: I'm pretty sure the loss function is not saved in the architecture json, so 
         # ensure the loss option matches across training sessions
         # TODO automatically determine correct loss option from subdir notes
-        print('Loss function selected: {}'.format(loss_str))
-        self.loss = get_loss_from_string(loss_str)
 
-        print('Image augmentation strength selected: {}'.format(image_aug_strength))
-        self.img_aug_strength = get_strength_enum_from_string(image_aug_strength)
+        print('Loss function selected: {}'.format(loss_str))
+        print('Image augmentation strength selected: {}'.format(image_aug_str))
 
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
@@ -150,17 +145,17 @@ class HourglassNet(object):
         model_subdir = orig_model_subdir + DEFAULT_RESUME_DIR_FLAG + current_time
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
-            initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset)
+            initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset, loss_str=loss_str, image_aug_str=image_aug_str)
     
-    def _compile_model(self):
+    def _compile_model(self, loss):
         # TODO Update optimizer and/or learning rate?
         rms = RMSprop(lr=5e-4)
 
-        if self.loss is None:
+        if loss is None:
             print("No loss function provided. Using default of keras.losses.mean_squared_error")
-            self.loss = mean_squared_error
+            loss = mean_squared_error
 
-        self.model.compile(optimizer=rms, loss=self.loss, metrics=[f1_m, precision_m, recall_m])
+        self.model.compile(optimizer=rms, loss=loss, metrics=[f1_m, precision_m, recall_m])
 
     def _load_model(self, model_json, model_weights):
         with open(model_json) as f:
