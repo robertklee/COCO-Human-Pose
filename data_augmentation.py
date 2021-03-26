@@ -39,6 +39,9 @@ def get_strength_enum_from_string(img_aug_strength_str):
 # Keypoints that should have disappeared will be part of the image again:
 # https://github.com/aleju/imgaug/issues/187
 
+# TODO: It would be nice to begin with a larger image, and then apply rotation / cropping so we get as little 0 padding as possible
+# TODO: Verify x,y order in heatmap since the augmentation libary may use a different order
+
 def get_augmenter_pipeline(strength_enum):
     """
     Data augmentation package
@@ -189,6 +192,7 @@ def get_augmenter_pipeline(strength_enum):
             ]),
         ]
     
+    # Conditionally add the following transformations
     if iaaApplySharpening:
         iaaSomeOfImageAppearance.append(
             # sharpen images
@@ -204,10 +208,6 @@ def get_augmenter_pipeline(strength_enum):
             # channel. This can change the color (not only brightness) of the pixels.
             iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, iaaAdditiveGaussianNoiseScale*255), per_channel=0.2),
         ]))
-    
-    """
-    All augmentation options will have horizontal flip 50% of the time.
-    """
 
     # define an augmentation pipeline
     aug_pipeline = iaa.Sequential([

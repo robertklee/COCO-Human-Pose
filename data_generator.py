@@ -232,9 +232,6 @@ class DataGenerator(Sequence):
             transformed_label = self.transform_label(
                 ann['keypoints'], cropped_width, cropped_height, anchor_x, anchor_y)
 
-            # TODO: It would be nice to apply rotation / cropping on the original image so we get as little 0 padding as possible
-            # TODO: Verify x,y order in heatmap since the augmentation libary may use a different order
-
             # if image augmentations should be applied
             if self.augmenter is not None:
                 imgaug_kps, valid = self.convert_coco_kp_to_imgaug_kp(transformed_label.astype('float32'))
