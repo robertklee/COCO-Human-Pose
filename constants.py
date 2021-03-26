@@ -29,7 +29,7 @@ class ImageAugmentationStrength(Enum):
     light = 1
     medium = 2
     heavy = 3
-DEFAULT_AUGMENT = ImageAugmentationStrength.light.name
+DEFAULT_AUGMENT = ImageAugmentationStrength.none.name
 
 # Dataset Constants
 if COLAB_TRAINING:
