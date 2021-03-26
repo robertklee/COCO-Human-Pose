@@ -61,8 +61,12 @@ def process_args():
                         help='fraction of train set to train on, default 1.0')
     argparser.add_argument('-l',
                         '--loss',
-                        default=LossFunctionOptions.keras_mse.name,
+                        default=DEFAULT_LOSS,
                         help='Loss function for model training')
+    argparser.add_argument('-a',
+                        '--augment',
+                        default=DEFAULT_AUGMENT,
+                        help='Strength of image augmentation')
     # Resume model training arguments
     # TODO make a consistent way to generate and retrieve epoch checkpoint filenames
     argparser.add_argument('-r',
@@ -128,14 +132,16 @@ if __name__ == "__main__":
     if args.resume:
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
-        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, args.resume_epoch, args.epochs, args.resume_subdir, args.subset, loss_str=args.loss)
+        hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, \
+            args.resume_epoch, args.epochs, args.resume_subdir, args.subset, loss_str=args.loss, image_aug_str=args.augment)
     else:
         hgnet.build_model(show=True)
 
         print("\n\nTraining start: {}\n".format(time.ctime()))
-        print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(args.hourglass, args.epochs, args.batch, args.subset))
+        print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(\
+            args.hourglass, args.epochs, args.batch, args.subset))
 
-        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes, loss_str=args.loss)
+        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes, loss_str=args.loss, image_aug_str=args.augment)
 
     print("\n\nTraining end:   {}\n".format(time.ctime()))
 

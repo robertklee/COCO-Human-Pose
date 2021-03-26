@@ -21,6 +21,15 @@ class LossFunctionOptions(Enum):
     euclidean_loss = 2
     focal_loss = 3
 
+DEFAULT_LOSS = LossFunctionOptions.keras_mse.name
+
+# Image augmentation
+class ImageAugmentationStrength(Enum):
+    none = 0
+    light = 1
+    medium = 2
+    heavy = 3
+DEFAULT_AUGMENT = ImageAugmentationStrength.none.name
 
 # Dataset Constants
 if COLAB_TRAINING:

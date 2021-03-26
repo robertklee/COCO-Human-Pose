@@ -6,14 +6,18 @@
 import os
 
 import cv2
+import imgaug as ia
 import numpy as np
 import pandas as pd
 import skimage.io as io
 import tensorflow as tf
+from imgaug import augmenters as iaa
+from imgaug.augmentables.kps import Keypoint, KeypointsOnImage
 from PIL import Image
 from tensorflow.keras.utils import Sequence
 
 from constants import *
+from data_augmentation import *
 
 # TODO: Data Augementation:
 # - bounding box varied through data augmentation 110% to 150%
@@ -27,7 +31,9 @@ from constants import *
 # inherit from Sequence to access multicore functionality: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class DataGenerator(Sequence):
 
-    def __init__(self, df, base_dir, input_dim, output_dim, num_hg_blocks, shuffle=False, batch_size=DEFAULT_BATCH_SIZE, online_fetch=False):
+    def __init__(self, df, base_dir, input_dim, output_dim, num_hg_blocks, shuffle=False, \
+        batch_size=DEFAULT_BATCH_SIZE, online_fetch=False, img_aug_strength=None):
+
         self.df = df                    # df of the the annotations we want
         self.base_dir = base_dir        # where to read imgs from in collab runtime
         self.input_dim = input_dim      # model requirement for input image dimensions
@@ -37,6 +43,11 @@ class DataGenerator(Sequence):
         self.batch_size = batch_size
         # If true, images will be loaded from url over network rather than filesystem
         self.online_fetch = online_fetch
+        if img_aug_strength is not None:
+            self.augmenter = get_augmenter_pipeline(img_aug_strength) 
+        else:
+            self.augmenter = None 
+        
         self.on_epoch_end()
 
     # after each epoch, shuffle indices so data order changes
@@ -53,8 +64,7 @@ class DataGenerator(Sequence):
         new_bbox = self.transform_bbox(bbox)
         cropped_img = img.crop(box=new_bbox)
         cropped_width, cropped_height = cropped_img.size
-        scaled_img = np.array(cropped_img)/255.0  # scale RGB channels to [0,1]
-        new_img = cv2.resize(scaled_img, self.input_dim,
+        new_img = cv2.resize(np.array(cropped_img), self.input_dim,
                              interpolation=cv2.INTER_LINEAR)
         return new_img, cropped_width, cropped_height, new_bbox[0], new_bbox[1]
 
@@ -111,6 +121,43 @@ class DataGenerator(Sequence):
 
         return heat_maps
 
+    def convert_coco_kp_to_imgaug_kp(self, label):
+        kps = []
+        valid = np.ones(NUM_COCO_KEYPOINTS)
+        invalid_xy = -1
+        for i in range(NUM_COCO_KEYPOINTS):
+            label_idx = i * NUM_COCO_KP_ATTRBS  # index for label
+            # generate empty heatmap for unlabelled kp
+            if label[label_idx + (NUM_COCO_KP_ATTRBS-1)] == 0:
+                # invalid keypoint
+                valid[i] = 0
+                kps.append(Keypoint(x=invalid_xy, y=invalid_xy))
+                continue
+            kpx = int(label[label_idx])
+            kpy = int(label[label_idx + 1])
+            kps.append(Keypoint(x=kpx, y=kpy))
+
+        return kps, valid
+
+    def convert_imgaug_kpsoi_to_coco_kp(self, kpsoi_aug, valid, image_aug):
+        transformed_label = []
+
+        for i in range(NUM_COCO_KEYPOINTS):
+            kp = kpsoi_aug[i]
+            if (not valid[i]) or kp.is_out_of_image(image_aug):
+                x, y, v = (0, 0, 0)
+            else:
+                x = kp.x
+                y = kp.y
+                v = 1 
+
+            transformed_label.append(x)
+            transformed_label.append(y)
+            transformed_label.append(v)
+
+
+        return np.asarray(transformed_label)
+
     # This func is unmodified and ripped from: https://github.com/princeton-vl/pose-hg-train/blob/master/src/pypose/draw.py
     def gaussian(self, img, pt, sigma):
         # Draw a 2D gaussian
@@ -144,9 +191,26 @@ class DataGenerator(Sequence):
 
     # returns batch at index idx
 
+    """
+    Returns a batch from the dataset
+
+    ### Parameters:
+    idx : {int-type} Batch number to retrieve
+
+    ### Returns:
+    Tuple of (X, y) where:
+
+    X : ndarray of shape (batch number, input_dim1, input_dim2, 3)
+        This corresponds to a batch of images, normalized from [0,255] to [0,1]
+
+    y : list of ndarrays where each list element corresponds to an intermediate (or final) layer of the hourglass,
+        and has shape (batch number, output_dim1, output_dim2, 17). The list length is num_hg_blocks
+
+        Each output corresponds to a heatmap, which currently is a Gaussian and has range [0,1]
+    """
     def __getitem__(self, idx):
         # Initialize Batch:
-        X = np.empty((self.batch_size, *self.input_dim, 3))
+        X = np.empty((self.batch_size, *self.input_dim, INPUT_CHANNELS))
 
         # Order of last dimension: (heatmap for each kp) repeated num_hg_blocks times
         y = np.empty((self.batch_size, *self.output_dim, NUM_COCO_KEYPOINTS))
@@ -158,8 +222,7 @@ class DataGenerator(Sequence):
             img_path = os.path.join(self.base_dir, ann['path'])
 
             if self.online_fetch:
-                img = Image.fromarray(io.imread(ann['coco_url'])).convert(
-                    'RGB')  # bottleneck opening from URL
+                img = Image.fromarray(io.imread(ann['coco_url'])).convert('RGB')  # bottleneck opening from URL
             else:
                 # bottleneck opening from file system
                 img = Image.open(img_path).convert('RGB')
@@ -168,8 +231,28 @@ class DataGenerator(Sequence):
                 img, ann['bbox'])
             transformed_label = self.transform_label(
                 ann['keypoints'], cropped_width, cropped_height, anchor_x, anchor_y)
+
+            # if image augmentations should be applied
+            if self.augmenter is not None:
+                imgaug_kps, valid = self.convert_coco_kp_to_imgaug_kp(transformed_label.astype('float32'))
+
+                # Keep track of image dimension
+                kpsoi = KeypointsOnImage(imgaug_kps, shape=transformed_img.shape)
+
+                # Perform data augmentation randomly
+                image_aug, kpsoi_aug = self.augmenter(image=transformed_img, keypoints=kpsoi)
+
+                # Filter out out-of-bounds (from rotation/cropping) and invalid (originally occluded/not present) keypoints
+                augmented_label = self.convert_imgaug_kpsoi_to_coco_kp(kpsoi_aug, valid, image_aug)
+
+                # Update data
+                transformed_img = image_aug
+                transformed_label = augmented_label
+
+            normalized_img = transformed_img/255.0  # scale RGB channels to [0,1]
+
             heat_map_labels = self.generate_heatmaps(transformed_label)
-            X[i, ] = transformed_img
+            X[i, ] = normalized_img
             y[i, ] = heat_map_labels
 
         y_stacked = []
