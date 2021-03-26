@@ -103,13 +103,14 @@ class Evaluation():
 Runs the model for any general file. This aims to extend the DataGenerator output format for arbitrary images
 
 ## Parameters:
-data_generator : {DataGenerator object}
-    Required for bounding box transformations
-
-file_path : {string-typed} path to image
+img_path : {string-typed} path to image
     Note this image must be square, and centered around the person you wish to retrieve predictions for.
+
+num_hg_blocks : {int} number of hourglass blocks to generate dummy ground truth data for
+
+x,y,w,h : {int or float} optional bounding box info, anchored at top left of image
 """
-def load_and_preprocess_img(data_generator, img_path, x=None, y=None, w=None, h=None):
+def load_and_preprocess_img(img_path, num_hg_blocks, x=None, y=None, w=None, h=None):
     img = Image.open(img_path).convert('RGB')
 
     if x is None or y is None or w is None or h is None:
@@ -131,6 +132,6 @@ def load_and_preprocess_img(data_generator, img_path, x=None, y=None, w=None, h=
     X_batch = np.expand_dims(new_img, axis=0)
 
     # Add dummy heatmap "ground truth", duplicated 'num_hg_blocks' times
-    y_batch = [np.zeros((1, *(data_generator.output_dim), NUM_COCO_KEYPOINTS)) for _ in range(data_generator.num_hg_blocks)]
+    y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS)) for _ in range(num_hg_blocks)]
 
     return X_batch, y_batch
