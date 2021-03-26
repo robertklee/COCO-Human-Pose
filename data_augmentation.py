@@ -85,7 +85,7 @@ def get_augmenter_pipeline(strength_enum):
                 - Gaussian noise up to                      3% of 255
         - Scaling                                           (+/- 20 %)
         - Rotation                                          (+/- 25 deg)
-        
+
     ImageAugmentationStrength.light:
         - Blur with probability 30% with sigma              1
         - Horizontal flip (left to right) with probability  50%
@@ -173,6 +173,8 @@ def get_augmenter_pipeline(strength_enum):
         # Only up to one of the image size/rotation operations
         iaaCropAndPadPercentMagnitude           = 0.15 # add and subtract this from 1.00 (100%, no scaling)
         iaaRotateDegreesMagnitude               = 15 # add and subtract this from 0 deg
+    elif strength_enum is ImageAugmentationStrength.none:
+        return None
     else:
         _print_options()
 
