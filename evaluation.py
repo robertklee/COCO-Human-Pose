@@ -4,15 +4,17 @@ from constants import *
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import re
+import os
 
 class Evaluation():
 
-    def __init__(self, model_json, weights, df, num_hg_blocks, batch_size=1):
-        self.model_json = model_json              # json of model to be evaluated
-        self.weights = weights          # weights of model to be evaluated
-        self.df = df                    # df of the the annotations we want
-        self.num_hg_blocks = num_hg_blocks
-        self.batch_size = batch_size
+    def __init__(self, sub_dir, model_json, weights, h_net): 
+        self.model_json = os.path.join(sub_dir,model_json)         # json of model to be evaluated
+        self.weights = os.path.join(sub_dir,weights)          # weights of model to be evaluated
+        self.num_hg_blocks = int(re.match(r'.*stacks_(\d\d)_.*',model_json).group(1))
+        h_net._load_model(self.model_json, self.weights)
+        self.model = h_net.model
 
     # Vertically stack images of different widths
     # https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
@@ -29,11 +31,9 @@ class Evaluation():
         return cv2.vconcat(im_list_resize) 
 
     # Returns np array of predicted heatmaps for a given image and model
-    def predict_heatmaps(self, h, X):
-        h._load_model(self.model_json, self.weights)
-
+    def predict_heatmaps(self, X):
         X = np.expand_dims(X, axis=0) # add "batch" dimension of 1 because predict needs shape (1, 256, 256, 3)
-        predict_heatmaps = h.model.predict(X)
+        predict_heatmaps = self.model.predict(X)
         predict_heatmaps = np.array(predict_heatmaps) # output shape is (num_hg_blocks, 1, 64, 64, 17)
         return predict_heatmaps
 
@@ -66,19 +66,21 @@ class Evaluation():
         return stacked_hourglass_heatmaps
 
     #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
-    def save_stacked_evaluation_heatmaps(self, h, X, y, stacked_predict_heatmaps_file, stacked_ground_truth_heatmaps_file, filename):
-        predict_heatmaps=self.predict_heatmaps(h, X)
+    def save_stacked_evaluation_heatmaps(self, X, y, filename):
+        predict_heatmaps=self.predict_heatmaps(X)
         stacked_predict_heatmaps=self.stacked_predict_heatmaps(predict_heatmaps)
         stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
-
-        # Save stacked images to disk
-        plt.imsave(stacked_predict_heatmaps_file, stacked_predict_heatmaps)
-        plt.imsave(stacked_ground_truth_heatmaps_file, stacked_ground_truth_heatmaps)
+        
+        # Reshape heatmaps to 3 channels, normalize channels to [0,255]
+        stacked_predict_heatmaps = cv2.cvtColor(stacked_predict_heatmaps, cv2.COLOR_GRAY2RGB)
+        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        stacked_ground_truth_heatmaps = cv2.cvtColor(stacked_ground_truth_heatmaps, cv2.COLOR_BGRA2RGB)
+        stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         filename = filename
         
         heatmap_imgs = []
-        heatmap_imgs.append(cv2.imread(stacked_predict_heatmaps_file))
-        heatmap_imgs.append(cv2.imread(stacked_ground_truth_heatmaps_file))
+        heatmap_imgs.append(stacked_predict_heatmaps)
+        heatmap_imgs.append(stacked_ground_truth_heatmaps)
 
         # Resize and vertically stack heatmap images
         img_v_resize = self._vstack_images(heatmap_imgs) 
