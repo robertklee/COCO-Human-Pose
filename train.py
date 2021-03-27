@@ -136,8 +136,15 @@ if __name__ == "__main__":
 
     trainingRunTime = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
-    hgnet = HourglassNet(num_classes=NUM_COCO_KEYPOINTS, num_stacks=args.hourglass, num_channels=NUM_CHANNELS, inres=INPUT_DIM,
-                            outres=OUTPUT_DIM)
+    hgnet = HourglassNet(
+        num_classes=NUM_COCO_KEYPOINTS, 
+        num_stacks=args.hourglass, 
+        num_channels=NUM_CHANNELS, 
+        inres=INPUT_DIM,
+        outres=OUTPUT_DIM,
+        loss_str=args.loss,
+        image_aug_str=args.augment,
+        pickle_name=args.pickle)
 
     training_start = time.time()
 
@@ -146,7 +153,7 @@ if __name__ == "__main__":
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
         hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, \
-            args.resume_epoch, args.epochs, args.resume_subdir, args.subset, loss_str=args.loss, image_aug_str=args.augment, pickle_name=args.pickle)
+            args.resume_epoch, args.epochs, args.resume_subdir, args.subset)
     else:
         hgnet.build_model(show=True)
 
@@ -154,7 +161,7 @@ if __name__ == "__main__":
         print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(\
             args.hourglass, args.epochs, args.batch, args.subset))
 
-        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes, loss_str=args.loss, image_aug_str=args.augment, pickle_name=args.pickle)
+        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes)
 
     print("\n\nTraining end:   {}\n".format(time.ctime()))
 
