@@ -12,8 +12,9 @@ _, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_A
 
 # %% Declare evaluation class instance
 import evaluation
+import HeatMap
 imp.reload(evaluation)
-import evaluation
+imp.reload(HeatMap)
 
 subdir = '2021-03-22-23h-55m_batchsize_12_hg_4_loss_weighted_mse_aug_medium_sigma4'
 
@@ -42,6 +43,7 @@ generator = data_generator.DataGenerator(
 # Select image to predict heatmaps
 X_batch, y_stacked = generator[168] # choose one image for evaluation: 412 is tennis women
 # X_batch, y_stacked = evaluation.load_and_preprocess_img('data/skier.jpg', eval.num_hg_blocks)
+
 y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 plt.imshow(X)

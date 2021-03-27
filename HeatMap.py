@@ -97,4 +97,5 @@ class HeatMap:
         fig.canvas.draw()
         #Turn heatmap into numpy array
         heatmap_array = np.array(fig.canvas.renderer._renderer)
+        plt.close('all')
         return heatmap_array

@@ -1,6 +1,5 @@
 import os
 import re
-
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -59,7 +58,7 @@ class Evaluation():
         ground_truth_heatmaps = []
         for i in range(NUM_COCO_KEYPOINTS):
             heatmap = y[:,:,i]
-            hm = HeatMap(X,heatmap)
+            hm = HeatMap.HeatMap(X,heatmap)
             heatmap_array = hm.get_heatmap_array(transparency=0.5)
             ground_truth_heatmaps.append(heatmap_array)
         for i, heatmap in enumerate(ground_truth_heatmaps):
@@ -93,7 +92,6 @@ class Evaluation():
         stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         stacked_ground_truth_heatmaps = cv2.cvtColor(stacked_ground_truth_heatmaps, cv2.COLOR_BGRA2RGB)
         stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        filename = filename
         
         heatmap_imgs = []
         heatmap_imgs.append(stacked_predict_heatmaps)
