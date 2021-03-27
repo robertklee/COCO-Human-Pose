@@ -49,7 +49,7 @@ class Evaluation():
         print('Mean: {:0.6e}\t Max: {:e}\t Min: {:e}\t Variance: {:e}'.format(predict_mean, predict_max, predict_min, predict_var))
         normalized_heatmaps = predict_heatmaps / predict_max
         normalized_heatmaps = normalized_heatmaps - predict_min
-        normalized_heatmaps = predict_heatmaps / np.max(predict_heatmaps)
+        normalized_heatmaps = normalized_heatmaps / np.max(predict_heatmaps)
 
         return normalized_heatmaps
 
