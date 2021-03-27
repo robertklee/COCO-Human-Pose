@@ -23,12 +23,15 @@ from metrics import *
 
 class HourglassNet(object):
 
-    def __init__(self, num_classes, num_stacks, num_channels, inres, outres):
+    def __init__(self, num_classes, num_stacks, num_channels, inres, outres, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT, pickle_name=None):
         self.num_classes = num_classes
         self.num_stacks = num_stacks
         self.num_channels = num_channels
         self.inres = inres
         self.outres = outres
+        self.loss_str = loss_str
+        self.image_aug_str = image_aug_str
+        self.pickle_name = pickle_name
 
     def build_model(self, mobile=False, show=False):
         if mobile:
@@ -55,17 +58,20 @@ class HourglassNet(object):
         print(f"Train/Val dfs contains {len(train_df)}/{len(val_df)} anns")
         return train_df.reset_index(), val_df.reset_index()
 
-    def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset, loss_str, image_aug_str, pickle_name):
-        loss = get_loss_from_string(loss_str)
+    def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset):
+        print('Loss function selected: {}'.format(self.loss_str))
+        print('Image augmentation strength selected: {}'.format(self.image_aug_str))
+
+        loss = get_loss_from_string(self.loss_str)
         self._compile_model(loss)
 
         # insert logic here for pickled dataframes
-        if pickle_name is not None:
-            train_df, val_df, test_df = get_pickle(pickle_name)
+        if self.pickle_name is not None:
+            train_df, val_df, test_df = get_pickle(self.pickle_name)
         else:
             train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
 
-        img_aug_strength = get_strength_enum_from_string(image_aug_str)
+        img_aug_strength = get_strength_enum_from_string(self.image_aug_str)
 
         train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=TRAIN_SHUFFLE, \
             batch_size=batch_size, img_aug_strength=img_aug_strength)
@@ -104,27 +110,23 @@ class HourglassNet(object):
         self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
 
-    def train(self, batch_size, model_save_base_dir, epochs, subset, notes=None, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT, pickle_name=None):
+    def train(self, batch_size, model_save_base_dir, epochs, subset, notes=None):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
-        model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks) \
-            + '_loss_{}'.format(loss_str) + '_aug_{}'.format(image_aug_str) + '_sigma{}'.format(HEATMAP_SIGMA) \
-            + '_learningrate_{:e}'.format(DEFAULT_LEARNING_RATE) + '_opt_{}'.format(DEFAULT_OPTIMIZER.name) \
-            + '_gt-{:d}kp'.format(KP_FILTERING_GT)
+        model_subdir = '{time}_batchsize_'
+        model_subdir = f'{current_time}_batchsize_{batch_size}_hg_{self.num_stacks}_loss_{self.loss_str}_aug_{self.image_aug_str}_sigma{HEATMAP_SIGMA}' \
+            f'_learningrate_{DEFAULT_LEARNING_RATE:e}_opt_{DEFAULT_OPTIMIZER.name}_gt-{KP_FILTERING_GT:d}kp'
 
         if subset < 1.0:
-            model_subdir += '_subset_{:.2f}'.format(subset)
-        
-        print('Loss function selected: {}'.format(loss_str))
-        print('Image augmentation strength selected: {}'.format(image_aug_str))
+            model_subdir += f'_subset_{subset:.2f}'
 
         if notes is not None:
-            model_subdir += '_' + notes
+            model_subdir += f'_{notes}'
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
-            initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset, loss_str=loss_str, image_aug_str=image_aug_str, pickle_name=pickle_name)
+            initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset)
     
-    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT, pickle_name=None):
+    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset):
         if resume_subdir is not None:
             print('Automatically locating model architecture .json and weights .hdf5...')
 
@@ -135,9 +137,6 @@ class HourglassNet(object):
         # Load loss. NOTE: I'm pretty sure the loss function is not saved in the architecture json, so 
         # ensure the loss option matches across training sessions
         # TODO automatically determine correct loss option from subdir notes
-
-        print('Loss function selected: {}'.format(loss_str))
-        print('Image augmentation strength selected: {}'.format(image_aug_str))
 
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
@@ -152,7 +151,7 @@ class HourglassNet(object):
         model_subdir = orig_model_subdir + DEFAULT_RESUME_DIR_FLAG + current_time
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
-            initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset, loss_str=loss_str, image_aug_str=image_aug_str, pickle_name=pickle_name)
+            initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset)
     
     def _compile_model(self, loss):
         if DEFAULT_OPTIMIZER is OptimizerType.rmsProp:
