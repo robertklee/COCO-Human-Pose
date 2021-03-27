@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 
 from constants import *
-from HeatMap import HeatMap  # https://github.com/LinShanify/HeatMap
+import HeatMap  # https://github.com/LinShanify/HeatMap
 import util
 
 

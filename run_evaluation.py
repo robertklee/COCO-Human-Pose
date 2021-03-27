@@ -16,12 +16,12 @@ import HeatMap
 imp.reload(evaluation)
 imp.reload(HeatMap)
 
-subdir = '2021-03-22-23h-55m_batchsize_12_hg_4_loss_weighted_mse_aug_medium_sigma4'
+subdir = '2021-03-22-20h-23m_batchsize_12_hg_8_loss_weighted_mse_aug_medium_resume_2021-03-25-20h-02m'
 
 eval = evaluation.Evaluation(
     base_dir=DEFAULT_MODEL_BASE_DIR,
     sub_dir=subdir,
-    epoch=58,
+    epoch=43,
     h_net=h)
 print("Created Evaluation instance")
 
