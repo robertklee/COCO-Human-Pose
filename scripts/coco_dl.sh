@@ -2,7 +2,7 @@
 
 dataset_root_path="./data"
 
-if [[ $# -eq 1 ]] ; then
+if [[ $# >= 1 ]] ; then
     dataset_root_path=$1
 fi
 
@@ -37,39 +37,45 @@ fi
 #     Download COCO2017 Images        #
 #######################################
 
-if [ ! -d "coco" ]; then
-    mkdir coco
+# if the second argument is "no_image" then we want the images.
+if [[ $2 != "no_image" ]]; then 
+    if [ ! -d "coco" ]; then
+        mkdir coco
+    fi
+
+    cd coco
+
+    for imgs_zip in "${arrCocoImg[@]}"
+    do
+        if [ ! -f $imgs_zip.zip -a ! -d $imgs_zip ]; then
+            echo "$imgs_zip.zip and $imgs_zip/ not found!"
+            echo "Downloading from... http://images.cocodataset.org/zips/$imgs_zip.zip"
+            curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
+        fi
+        
+        if [ -f $imgs_zip.zip ]; then
+            if [ "$enable_unzip" = true ] ; then
+                echo "Unzipping: $imgs_zip.zip"
+                unzip -q $imgs_zip.zip
+            fi
+
+            if [ "$remove_zip" = true ] ; then
+                echo "Deleting file: $imgs_zip.zip"
+                rm $imgs_zip.zip
+            fi
+        else
+            echo "$imgs_zip.zip not found. Ignoring zip-related instructions..."
+        fi
+    done
+
+# Moved this as its only needed if Image dataset is downloaded
+cd ../
+
 fi
-
-cd coco
-
-for imgs_zip in "${arrCocoImg[@]}"
-do
-    if [ ! -f $imgs_zip.zip -a ! -d $imgs_zip ]; then
-        echo "$imgs_zip.zip and $imgs_zip/ not found!"
-        echo "Downloading from... http://images.cocodataset.org/zips/$imgs_zip.zip"
-        curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
-    fi
-    
-    if [ -f $imgs_zip.zip ]; then
-        if [ "$enable_unzip" = true ] ; then
-            echo "Unzipping: $imgs_zip.zip"
-            unzip -q $imgs_zip.zip
-        fi
-
-        if [ "$remove_zip" = true ] ; then
-            echo "Deleting file: $imgs_zip.zip"
-            rm $imgs_zip.zip
-        fi
-    else
-        echo "$imgs_zip.zip not found. Ignoring zip-related instructions..."
-    fi
-done
 
 #######################################
 #    Download COCO2017 Annotations    #
 #######################################
-cd ../
 
 for annos_zip in "${arrCocoAnno[@]}"
 do

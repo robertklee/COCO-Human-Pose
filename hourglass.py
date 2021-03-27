@@ -13,6 +13,7 @@ import coco_df
 from constants import *
 from data_augmentation import *
 from data_generator import DataGenerator
+from df_pickler import get_pickle
 from hourglass_blocks import (bottleneck_block, bottleneck_mobile,
                               create_hourglass_network)
 from loss import *
@@ -54,11 +55,15 @@ class HourglassNet(object):
         print(f"Train/Val dfs contains {len(train_df)}/{len(val_df)} anns")
         return train_df.reset_index(), val_df.reset_index()
 
-    def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset, loss_str, image_aug_str):
+    def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset, loss_str, image_aug_str, pickle_name):
         loss = get_loss_from_string(loss_str)
         self._compile_model(loss)
 
-        train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
+        # insert logic here for pickled dataframes
+        if pickle_name is not None:
+            train_df, val_df, test_df = get_pickle(pickle_name)
+        else:
+            train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
 
         img_aug_strength = get_strength_enum_from_string(image_aug_str)
 
@@ -99,7 +104,7 @@ class HourglassNet(object):
         self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
 
-    def train(self, batch_size, model_save_base_dir, epochs, subset, notes=None, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT):
+    def train(self, batch_size, model_save_base_dir, epochs, subset, notes=None, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT, pickle_name=None):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
         model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks) \
@@ -115,9 +120,9 @@ class HourglassNet(object):
             model_subdir += '_' + notes
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
-            initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset, loss_str=loss_str, image_aug_str=image_aug_str)
+            initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset, loss_str=loss_str, image_aug_str=image_aug_str, pickle_name=pickle_name)
     
-    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT):
+    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT, pickle_name=None):
         if resume_subdir is not None:
             print('Automatically locating model architecture .json and weights .hdf5...')
 
@@ -145,7 +150,7 @@ class HourglassNet(object):
         model_subdir = orig_model_subdir + DEFAULT_RESUME_DIR_FLAG + current_time
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
-            initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset, loss_str=loss_str, image_aug_str=image_aug_str)
+            initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset, loss_str=loss_str, image_aug_str=image_aug_str, pickle_name=pickle_name)
     
     def _compile_model(self, loss):
         # TODO Update optimizer and/or learning rate?
