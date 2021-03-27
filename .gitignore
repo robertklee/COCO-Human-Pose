@@ -133,3 +133,6 @@ dmypy.json
 
 # VS Code Settings
 .vscode/*
+
+#Pickles and pickle directories
+Pickles/*
