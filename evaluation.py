@@ -10,6 +10,7 @@ from HeatMap import HeatMap  # https://github.com/LinShanify/HeatMap
 import util
 
 
+
 class Evaluation():
 
     def __init__(self, base_dir, sub_dir, epoch, h_net): 
@@ -50,6 +51,7 @@ class Evaluation():
         normalized_heatmaps = predict_heatmaps / predict_max
         normalized_heatmaps = normalized_heatmaps - predict_min
         normalized_heatmaps = normalized_heatmaps / np.max(normalized_heatmaps)
+
 
         return normalized_heatmaps
 
