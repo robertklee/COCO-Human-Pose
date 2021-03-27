@@ -2,7 +2,7 @@
 
 dataset_root_path="./data"
 
-if [[ $# >= 1 ]] ; then
+if [[ $# -ge 1 ]] ; then
     dataset_root_path=$1
 fi
 
