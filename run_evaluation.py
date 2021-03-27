@@ -87,6 +87,6 @@ for i in range(NUM_COCO_KEYPOINTS):
     if(keypoints[i,0] != 0 and keypoints[i,1] != 0):
       x.append(keypoints[i,0])
       y.append(keypoints[i,1])
-plt.plot(x,y)
+plt.scatter(x,y)
 plt.imshow(img)
 # %%
