@@ -41,7 +41,7 @@ generator = data_generator.DataGenerator(
             online_fetch=False)
 
 # Select image to predict heatmaps
-X_batch, y_stacked = generator[168] # choose one image for evaluation: 412 is tennis women
+X_batch, y_stacked = generator[568] # choose one image for evaluation: 412 is tennis women
 # X_batch, y_stacked = evaluation.load_and_preprocess_img('data/skier.jpg', eval.num_hg_blocks)
 
 y_batch = y_stacked[0] # take first hourglass section
