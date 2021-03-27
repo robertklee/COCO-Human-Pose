@@ -46,7 +46,7 @@ class HourglassNet(object):
         # apply filters here
         print(f"Unfiltered df contains {len(df)} anns")
         df = df.loc[df['is_crowd'] == 0] # drop crowd anns
-        df = df.loc[df['num_keypoints'] != 0] # drop anns containing no kps
+        df = df.loc[df['num_keypoints'] > KP_FILTERING_GT] # drop anns containing x kps
         df = df.loc[df['bbox_area'] > BBOX_MIN_SIZE] # drop small bboxes
         train_df = df.loc[df['source'] == 0]
         val_df = df.loc[df['source'] == 1]
@@ -108,7 +108,9 @@ class HourglassNet(object):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
         model_subdir = current_time + '_batchsize_' + str(batch_size) + '_hg_' + str(self.num_stacks) \
-            + '_loss_{}'.format(loss_str) + '_aug_{}'.format(image_aug_str) + '_sigma{}'.format(HEATMAP_SIGMA)
+            + '_loss_{}'.format(loss_str) + '_aug_{}'.format(image_aug_str) + '_sigma{}'.format(HEATMAP_SIGMA) \
+            + '_learningrate_{:e}'.format(DEFAULT_LEARNING_RATE) + '_opt_{}'.format(DEFAULT_OPTIMIZER.name) \
+            + '_gt-{:d}kp'.format(KP_FILTERING_GT)
 
         if subset < 1.0:
             model_subdir += '_subset_{:.2f}'.format(subset)
@@ -153,14 +155,16 @@ class HourglassNet(object):
             initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset, loss_str=loss_str, image_aug_str=image_aug_str, pickle_name=pickle_name)
     
     def _compile_model(self, loss):
-        # TODO Update optimizer and/or learning rate?
-        rms = RMSprop(lr=5e-4)
+        if DEFAULT_OPTIMIZER is OptimizerType.rmsProp:
+            optimizer = RMSprop(learning_rate=DEFAULT_LEARNING_RATE)
+        else:
+            optimizer = Adam(learning_rate=DEFAULT_LEARNING_RATE)
 
         if loss is None:
             print("No loss function provided. Using default of keras.losses.mean_squared_error")
             loss = mean_squared_error
 
-        self.model.compile(optimizer=rms, loss=loss, metrics=[f1_m, precision_m, recall_m])
+        self.model.compile(optimizer=optimizer, loss=loss, metrics=[f1_m, precision_m, recall_m])
 
     def _load_model(self, model_json, model_weights):
         with open(model_json) as f:

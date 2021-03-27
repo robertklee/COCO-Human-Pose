@@ -141,6 +141,7 @@ if __name__ == "__main__":
 
     training_start = time.time()
 
+    # TODO Save all model parameters in JSON for easy resuming and parsing later on
     if args.resume:
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
