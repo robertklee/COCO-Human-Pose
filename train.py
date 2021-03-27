@@ -2,10 +2,12 @@ import argparse
 import os
 import time
 from datetime import datetime, timedelta
+from pandas.io import pickle
 
 import tensorflow as tf
 from keras import backend as k
 
+from df_pickler import check_pickle_folder
 from constants import *
 from hourglass import HourglassNet
 from util import *
@@ -87,6 +89,9 @@ def process_args():
     argparser.add_argument('--resume-subdir',
                         default=None,
                         help='Subdirectory containing architecture json and weights')
+    argparser.add_argument('--pickle',
+                        default=None,
+                        help='Name of folder with pickled dataframes')
     # Misc
     argparser.add_argument('--notes',
                         default=None,
@@ -107,6 +112,13 @@ def process_args():
         
         assert args.resume_json is not None and args.resume_weights is not None, \
             "Resume model training enabled, but no parameters received for: --resume-subdir, or both --resume-json and --resume-weights"
+
+    if args.pickle is not None:
+        #Check to see if pickle exists, changes to None if it doesn't.
+        if not check_pickle_folder(args.pickle):
+            print(f'{args.pickle} does not exist, changing to None')
+            args.pickle = None
+
 
     if args.notes is not None:
         # Clean notes so it can be used in directory name
@@ -133,7 +145,7 @@ if __name__ == "__main__":
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
         hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, \
-            args.resume_epoch, args.epochs, args.resume_subdir, args.subset, loss_str=args.loss, image_aug_str=args.augment)
+            args.resume_epoch, args.epochs, args.resume_subdir, args.subset, loss_str=args.loss, image_aug_str=args.augment, pickle_name=args.pickle)
     else:
         hgnet.build_model(show=True)
 
@@ -141,7 +153,7 @@ if __name__ == "__main__":
         print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(\
             args.hourglass, args.epochs, args.batch, args.subset))
 
-        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes, loss_str=args.loss, image_aug_str=args.augment)
+        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes, loss_str=args.loss, image_aug_str=args.augment, pickle_name=args.pickle)
 
     print("\n\nTraining end:   {}\n".format(time.ctime()))
 
