@@ -124,7 +124,7 @@ class Evaluation():
         # Resize and vertically stack heatmap images
         img_v_resize = self._vstack_images(heatmap_imgs) 
 
-        filename = str(m['img_id']) + '.png'
+        filename = str(m['ann_id']) + '.png'
         cv2.imwrite(os.path.join(self.output_sub_dir,filename), img_v_resize) 
     
 
