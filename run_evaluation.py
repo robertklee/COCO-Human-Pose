@@ -17,13 +17,9 @@ imp.reload(evaluation)
 imp.reload(HeatMap)
 
 subdir = '2021-03-22-20h-23m_batchsize_12_hg_8_loss_weighted_mse_aug_medium_resume_2021-03-25-20h-02m'
-
 eval = evaluation.Evaluation(
-    base_dir=DEFAULT_MODEL_BASE_DIR,
-    sub_dir=subdir,
-    epoch=43,
-    h_net=h)
-print("Created Evaluation instance")
+    model_sub_dir=subdir,
+    epoch=43)
 
 # %% Save stacked evaluation heatmaps
 import data_generator
@@ -41,15 +37,14 @@ generator = data_generator.DataGenerator(
             online_fetch=False)
 
 # Select image to predict heatmaps
-X_batch, y_stacked = generator[568] # choose one image for evaluation: 412 is tennis women
+X_batch, y_stacked = generator[412] # choose one image for evaluation: 412 is tennis women
 # X_batch, y_stacked = evaluation.load_and_preprocess_img('data/skier.jpg', eval.num_hg_blocks)
 
 y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 plt.imshow(X)
 # Save stacked heatmap images to disk
-filename = 'heatmap_evaluation.png'
-eval.save_stacked_evaluation_heatmaps(X, y, os.path.join(DEFAULT_OUTPUT_BASE_DIR, filename))
-print(f"Saved stacked evaluation heatmaps as {filename} to disk")
+metaData = {'img_id': 412}
+eval.save_stacked_evaluation_heatmaps(X, y, metaData)
 
 # %%

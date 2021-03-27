@@ -8,19 +8,31 @@ from PIL import Image
 from constants import *
 import HeatMap  # https://github.com/LinShanify/HeatMap
 import util
+import hourglass
 
 
 
 class Evaluation():
 
-    def __init__(self, base_dir, sub_dir, epoch, h_net): 
+    def __init__(self, model_sub_dir, epoch, model_base_dir=DEFAULT_MODEL_BASE_DIR, output_base_dir=DEFAULT_OUTPUT_BASE_DIR): 
         # automatically retrieve json and weights
-        self.model_json, self.weights = util.find_resume_json_weights_str(base_dir, sub_dir, epoch)
-        self.num_hg_blocks = int(re.match(r'.*stacks_(\d\d)_.*',self.model_json).group(1))
+        self.model_sub_dir=model_sub_dir
+        self.epoch=epoch
+        match = re.match(r'(.*)(_resume_.*$)', model_sub_dir)
+        if match:
+            self.output_sub_dir = os.path.join(output_base_dir, match.group(1), str(self.epoch))
+        else:
+            self.output_sub_dir = os.path.join(output_base_dir, self.model_sub_dir, str(self.epoch))
+        if not os.path.exists(self.output_sub_dir):
+            os.makedirs(self.output_sub_dir)
 
-        print('Found number of hourglass stacks: {}'.format(self.num_hg_blocks))
-        h_net._load_model(self.model_json, self.weights)
-        self.model = h_net.model
+        self.model_json, self.weights = util.find_resume_json_weights_str(model_base_dir, model_sub_dir, epoch)
+        self.num_hg_blocks = int(re.match(r'.*stacks_(\d\d)_.*',self.model_json).group(1))
+        h = hourglass.HourglassNet(NUM_COCO_KEYPOINTS,self.num_hg_blocks,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
+        h._load_model(self.model_json, self.weights)
+        self.model = h.model
+        print('Loaded model with {} hourglass stacks!'.format(self.num_hg_blocks))
+
 
     # Vertically stack images of different widths
     # https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
@@ -83,13 +95,12 @@ class Evaluation():
         return stacked_hourglass_heatmaps
 
     #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
-    def save_stacked_evaluation_heatmaps(self, X, y, filename):
+    def save_stacked_evaluation_heatmaps(self, X, y, metaData):
         predict_heatmaps=self.predict_heatmaps(X)
         stacked_predict_heatmaps=self.stacked_predict_heatmaps(predict_heatmaps)
         stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
         
         # Reshape heatmaps to 3 channels with colour injection, normalize channels to [0,255]
-        # TODO - normalize individual heatmaps rather than a whole stack at once.
         stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
         stacked_predict_heatmaps = cv2.applyColorMap(stacked_predict_heatmaps, cv2.COLORMAP_JET)
         stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
@@ -102,8 +113,9 @@ class Evaluation():
 
         # Resize and vertically stack heatmap images
         img_v_resize = self._vstack_images(heatmap_imgs) 
-        
-        cv2.imwrite(filename, img_v_resize) 
+
+        filename = str(metaData['img_id']) + '.png'
+        cv2.imwrite(os.path.join(self.output_sub_dir,filename), img_v_resize) 
     
 
 """
