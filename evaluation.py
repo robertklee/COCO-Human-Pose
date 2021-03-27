@@ -49,22 +49,23 @@ class Evaluation():
         return cv2.vconcat(im_list_resize) 
 
     # Returns np array of predicted heatmaps for a given image and model
-    def predict_heatmaps(self, X):
-        X = np.expand_dims(X, axis=0) # add "batch" dimension of 1 because predict needs shape (1, 256, 256, 3)
-        predict_heatmaps = self.model.predict(X)
-        predict_heatmaps = np.array(predict_heatmaps) # output shape is (num_hg_blocks, 1, 64, 64, 17)
-
-        print('model prediction metrics: ')
-        predict_mean = np.mean(predict_heatmaps)
-        predict_max = np.max(predict_heatmaps)
-        predict_min = np.min(predict_heatmaps)
-        predict_var = np.var(predict_heatmaps.flatten())
-        print('Mean: {:0.6e}\t Max: {:e}\t Min: {:e}\t Variance: {:e}'.format(predict_mean, predict_max, predict_min, predict_var))
-        # TODO: is this how we want to normalize output? Should we instead enforce model output to be normalized?
-        normalized_heatmaps = predict_heatmaps / predict_max
-        normalized_heatmaps = normalized_heatmaps - predict_min
-        normalized_heatmaps = normalized_heatmaps / np.max(normalized_heatmaps)
-        return normalized_heatmaps
+    def predict_heatmaps(self, X_batch):
+        predicted_heatmaps = np.array(self.model.predict(X_batch)) # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
+        for i in range(len(X_batch)):
+            hm = predicted_heatmaps[:,i,]
+            print('model prediction metrics: ')
+            predict_mean = np.mean(hm)
+            predict_max = np.max(hm)
+            predict_min = np.min(hm)
+            predict_var = np.var(hm.flatten())
+            print('Mean: {:0.6e}\t Max: {:e}\t Min: {:e}\t Variance: {:e}'.format(predict_mean, predict_max, predict_min, predict_var))
+        # # TODO: is this how we want to normalize output? Should we instead enforce model output to be normalized?
+        # NOTE: this normalization gets applied in the stacking function
+        # normalized_heatmaps = predict_heatmaps / predict_max
+        # normalized_heatmaps = normalized_heatmaps - predict_min
+        # normalized_heatmaps = normalized_heatmaps / np.max(normalized_heatmaps)
+        # return normalized_heatmaps
+        return predicted_heatmaps
 
     #  Returns np array of stacked ground truth heatmaps for a given image and label
     def stacked_ground_truth_heatmaps(self, X, y):
@@ -84,20 +85,29 @@ class Evaluation():
     #  Returns np array of stacked predicted heatmaps
     def stacked_predict_heatmaps(self, predict_heatmaps):
         for h in range(self.num_hg_blocks):
-            stacked_predict_heatmaps = np.array(predict_heatmaps[h, 0, :, :, 0])
+            stacked_predict_heatmaps = np.array(predict_heatmaps[h, :, :, 0])
             for i in range(NUM_COCO_KEYPOINTS):
                 if(i != 0):
-                    stacked_predict_heatmaps = np.hstack((stacked_predict_heatmaps, predict_heatmaps[h, 0, :, :, i]))
+                    stacked_predict_heatmaps = np.hstack((stacked_predict_heatmaps, predict_heatmaps[h, :, :, i]))
             if(h == 0):
                 stacked_hourglass_heatmaps = np.array(stacked_predict_heatmaps)
             else:
                 stacked_hourglass_heatmaps = np.vstack((stacked_hourglass_heatmaps, stacked_predict_heatmaps))
         return stacked_hourglass_heatmaps
 
+    def visualize_batch(self, X_batch, y_batch, m_batch):
+        predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
+        for i in range(len(X_batch)):
+            X = X_batch[i,]
+            y = y_batch[i,]
+            m = m_batch[i]
+            predicted_heatmaps = predicted_heatmaps_batch[:,i,]
+            self.save_stacked_evaluation_heatmaps(X, y, m, predicted_heatmaps)
+
+
     #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
-    def save_stacked_evaluation_heatmaps(self, X, y, metaData):
-        predict_heatmaps=self.predict_heatmaps(X)
-        stacked_predict_heatmaps=self.stacked_predict_heatmaps(predict_heatmaps)
+    def save_stacked_evaluation_heatmaps(self, X, y, m, predicted_heatmaps):
+        stacked_predict_heatmaps=self.stacked_predict_heatmaps(predicted_heatmaps)
         stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
         
         # Reshape heatmaps to 3 channels with colour injection, normalize channels to [0,255]
@@ -114,7 +124,7 @@ class Evaluation():
         # Resize and vertically stack heatmap images
         img_v_resize = self._vstack_images(heatmap_imgs) 
 
-        filename = str(metaData['img_id']) + '.png'
+        filename = str(m['img_id']) + '.png'
         cv2.imwrite(os.path.join(self.output_sub_dir,filename), img_v_resize) 
     
 

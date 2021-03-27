@@ -6,7 +6,6 @@ from hourglass import HourglassNet
 from constants import *
 import matplotlib.pyplot as plt
 import os
-import time
 
 h = HourglassNet(NUM_COCO_KEYPOINTS,DEFAULT_NUM_HG,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
 _, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
@@ -22,12 +21,11 @@ eval = evaluation.Evaluation(
     model_sub_dir=subdir,
     epoch=43)
 
-print("\n\nEval start:   {}\n".format(time.ctime()))
-
 # %% Save stacked evaluation heatmaps
 import data_generator
 imp.reload(data_generator)
 import data_generator
+import time
 
 generator = data_generator.DataGenerator(
             df=val_df,
@@ -36,20 +34,17 @@ generator = data_generator.DataGenerator(
             output_dim=OUTPUT_DIM,
             num_hg_blocks=eval.num_hg_blocks,
             shuffle=False,  
-            batch_size=1,
+            batch_size=3,
             online_fetch=False)
 
 # Select image to predict heatmaps
 X_batch, y_stacked = generator[412] # choose one image for evaluation: 412 is tennis women
 # X_batch, y_stacked = evaluation.load_and_preprocess_img('data/skier.jpg', eval.num_hg_blocks)
-
 y_batch = y_stacked[0] # take first hourglass section
-X, y = X_batch[0], y_batch[0] # take first example of batch
-plt.imshow(X)
 # Save stacked heatmap images to disk
-metaData = {'img_id': 412}
-eval.save_stacked_evaluation_heatmaps(X, y, metaData)
-
+m_batch = [{'img_id': 'first'}, {'img_id' : 'second'}, {'img_id' : 'third'}]
+print("\n\nEval start:   {}\n".format(time.ctime()))
+eval.visualize_batch(X_batch, y_batch, m_batch)
 print("\n\nEval end:   {}\n".format(time.ctime()))
 
 # %%
