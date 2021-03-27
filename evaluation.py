@@ -1,4 +1,4 @@
-from HeatMap import HeatMap # https://github.com/LinShanify/HeatMap
+import HeatMap # https://github.com/LinShanify/HeatMap
 from constants import *
 
 import matplotlib.pyplot as plt
@@ -9,9 +9,10 @@ import os
 
 class Evaluation():
 
-    def __init__(self, sub_dir, model_json, weights, h_net): 
-        self.model_json = os.path.join(sub_dir,model_json)         # json of model to be evaluated
-        self.weights = os.path.join(sub_dir,weights)          # weights of model to be evaluated
+    def __init__(self, model_json, weights, h_net, base_dir=DEFAULT_MODEL_BASE_DIR,sub_dir=''): 
+        self.sub_dir = sub_dir
+        self.model_json = os.path.join(base_dir,sub_dir,model_json)         # json of model to be evaluated
+        self.weights = os.path.join(base_dir,sub_dir,weights)          # weights of model to be evaluated
         self.num_hg_blocks = int(re.match(r'.*stacks_(\d\d)_.*',model_json).group(1))
         h_net._load_model(self.model_json, self.weights)
         self.model = h_net.model
@@ -42,7 +43,7 @@ class Evaluation():
         ground_truth_heatmaps = []
         for i in range(NUM_COCO_KEYPOINTS):
             heatmap = y[:,:,i]
-            hm = HeatMap(X,heatmap)
+            hm = HeatMap.HeatMap(X,heatmap)
             heatmap_array = hm.get_heatmap_array(transparency=0.5)
             ground_truth_heatmaps.append(heatmap_array)
         for i, heatmap in enumerate(ground_truth_heatmaps):
@@ -76,7 +77,6 @@ class Evaluation():
         stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         stacked_ground_truth_heatmaps = cv2.cvtColor(stacked_ground_truth_heatmaps, cv2.COLOR_BGRA2RGB)
         stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        filename = filename
         
         heatmap_imgs = []
         heatmap_imgs.append(stacked_predict_heatmaps)

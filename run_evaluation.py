@@ -11,11 +11,12 @@ _, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_A
 
 # %% Declare evaluation class instance
 import evaluation
+import HeatMap
 imp.reload(evaluation)
+imp.reload(HeatMap)
 import evaluation
 
 eval = evaluation.Evaluation(
-    sub_dir=DEFAULT_MODEL_BASE_DIR,
     model_json='hpe_hourglass_stacks_08_batchsize_012.json',
     weights='hpe_epoch36_val_loss_415393.8125_train_loss_0.0334.hdf5',
     h_net=h)
