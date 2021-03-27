@@ -22,6 +22,8 @@ eval = evaluation.Evaluation(
     model_sub_dir=subdir,
     epoch=43)
 
+print("\n\nEval start:   {}\n".format(time.ctime()))
+
 # %% Save stacked evaluation heatmaps
 import data_generator
 imp.reload(data_generator)
