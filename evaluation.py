@@ -8,14 +8,17 @@ from PIL import Image
 
 from constants import *
 from HeatMap import HeatMap  # https://github.com/LinShanify/HeatMap
+import util
 
 
 class Evaluation():
 
-    def __init__(self, sub_dir, model_json, weights, h_net): 
-        self.model_json = os.path.join(sub_dir,model_json)         # json of model to be evaluated
-        self.weights = os.path.join(sub_dir,weights)          # weights of model to be evaluated
-        self.num_hg_blocks = int(re.match(r'.*stacks_(\d\d)_.*',model_json).group(1))
+    def __init__(self, base_dir, sub_dir, epoch, h_net): 
+        # automatically retrieve json and weights
+        self.model_json, self.weights = util.find_resume_json_weights_str(base_dir, sub_dir, epoch)
+        self.num_hg_blocks = int(re.match(r'.*stacks_(\d\d)_.*',self.model_json).group(1))
+
+        print('Found number of hourglass stacks: {}'.format(self.num_hg_blocks))
         h_net._load_model(self.model_json, self.weights)
         self.model = h_net.model
 
@@ -132,9 +135,11 @@ def load_and_preprocess_img(img_path, num_hg_blocks, x=None, y=None, w=None, h=N
                         interpolation=cv2.INTER_LINEAR)
     
     # Add a 'batch' axis
-    X_batch = np.expand_dims(new_img, axis=0)
+    X_batch = np.expand_dims(new_img.astype('float'), axis=0)
 
     # Add dummy heatmap "ground truth", duplicated 'num_hg_blocks' times
     y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS)) for _ in range(num_hg_blocks)]
 
+    # Normalize input image
+    X_batch /= 255
     return X_batch, y_batch
