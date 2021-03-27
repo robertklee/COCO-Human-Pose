@@ -48,11 +48,10 @@ class Evaluation():
         predict_min = np.min(predict_heatmaps)
         predict_var = np.var(predict_heatmaps.flatten())
         print('Mean: {:0.6e}\t Max: {:e}\t Min: {:e}\t Variance: {:e}'.format(predict_mean, predict_max, predict_min, predict_var))
+        # TODO: is this how we want to normalize output? Should we instead enforce model output to be normalized?
         normalized_heatmaps = predict_heatmaps / predict_max
         normalized_heatmaps = normalized_heatmaps - predict_min
         normalized_heatmaps = normalized_heatmaps / np.max(normalized_heatmaps)
-
-
         return normalized_heatmaps
 
     #  Returns np array of stacked ground truth heatmaps for a given image and label
@@ -89,11 +88,12 @@ class Evaluation():
         stacked_predict_heatmaps=self.stacked_predict_heatmaps(predict_heatmaps)
         stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
         
-        # Reshape heatmaps to 3 channels, normalize channels to [0,255]
-        stacked_predict_heatmaps = cv2.cvtColor(stacked_predict_heatmaps, cv2.COLOR_GRAY2RGB)
-        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        # Reshape heatmaps to 3 channels with colour injection, normalize channels to [0,255]
+        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        stacked_predict_heatmaps = cv2.applyColorMap(stacked_predict_heatmaps, cv2.COLORMAP_JET)
+        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         stacked_ground_truth_heatmaps = cv2.cvtColor(stacked_ground_truth_heatmaps, cv2.COLOR_BGRA2RGB)
-        stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255.0, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         
         heatmap_imgs = []
         heatmap_imgs.append(stacked_predict_heatmaps)
