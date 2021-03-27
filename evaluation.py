@@ -1,19 +1,23 @@
-import HeatMap # https://github.com/LinShanify/HeatMap
-from constants import *
-
+import os
+import re
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import cv2
-import re
-import os
+from PIL import Image
+
+from constants import *
+from HeatMap import HeatMap  # https://github.com/LinShanify/HeatMap
+import util
+
 
 class Evaluation():
 
-    def __init__(self, model_json, weights, h_net, base_dir=DEFAULT_MODEL_BASE_DIR,sub_dir=''): 
-        self.sub_dir = sub_dir
-        self.model_json = os.path.join(base_dir,sub_dir,model_json)         # json of model to be evaluated
-        self.weights = os.path.join(base_dir,sub_dir,weights)          # weights of model to be evaluated
-        self.num_hg_blocks = int(re.match(r'.*stacks_(\d\d)_.*',model_json).group(1))
+    def __init__(self, base_dir, sub_dir, epoch, h_net): 
+        # automatically retrieve json and weights
+        self.model_json, self.weights = util.find_resume_json_weights_str(base_dir, sub_dir, epoch)
+        self.num_hg_blocks = int(re.match(r'.*stacks_(\d\d)_.*',self.model_json).group(1))
+
+        print('Found number of hourglass stacks: {}'.format(self.num_hg_blocks))
         h_net._load_model(self.model_json, self.weights)
         self.model = h_net.model
 
@@ -36,7 +40,18 @@ class Evaluation():
         X = np.expand_dims(X, axis=0) # add "batch" dimension of 1 because predict needs shape (1, 256, 256, 3)
         predict_heatmaps = self.model.predict(X)
         predict_heatmaps = np.array(predict_heatmaps) # output shape is (num_hg_blocks, 1, 64, 64, 17)
-        return predict_heatmaps
+
+        print('model prediction metrics: ')
+        predict_mean = np.mean(predict_heatmaps)
+        predict_max = np.max(predict_heatmaps)
+        predict_min = np.min(predict_heatmaps)
+        predict_var = np.var(predict_heatmaps.flatten())
+        print('Mean: {:0.6e}\t Max: {:e}\t Min: {:e}\t Variance: {:e}'.format(predict_mean, predict_max, predict_min, predict_var))
+        normalized_heatmaps = predict_heatmaps / predict_max
+        normalized_heatmaps = normalized_heatmaps - predict_min
+        normalized_heatmaps = normalized_heatmaps / np.max(normalized_heatmaps)
+
+        return normalized_heatmaps
 
     #  Returns np array of stacked ground truth heatmaps for a given image and label
     def stacked_ground_truth_heatmaps(self, X, y):
@@ -86,3 +101,43 @@ class Evaluation():
         img_v_resize = self._vstack_images(heatmap_imgs) 
         
         cv2.imwrite(filename, img_v_resize) 
+    
+
+"""
+Runs the model for any general file. This aims to extend the DataGenerator output format for arbitrary images
+
+## Parameters:
+img_path : {string-typed} path to image
+    Note this image must be square, and centered around the person you wish to retrieve predictions for.
+
+num_hg_blocks : {int} number of hourglass blocks to generate dummy ground truth data for
+
+x,y,w,h : {int or float} optional bounding box info, anchored at top left of image
+"""
+def load_and_preprocess_img(img_path, num_hg_blocks, x=None, y=None, w=None, h=None):
+    img = Image.open(img_path).convert('RGB')
+
+    if x is None or y is None or w is None or h is None:
+        # If any of the parameters are missing, crop a square area from top left of image
+        smaller_dim = img.size[0] if img.size[0] <= img.size[1] else img.size[1]
+        bbox = [0, 0, smaller_dim, smaller_dim]
+    else:
+        # If a bounding box is provided, use it
+        bbox = [x, y, w, h]
+    
+    bbox = np.array(bbox)
+    
+    cropped_img = img.crop(box=bbox)
+    cropped_width, cropped_height = cropped_img.size
+    new_img = cv2.resize(np.array(cropped_img), INPUT_DIM,
+                        interpolation=cv2.INTER_LINEAR)
+    
+    # Add a 'batch' axis
+    X_batch = np.expand_dims(new_img.astype('float'), axis=0)
+
+    # Add dummy heatmap "ground truth", duplicated 'num_hg_blocks' times
+    y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS)) for _ in range(num_hg_blocks)]
+
+    # Normalize input image
+    X_batch /= 255
+    return X_batch, y_batch
