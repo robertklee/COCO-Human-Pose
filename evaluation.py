@@ -1,11 +1,6 @@
-<<<<<<< HEAD
 import cv2
-=======
-from HeatMap import HeatMap # https://github.com/LinShanify/HeatMap
-from constants import *
 from scipy.ndimage import gaussian_filter, maximum_filter
 
->>>>>>> Added heatmap to keypoint functionality
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
