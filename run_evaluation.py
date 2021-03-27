@@ -50,4 +50,6 @@ plt.imshow(X)
 metaData = {'img_id': 412}
 eval.save_stacked_evaluation_heatmaps(X, y, metaData)
 
+print("\n\nEval end:   {}\n".format(time.ctime()))
+
 # %%
