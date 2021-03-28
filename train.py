@@ -73,6 +73,7 @@ def process_args():
                         default=DEFAULT_OPTIMIZER,
                         help='name of optimizer to use')
     argparser.add_argument('--learning-rate',
+                        type=float,
                         default=DEFAULT_LEARNING_RATE,
                         help='learning rate of optimizer')
     argparser.add_argument('--activation',
