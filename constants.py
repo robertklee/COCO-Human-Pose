@@ -35,6 +35,7 @@ DEFAULT_AUGMENT = ImageAugmentationStrength.none.name
 class OutputActivation(Enum):
     linear = 0
     sigmoid = 1
+    relu = 2
 DEFAULT_ACTIVATION = OutputActivation.linear.name
 
 # Optimizer
