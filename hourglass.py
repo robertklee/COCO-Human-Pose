@@ -24,7 +24,9 @@ from util import *
 
 class HourglassNet(object):
 
-    def __init__(self, num_classes, num_stacks, num_channels, inres, outres, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT, pickle_name=None, optimizer_str=DEFAULT_OPTIMIZER, learning_rate=DEFAULT_LEARNING_RATE):
+    def __init__(self, num_classes, num_stacks, num_channels, inres, outres, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT, pickle_name=None, \
+            optimizer_str=DEFAULT_OPTIMIZER, learning_rate=DEFAULT_LEARNING_RATE, activation_str=DEFAULT_ACTIVATION):
+
         self.num_classes = num_classes
         self.num_stacks = num_stacks
         self.num_channels = num_channels
@@ -33,19 +35,18 @@ class HourglassNet(object):
         self.loss_str = loss_str
         self.image_aug_str = image_aug_str
         self.pickle_name = pickle_name
-        self.learningrate = DEFAULT_LEARNING_RATE
-        self.optimizer = DEFAULT_OPTIMIZER
         self.kp_filtering_gt = KP_FILTERING_GT
         self.optimizer_str = optimizer_str
         self.learningrate = learning_rate
+        self.activation_str = activation_str
 
     def build_model(self, mobile=False, show=False):
         if mobile:
             self.model = create_hourglass_network(self.num_classes, self.num_stacks,
-                                                  self.num_channels, self.inres, self.outres, bottleneck_mobile)
+                                                  self.num_channels, self.inres, self.outres, bottleneck_mobile, self.activation_str)
         else:
             self.model = create_hourglass_network(self.num_classes, self.num_stacks,
-                                                  self.num_channels, self.inres, self.outres, bottleneck_block)
+                                                  self.num_channels, self.inres, self.outres, bottleneck_block, self.activation_str)
         # show model summary and layer name
         if show:
             self.model.summary()
@@ -67,6 +68,10 @@ class HourglassNet(object):
     def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset):
         print(f'Loss function selected:               {self.loss_str}')
         print(f'Image augmentation strength selected: {self.image_aug_str}')
+        print(f'Optimizer function selected:          {self.optimizer_str}')
+        print(f'Activation function selected:         {self.activation_str}')
+        print(f'Learning rate selected:               {self.learningrate}')
+        print(f'Filtering out annotations <= to       {self.kp_filtering_gt:d}')
 
         self.loss = get_loss_from_string(self.loss_str)
         self._compile_model()
@@ -120,7 +125,8 @@ class HourglassNet(object):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
         model_subdir = f'{current_time}_batchsize_{batch_size}_hg_{self.num_stacks}_loss_{self.loss_str}_aug_{self.image_aug_str}_sigma{HEATMAP_SIGMA}' \
-            f'_learningrate_{self.learningrate:e}_opt_{self.optimizer_str}_gt-{self.kp_filtering_gt:d}kp'
+            f'_learningrate_{self.learningrate:.1e}_opt_{self.optimizer_str}_gt-{self.kp_filtering_gt:d}kp' \
+            f'_activ_{self.activation_str}'
 
         if subset < 1.0:
             model_subdir += f'_subset_{subset:.2f}'

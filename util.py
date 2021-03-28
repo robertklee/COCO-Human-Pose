@@ -15,6 +15,17 @@ def get_optimizer_enum_from_string(optimizer_str):
         exit(1)
     return optimizer
 
+def validate_activation(activation):
+    try:
+        activ = OutputActivation[activation]
+    except KeyError:
+        print('OutputActivation was not found in possible options.')
+        print('Available options are:')
+        available_activs = [name for name, member in OutputActivation.__members__.items()]
+        print(available_activs)
+        exit(1)
+    return activ
+
 def find_resume_json_weights(args):
     enclosing_dir = os.path.join(args.model_save, args.resume_subdir)
 

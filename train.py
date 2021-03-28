@@ -75,6 +75,9 @@ def process_args():
     argparser.add_argument('--learning-rate',
                         default=DEFAULT_LEARNING_RATE,
                         help='learning rate of optimizer')
+    argparser.add_argument('--activation',
+                        default=DEFAULT_ACTIVATION,
+                        help='activation for output layer')
     # Resume model training arguments
     # TODO make a consistent way to generate and retrieve epoch checkpoint filenames
     argparser.add_argument('-r',
@@ -130,8 +133,9 @@ def process_args():
         # Clean notes so it can be used in directory name
         args.notes = slugify(args.notes)
 
-    # we throw the result away for now
+    # just for validation, we throw the result away for now
     get_optimizer_enum_from_string(args.optimizer)
+    validate_activation(args.activation)
 
     return args
 
@@ -155,7 +159,8 @@ if __name__ == "__main__":
         image_aug_str=args.augment,
         pickle_name=args.pickle,
         optimizer_str=args.optimizer,
-        learning_rate=args.learning_rate
+        learning_rate=args.learning_rate,
+        activation_str=args.activation
     )
 
     training_start = time.time()
