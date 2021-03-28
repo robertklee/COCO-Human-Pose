@@ -105,7 +105,7 @@ class Evaluation():
     # https://github.com/david8862/tf-keras-stacked-hourglass-keypoint-detection/blob/56707252501c73b2bf2aac8fff3e22760fd47dca/hourglass/postprocess.py#L17
    
     ### Returns np array of predicted keypoints from one image's heatmaps
-    def heatmaps_to_keypoints(self, heatmaps, threshold=0.05):
+    def heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
         keypoints = list()
         for i in range(NUM_COCO_KEYPOINTS):
             hmap = heatmaps[:,:,i]
@@ -115,7 +115,7 @@ class Evaluation():
             resized_hmap = gaussian_filter(resized_hmap, HEATMAP_SIGMA)
 
             # Get peak point (brightest area) in heatmap with 3x3 max filter
-            peaks = self._non_max_supression(resized_hmap, windowSize=3, threshold=0.05)
+            peaks = self._non_max_supression(resized_hmap, windowSize=3, threshold=HM_TO_KP_THRESHOLD)
 
             # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
             # and get its coordinates and confidence
@@ -128,7 +128,7 @@ class Evaluation():
         keypoints = np.array(keypoints)
         return keypoints
 
-    def _non_max_supression(self, plain, windowSize=3, threshold=0.05):
+    def _non_max_supression(self, plain, windowSize=3, threshold=HM_TO_KP_THRESHOLD):
         # Clear values less than threshold
         under_thresh_indices = plain < threshold
         plain[under_thresh_indices] = 0
