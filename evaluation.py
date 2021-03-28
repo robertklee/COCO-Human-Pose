@@ -50,22 +50,7 @@ class Evaluation():
 
     # Returns np array of predicted heatmaps for a given image and model
     def predict_heatmaps(self, X_batch):
-        predicted_heatmaps = np.array(self.model.predict(X_batch)) # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
-        for i in range(len(X_batch)):
-            hm = predicted_heatmaps[:,i,]
-            print('model prediction metrics: ')
-            predict_mean = np.mean(hm)
-            predict_max = np.max(hm)
-            predict_min = np.min(hm)
-            predict_var = np.var(hm.flatten())
-            print('Mean: {:0.6e}\t Max: {:e}\t Min: {:e}\t Variance: {:e}'.format(predict_mean, predict_max, predict_min, predict_var))
-        # # TODO: is this how we want to normalize output? Should we instead enforce model output to be normalized?
-        # NOTE: this normalization gets applied in the stacking function
-        # normalized_heatmaps = predict_heatmaps / predict_max
-        # normalized_heatmaps = normalized_heatmaps - predict_min
-        # normalized_heatmaps = normalized_heatmaps / np.max(normalized_heatmaps)
-        # return normalized_heatmaps
-        return predicted_heatmaps
+        return np.array(self.model.predict(X_batch)) # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
 
     #  Returns np array of stacked ground truth heatmaps for a given image and label
     def stacked_ground_truth_heatmaps(self, X, y):
