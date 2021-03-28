@@ -173,11 +173,11 @@ def create_heads(prelayerfeatures, rf1, num_classes, hgid, num_channels, activat
         rf1)
     head = BatchNormalization()(head)
 
-    # for head as intermediate supervision, use 'linear' as activation.
+    # for head as intermediate supervision, use 'linear' or 'sigmoid' as activation.
     head_parts = Conv2D(num_classes, kernel_size=(1, 1), activation=activation_str, padding='same',
                         name=str(hgid) + '_conv_1x1_parts')(head)
 
-    # use linear activation
+    # join intermediate prediction heatmap with feature map
     head = Conv2D(num_channels, kernel_size=(1, 1), activation='linear', padding='same',
                   name=str(hgid) + '_conv_1x1_x2')(head)
     head_m = Conv2D(num_channels, kernel_size=(1, 1), activation='linear', padding='same',
