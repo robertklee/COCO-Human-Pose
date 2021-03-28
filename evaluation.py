@@ -1,6 +1,5 @@
 import cv2
 from scipy.ndimage import gaussian_filter, maximum_filter
-
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
@@ -115,7 +114,7 @@ class Evaluation():
             resized_hmap = gaussian_filter(resized_hmap, HEATMAP_SIGMA)
 
             # Get peak point (brightest area) in heatmap with 3x3 max filter
-            peaks = self._non_max_supression(resized_hmap, windowSize=3, threshold=HM_TO_KP_THRESHOLD)
+            peaks = self._non_max_supression(resized_hmap, threshold, windowSize=3)
 
             # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
             # and get its coordinates and confidence
@@ -128,7 +127,7 @@ class Evaluation():
         keypoints = np.array(keypoints)
         return keypoints
 
-    def _non_max_supression(self, plain, windowSize=3, threshold=HM_TO_KP_THRESHOLD):
+    def _non_max_supression(self, plain, threshold, windowSize=3):
         # Clear values less than threshold
         under_thresh_indices = plain < threshold
         plain[under_thresh_indices] = 0
