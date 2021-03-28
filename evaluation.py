@@ -27,7 +27,7 @@ class Evaluation():
             os.makedirs(self.output_sub_dir)
 
         self.model_json, self.weights = util.find_resume_json_weights_str(model_base_dir, model_sub_dir, epoch)
-        self.num_hg_blocks = int(re.match(r'.*stacks_(\d\d)_.*',self.model_json).group(1))
+        self.num_hg_blocks = int(re.match(r'.*stacks_([\d]+)_.*',self.model_json).group(1))
         h = hourglass.HourglassNet(NUM_COCO_KEYPOINTS,self.num_hg_blocks,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
         h._load_model(self.model_json, self.weights)
         self.model = h.model
