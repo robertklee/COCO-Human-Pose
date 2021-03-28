@@ -26,25 +26,41 @@ def validate_activation(activation):
         exit(1)
     return activ
 
-def find_resume_json_weights(args):
-    enclosing_dir = os.path.join(args.model_save, args.resume_subdir)
+def find_resume_json_weights_args(args):
+    args.model_save, args.resume_subdir, args.resume_epoch = find_resume_json_weights_str(args.model_save, args.resume_subdir, args.resume_epoch)
+
+def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
+    enclosing_dir = os.path.join(model_base_dir, model_subdir)
 
     files = os.listdir(enclosing_dir)
 
-    model_jsons         = [f for f in files if (".json" in f and HPE_HOURGLASS_STACKS_PREFIX in f)]
-    model_saved_weights = [f for f in files if (".hdf5" in f and "{prefix}{epoch:02d}".format(prefix=HPE_EPOCH_PREFIX, epoch=args.resume_epoch) in f)]
-    
+    model_jsons         = [f for f in files if re.match(f'^{HPE_HOURGLASS_STACKS_PREFIX}.*\.json$', f)]
+    model_saved_weights = {}
+    for f in files:
+        match = re.match(f'^{HPE_EPOCH_PREFIX}([\d]+).*\.hdf5$', f)
+
+        if match:
+            epoch = int(match.group(1))
+            model_saved_weights[epoch] = f
+
     assert len(model_jsons) > 0, "Subdirectory does not contain any model architecture json files"
     assert len(model_saved_weights) > 0, "Subdirectory does not contain any saved model weights"
 
-    args.resume_json = os.path.join(enclosing_dir, model_jsons[0])
-    args.resume_weights = os.path.join(enclosing_dir, model_saved_weights[0])
+    if resume_epoch is None or resume_epoch <= 0:
+        resume_epoch = max(k for k, _ in model_saved_weights.items())
 
-    print('Found model json: {}'.format(args.resume_json))
-    print('Found model weights for epoch {epoch:02d}: {weight_file_name}'.format(epoch=args.resume_epoch, weight_file_name=args.resume_weights))
+        print(f'No epoch number provided. Automatically using largest epoch number {resume_epoch}.')
 
-    assert os.path.exists(args.resume_json)
-    assert os.path.exists(args.resume_weights)
+    resume_json = os.path.join(enclosing_dir, model_jsons[0])
+    resume_weights = os.path.join(enclosing_dir, model_saved_weights[resume_epoch])
+
+    print('Found model json: {}'.format(resume_json))
+    print('Found model weights for epoch {epoch:02d}: {weight_file_name}'.format(epoch=resume_epoch, weight_file_name=resume_weights))
+
+    assert os.path.exists(resume_json)
+    assert os.path.exists(resume_weights)
+
+    return resume_json, resume_weights, resume_epoch
 
 def slugify(value, allow_unicode=False):
     """
