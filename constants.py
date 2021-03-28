@@ -67,6 +67,7 @@ BBOX_SLACK = 1.3 # before augmentation, increase bbox size to 130%
 
 # NOTE: The effective sigma is downscaled by a factor of 4 (from (256,256) to (64,64)) on each side, so ensure the sigma is appropriately sized
 HEATMAP_SIGMA = 4 # As per https://towardsdatascience.com/human-pose-estimation-with-stacked-hourglass-network-and-tensorflow-c4e9f84fd3ce
+REVERSE_HEATMAP_SIGMA = 1 # Use reverse sigma when heatmap is reversed by a factor of 4 from (64,64) to (256,256)
 
 # NOTE: Don't use, the scale is applied in the loss function.
 HEATMAP_SCALE = 1 #TODO figure out if we want to scale heatmaps, set to 1 for no effect. There are 82 times background pixels to foreground pixels in 7*7 patch of 64*64 heatmap, see same link for HEATMAP_SIGMA
@@ -77,4 +78,4 @@ VAL_SHUFFLE = False
 BBOX_MIN_SIZE = 900 # Filter out images smaller than 30x30, TODO tweak
 
 # Output filtering constants
-HM_TO_KP_THRESHOLD = 0.05
+HM_TO_KP_THRESHOLD = 0.2

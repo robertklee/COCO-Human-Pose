@@ -109,9 +109,9 @@ class Evaluation():
         for i in range(NUM_COCO_KEYPOINTS):
             hmap = heatmaps[:,:,i]
             # Resize heatmap from Output DIM to Input DIM
-            resized_hmap = cv2.resize(hmap, INPUT_DIM, interpolation = cv2.INTER_AREA)
+            resized_hmap = cv2.resize(hmap, INPUT_DIM, interpolation = cv2.INTER_LINEAR)
             # Do a heatmap blur with gaussian_filter
-            resized_hmap = gaussian_filter(resized_hmap, HEATMAP_SIGMA)
+            resized_hmap = gaussian_filter(resized_hmap, REVERSE_HEATMAP_SIGMA)
 
             # Get peak point (brightest area) in heatmap with 3x3 max filter
             peaks = self._non_max_supression(resized_hmap, threshold, windowSize=3)
@@ -119,8 +119,8 @@ class Evaluation():
             # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
             # and get its coordinates and confidence
             y, x = np.where(peaks == peaks.max())
-            if len(x) > 0 and len(y) > 0:
-                keypoints.append((int(x[0]), int(y[0]), peaks[y[0], x[0]]))
+            if int(x[0]) > 0 and int(y[0]) > 0:
+                keypoints.append((int(x[0]), int(y[0]), 1))
             else:
                 keypoints.append((0, 0, 0))
         # Turn keypoints into np array
