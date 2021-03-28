@@ -4,6 +4,16 @@ import unicodedata
 
 from constants import *
 
+def get_optimizer_enum_from_string(optimizer_str):
+    try:
+        optimizer = OptimizerType[optimizer_str]
+    except KeyError:
+        print('OptimizerType was not found in possible options.')
+        print('Available options are:')
+        available_optimizers = [name for name, member in OptimizerType.__members__.items()]
+        print(available_optimizers)
+        exit(1)
+    return optimizer
 
 def find_resume_json_weights(args):
     enclosing_dir = os.path.join(args.model_save, args.resume_subdir)

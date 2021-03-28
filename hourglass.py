@@ -18,12 +18,13 @@ from hourglass_blocks import (bottleneck_block, bottleneck_mobile,
                               create_hourglass_network)
 from loss import *
 from metrics import *
+from util import *
 
 # Some code adapted from https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/master/src/net/hourglass.py
 
 class HourglassNet(object):
 
-    def __init__(self, num_classes, num_stacks, num_channels, inres, outres, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT, pickle_name=None):
+    def __init__(self, num_classes, num_stacks, num_channels, inres, outres, loss_str=DEFAULT_LOSS, image_aug_str=DEFAULT_AUGMENT, pickle_name=None, optimizer_str=DEFAULT_OPTIMIZER, learning_rate=DEFAULT_LEARNING_RATE):
         self.num_classes = num_classes
         self.num_stacks = num_stacks
         self.num_channels = num_channels
@@ -32,6 +33,11 @@ class HourglassNet(object):
         self.loss_str = loss_str
         self.image_aug_str = image_aug_str
         self.pickle_name = pickle_name
+        self.learningrate = DEFAULT_LEARNING_RATE
+        self.optimizer = DEFAULT_OPTIMIZER
+        self.kp_filtering_gt = KP_FILTERING_GT
+        self.optimizer_str = optimizer_str
+        self.learningrate = learning_rate
 
     def build_model(self, mobile=False, show=False):
         if mobile:
@@ -49,7 +55,7 @@ class HourglassNet(object):
         # apply filters here
         print(f"Unfiltered df contains {len(df)} anns")
         df = df.loc[df['is_crowd'] == 0] # drop crowd anns
-        df = df.loc[df['num_keypoints'] > KP_FILTERING_GT] # drop anns containing x kps
+        df = df.loc[df['num_keypoints'] > self.kp_filtering_gt] # drop anns containing x kps
         df = df.loc[df['bbox_area'] > BBOX_MIN_SIZE] # drop small bboxes
         train_df = df.loc[df['source'] == 0]
         val_df = df.loc[df['source'] == 1]
@@ -59,11 +65,11 @@ class HourglassNet(object):
         return train_df.reset_index(), val_df.reset_index()
 
     def _start_train(self, batch_size, model_base_dir, epochs, initial_epoch, model_subdir, current_time, subset):
-        print('Loss function selected: {}'.format(self.loss_str))
-        print('Image augmentation strength selected: {}'.format(self.image_aug_str))
+        print(f'Loss function selected:               {self.loss_str}')
+        print(f'Image augmentation strength selected: {self.image_aug_str}')
 
-        loss = get_loss_from_string(self.loss_str)
-        self._compile_model(loss)
+        self.loss = get_loss_from_string(self.loss_str)
+        self._compile_model()
 
         # insert logic here for pickled dataframes
         if self.pickle_name is not None:
@@ -113,9 +119,8 @@ class HourglassNet(object):
     def train(self, batch_size, model_save_base_dir, epochs, subset, notes=None):
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
-        model_subdir = '{time}_batchsize_'
         model_subdir = f'{current_time}_batchsize_{batch_size}_hg_{self.num_stacks}_loss_{self.loss_str}_aug_{self.image_aug_str}_sigma{HEATMAP_SIGMA}' \
-            f'_learningrate_{DEFAULT_LEARNING_RATE:e}_opt_{DEFAULT_OPTIMIZER.name}_gt-{KP_FILTERING_GT:d}kp'
+            f'_learningrate_{self.learningrate:e}_opt_{self.optimizer_str}_gt-{self.kp_filtering_gt:d}kp'
 
         if subset < 1.0:
             model_subdir += f'_subset_{subset:.2f}'
@@ -133,10 +138,8 @@ class HourglassNet(object):
         print('Restoring model architecture json: {}'.format(model_json))
         print('Restoring model weights: {}'.format(model_weights))
 
+        # NOTE, make sure loss function matches
         self._load_model(model_json, model_weights)
-        # Load loss. NOTE: I'm pretty sure the loss function is not saved in the architecture json, so 
-        # ensure the loss option matches across training sessions
-        # TODO automatically determine correct loss option from subdir notes
 
         current_time = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
@@ -153,17 +156,18 @@ class HourglassNet(object):
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
             initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset)
     
-    def _compile_model(self, loss):
-        if DEFAULT_OPTIMIZER is OptimizerType.rmsProp:
-            optimizer = RMSprop(learning_rate=DEFAULT_LEARNING_RATE)
+    def _compile_model(self):
+        opt_enum = get_optimizer_enum_from_string(self.optimizer_str)
+        if opt_enum is OptimizerType.rmsProp:
+            optimizer = RMSprop(learning_rate=self.learningrate)
         else:
-            optimizer = Adam(learning_rate=DEFAULT_LEARNING_RATE)
+            optimizer = Adam(learning_rate=self.learningrate)
 
-        if loss is None:
+        if self.loss is None:
             print("No loss function provided. Using default of keras.losses.mean_squared_error")
-            loss = mean_squared_error
+            self.loss = mean_squared_error
 
-        self.model.compile(optimizer=optimizer, loss=loss, metrics=[f1_m, precision_m, recall_m])
+        self.model.compile(optimizer=optimizer, loss=self.loss, metrics=[f1_m, precision_m, recall_m])
 
     def _load_model(self, model_json, model_weights):
         with open(model_json) as f:

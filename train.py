@@ -69,6 +69,12 @@ def process_args():
                         '--augment',
                         default=DEFAULT_AUGMENT,
                         help='Strength of image augmentation')
+    argparser.add_argument('--optimizer',
+                        default=DEFAULT_OPTIMIZER,
+                        help='name of optimizer to use')
+    argparser.add_argument('--learning-rate',
+                        default=DEFAULT_LEARNING_RATE,
+                        help='learning rate of optimizer')
     # Resume model training arguments
     # TODO make a consistent way to generate and retrieve epoch checkpoint filenames
     argparser.add_argument('-r',
@@ -124,6 +130,9 @@ def process_args():
         # Clean notes so it can be used in directory name
         args.notes = slugify(args.notes)
 
+    # we throw the result away for now
+    get_optimizer_enum_from_string(args.optimizer)
+
     return args
 
 if __name__ == "__main__":
@@ -144,7 +153,10 @@ if __name__ == "__main__":
         outres=OUTPUT_DIM,
         loss_str=args.loss,
         image_aug_str=args.augment,
-        pickle_name=args.pickle)
+        pickle_name=args.pickle,
+        optimizer_str=args.optimizer,
+        learning_rate=args.learning_rate
+    )
 
     training_start = time.time()
 

@@ -41,7 +41,7 @@ DEFAULT_ACTIVATION = OutputActivation.linear.name
 class OptimizerType(Enum):
     rmsProp = 0
     adam = 1
-DEFAULT_OPTIMIZER = OptimizerType.adam
+DEFAULT_OPTIMIZER = OptimizerType.adam.name
 
 DEFAULT_LEARNING_RATE = 0.005
 
