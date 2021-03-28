@@ -114,8 +114,6 @@ def process_args():
     assert (args.subset > 0 and args.subset <= 1.0), "Subset must be fraction between 0 and 1.0"
 
     if args.resume:
-        assert args.resume_epoch > 0, "Resume epoch number must be greater than 0."
-
         # Automatically locate architecture json and model weights
         if args.resume_subdir is not None:
             find_resume_json_weights_args(args)
