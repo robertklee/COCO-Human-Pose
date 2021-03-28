@@ -27,7 +27,7 @@ def validate_activation(activation):
     return activ
 
 def find_resume_json_weights_args(args):
-    args.model_save, args.resume_subdir, args.resume_epoch = find_resume_json_weights_str(args.model_save, args.resume_subdir, args.resume_epoch)
+    args.resume_json, args.resume_weights, args.resume_epoch = find_resume_json_weights_str(args.model_save, args.resume_subdir, args.resume_epoch)
 
 def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     enclosing_dir = os.path.join(model_base_dir, model_subdir)
