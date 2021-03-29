@@ -6,7 +6,7 @@ from keras.optimizers import Adam, RMSprop
 
 # Adapted from https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/master/src/net/hg_blocks.py
 
-def create_hourglass_network(num_classes, num_stacks, num_channels, inres, outres, bottleneck):
+def create_hourglass_network(num_classes, num_stacks, num_channels, inres, outres, bottleneck, activation_str):
     input = Input(shape=(inres[0], inres[1], 3))
 
     front_features = create_front_module(input, num_channels, bottleneck)
@@ -15,7 +15,7 @@ def create_hourglass_network(num_classes, num_stacks, num_channels, inres, outre
 
     outputs = []
     for i in range(num_stacks):
-        head_next_stage, head_to_loss = hourglass_module(head_next_stage, num_classes, num_channels, bottleneck, i)
+        head_next_stage, head_to_loss = hourglass_module(head_next_stage, num_classes, num_channels, bottleneck, i, activation_str)
         outputs.append(head_to_loss)
 
     model = Model(inputs=input, outputs=outputs)
@@ -23,7 +23,7 @@ def create_hourglass_network(num_classes, num_stacks, num_channels, inres, outre
     return model
 
 
-def hourglass_module(bottom, num_classes, num_channels, bottleneck, hgid):
+def hourglass_module(bottom, num_classes, num_channels, bottleneck, hgid, activation_str):
     # create left features , f1, f2, f4, and f8
     left_features = create_left_half_blocks(bottom, bottleneck, hgid, num_channels)
 
@@ -32,7 +32,7 @@ def hourglass_module(bottom, num_classes, num_channels, bottleneck, hgid):
 
     # add 1x1 conv with two heads, head_next_stage is sent to next stage
     # head_parts is used for intermediate supervision
-    head_next_stage, head_parts = create_heads(bottom, rf1, num_classes, hgid, num_channels)
+    head_next_stage, head_parts = create_heads(bottom, rf1, num_classes, hgid, num_channels, activation_str)
 
     return head_next_stage, head_parts
 
@@ -167,17 +167,17 @@ def create_right_half_blocks(leftfeatures, bottleneck, hglayer, num_channels):
     return rf1
 
 
-def create_heads(prelayerfeatures, rf1, num_classes, hgid, num_channels):
+def create_heads(prelayerfeatures, rf1, num_classes, hgid, num_channels, activation_str):
     # two head, one head to next stage, one head to intermediate features
     head = Conv2D(num_channels, kernel_size=(1, 1), activation='relu', padding='same', name=str(hgid) + '_conv_1x1_x1')(
         rf1)
     head = BatchNormalization()(head)
 
-    # for head as intermediate supervision, use 'linear' as activation.
-    head_parts = Conv2D(num_classes, kernel_size=(1, 1), activation='linear', padding='same',
+    # for head as intermediate supervision, use 'linear' or 'sigmoid' as activation.
+    head_parts = Conv2D(num_classes, kernel_size=(1, 1), activation=activation_str, padding='same',
                         name=str(hgid) + '_conv_1x1_parts')(head)
 
-    # use linear activation
+    # join intermediate prediction heatmap with feature map
     head = Conv2D(num_channels, kernel_size=(1, 1), activation='linear', padding='same',
                   name=str(hgid) + '_conv_1x1_x2')(head)
     head_m = Conv2D(num_channels, kernel_size=(1, 1), activation='linear', padding='same',
