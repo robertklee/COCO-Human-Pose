@@ -187,6 +187,7 @@ class Evaluation():
         Example:  [1,2,0,1,4,666,32...]
     """
     def undo_bounding_box_transformations(self, metadata, untransformed_predictions):
+      untransformed_predictions = np.array(untransformed_predictions).flatten()
       predicted_labels = []
       for i in range(len(untransformed_predictions)):
         if( i % 3 == 0 ): # is an x-coord
@@ -203,6 +204,38 @@ class Evaluation():
       metadata['predicted_labels'] = predicted_labels
       return metadata
 
+    def write_to_json_file(self, list_of_predictions, location):
+        f = open(location, "w")
+        f.write('[')
+        for i in range(len(list_of_predictions)):
+            f.write(str(list_of_predictions[i]))
+            if(i < len(list_of_predictions) - 1):
+                f.write(',')
+        f.write(']')
+        f.close()
+
+    def create_oks_obj(self, metadata):
+        # TODO figure out score category
+        oks_obj = {}
+        oks_obj['image_id'] = metadata['src_set_image_id']
+        oks_obj['category_id'] = 1
+        oks_obj['keypoints'] = metadata['predicted_labels']
+        oks_obj['score'] = 0.502
+        return oks_obj
+
+    def predict_keypoints(self,generator, location):
+        list_of_predictions = []
+        for i in range(len(generator)):
+            j = 0
+            X_batch, y_stacked, metadatas = generator[i] # choose one image for evaluation
+            predict_heatmaps= self.predict_heatmaps(X_batch)
+            for X, metadata in zip(X_batch, metadatas):
+                keypoints = self.heatmaps_to_keypoints(predict_heatmaps[self.num_hg_blocks-1, j, :, :, :])
+                metadata = self.undo_bounding_box_transformations(metadata, keypoints)
+                list_of_predictions.append(self.create_oks_obj(metadata))
+                j+=1
+        self.write_to_json_file(list_of_predictions, location)
+        print('DONE')
 # ----------------------- End of Class -----------------------
 
 """

@@ -90,16 +90,22 @@ for i in range(NUM_COCO_KEYPOINTS):
       y.append(keypoints[i,1])
 plt.scatter(x,y)
 plt.imshow(img)
+
 # %%import hourglass
 import imp
+
+import hourglass
 imp.reload(hourglass)
 from hourglass import HourglassNet
+
 import data_generator
 imp.reload(data_generator)
 from data_generator import DataGenerator
+
 import evaluation
 imp.reload(evaluation)
 from evaluation import Evaluation
+
 from constants import *
 import matplotlib.pyplot as plt
 import numpy as np
@@ -107,15 +113,11 @@ import numpy as np
 h = HourglassNet(NUM_COCO_KEYPOINTS,DEFAULT_NUM_HG,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
 train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
 
-batch_size = 1
-
+subdir = '2021-03-29-11h-07m_batchsize_16_hg_4_loss_weighted_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_linear_subset_0.50_wmse-5'
 eval = Evaluation(
     # ensure model_json and weights files exist in current directory and num_hg_blocks matches model_json
-    model_json='hpe_hourglass_stacks_08_batchsize_012.json',
-    weights='hpe_epoch34_val_loss_0.1417_train_loss_0.1577.hdf5',
-    df=val_df,
-    num_hg_blocks=DEFAULT_NUM_HG,
-    batch_size=batch_size)
+    model_sub_dir = subdir
+    ,epoch = 15)
 print("Created Evaluation instance")
 
 generator = DataGenerator(
@@ -125,45 +127,14 @@ generator = DataGenerator(
             output_dim=OUTPUT_DIM,
             num_hg_blocks=DEFAULT_NUM_HG,
             shuffle=False,
-            batch_size=batch_size,
+            batch_size=5,
             online_fetch=True,
             is_eval=True)
 
 # Select image to predict heatmaps
-# X_batch, y_stacked = generator[168] # choose one image for evaluation
-# y_batch = y_stacked[0] # take first hourglass section
-# X, y = X_batch[0], y_batch[0] # take first example of batch
-
-# Select image to predict heatmaps
 X_batch, y_stacked, metadatas = generator[168] # choose one image for evaluation
-y_batch = y_stacked[0] # take first hourglass section
-X, y = X_batch[0], y_batch[0] # take first example of batch
-
-untransformed_predictions = [(28, 25, 0.060447669346224),
- (29, 22, 0.060447669346224),
- (27, 22, 0.06401293421084475),
- (35, 21, 0.06778848201428475),
- (0, 0, 0.0),
- (46, 34, 0.06401293421084475),
- (28, 27, 0.06401293421084474),
- (0, 0, 0.0),
- (22, 34, 0.06778848201428475),
- (37, 47, 0.06401293421084475),
- (16, 36, 0.06401293421084474),
- (36, 55, 0.06402403246820193),
- (24, 51, 0.060447669346224),
- (0, 0, 0.0),
- (0, 0, 0.0),
- (0, 0, 0.0),
- (0, 0, 0.0)]
-
-untransformed_predictions = np.array(untransformed_predictions).flatten()
-print(untransformed_predictions)
-metadata = metadatas[0]
-print(metadata)
-metadata = eval.undo_bounding_box_transformations(metadata, untransformed_predictions)
-print(metadata['predicted_labels'])
-
+eval.predict_keypoints(generator, location='output/predictions.json')
+# eval.predict_keypoints(X_batch, metadatas, location='output/predictions.json')
 
 
 # %%
