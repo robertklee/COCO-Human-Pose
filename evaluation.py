@@ -103,12 +103,6 @@ class Evaluation():
         stacked_ground_truth_heatmaps = cv2.cvtColor(stacked_ground_truth_heatmaps, cv2.COLOR_BGRA2RGB)
         stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
 
-
-        # Save stacked images to disk
-        plt.imsave(stacked_predict_heatmaps_file, stacked_predict_heatmaps)
-        plt.imsave(stacked_ground_truth_heatmaps_file, stacked_ground_truth_heatmaps)
-        filename = filename
-
         heatmap_imgs = []
         heatmap_imgs.append(stacked_predict_heatmaps)
         heatmap_imgs.append(stacked_ground_truth_heatmaps)
