@@ -1,3 +1,5 @@
+import os
+import re
 import cv2
 from scipy.ndimage import gaussian_filter, maximum_filter
 import matplotlib.pyplot as plt
@@ -5,17 +7,33 @@ import numpy as np
 from PIL import Image
 
 from constants import *
-from HeatMap import HeatMap  # https://github.com/LinShanify/HeatMap
+import HeatMap  # https://github.com/LinShanify/HeatMap
+import util
+import hourglass
+
 
 
 class Evaluation():
 
-    def __init__(self, model_json, weights, df, num_hg_blocks, batch_size=1):
-        self.model_json = model_json              # json of model to be evaluated
-        self.weights = weights          # weights of model to be evaluated
-        self.df = df                    # df of the the annotations we want
-        self.num_hg_blocks = num_hg_blocks
-        self.batch_size = batch_size
+    def __init__(self, model_sub_dir, epoch, model_base_dir=DEFAULT_MODEL_BASE_DIR, output_base_dir=DEFAULT_OUTPUT_BASE_DIR): 
+        # automatically retrieve json and weights
+        self.model_sub_dir=model_sub_dir
+        self.epoch=epoch
+        match = re.match(r'(.*)(_resume_.*$)', model_sub_dir)
+        if match:
+            self.output_sub_dir = os.path.join(output_base_dir, match.group(1), str(self.epoch))
+        else:
+            self.output_sub_dir = os.path.join(output_base_dir, self.model_sub_dir, str(self.epoch))
+        if not os.path.exists(self.output_sub_dir):
+            os.makedirs(self.output_sub_dir)
+
+        self.model_json, self.weights = util.find_resume_json_weights_str(model_base_dir, model_sub_dir, epoch)
+        self.num_hg_blocks = int(re.match(r'.*stacks_([\d]+)_.*',self.model_json).group(1))
+        h = hourglass.HourglassNet(NUM_COCO_KEYPOINTS,self.num_hg_blocks,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
+        h._load_model(self.model_json, self.weights)
+        self.model = h.model
+        print('Loaded model with {} hourglass stacks!'.format(self.num_hg_blocks))
+
 
     # Vertically stack images of different widths
     # https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
@@ -32,31 +50,15 @@ class Evaluation():
         return cv2.vconcat(im_list_resize) 
 
     # Returns np array of predicted heatmaps for a given image and model
-    def predict_heatmaps(self, h, X):
-        h._load_model(self.model_json, self.weights)
-
-        X = np.expand_dims(X, axis=0) # add "batch" dimension of 1 because predict needs shape (1, 256, 256, 3)
-        predict_heatmaps = h.model.predict(X)
-        predict_heatmaps = np.array(predict_heatmaps) # output shape is (num_hg_blocks, 1, 64, 64, 17)
-
-        print('model prediction metrics: ')
-        predict_mean = np.mean(predict_heatmaps)
-        predict_max = np.max(predict_heatmaps)
-        predict_min = np.min(predict_heatmaps)
-        predict_var = np.var(predict_heatmaps.flatten())
-        print('Mean: {:0.6e}\t Max: {:e}\t Min: {:e}\t Variance: {:e}'.format(predict_mean, predict_max, predict_min, predict_var))
-        normalized_heatmaps = predict_heatmaps / predict_max
-        normalized_heatmaps = normalized_heatmaps - predict_min
-        normalized_heatmaps = predict_heatmaps / np.max(predict_heatmaps)
-
-        return normalized_heatmaps
+    def predict_heatmaps(self, X_batch):
+        return np.array(self.model.predict(X_batch)) # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
 
     #  Returns np array of stacked ground truth heatmaps for a given image and label
     def stacked_ground_truth_heatmaps(self, X, y):
         ground_truth_heatmaps = []
         for i in range(NUM_COCO_KEYPOINTS):
             heatmap = y[:,:,i]
-            hm = HeatMap(X,heatmap)
+            hm = HeatMap.HeatMap(X,heatmap)
             heatmap_array = hm.get_heatmap_array(transparency=0.5)
             ground_truth_heatmaps.append(heatmap_array)
         for i, heatmap in enumerate(ground_truth_heatmaps):
@@ -69,35 +71,47 @@ class Evaluation():
     #  Returns np array of stacked predicted heatmaps
     def stacked_predict_heatmaps(self, predict_heatmaps):
         for h in range(self.num_hg_blocks):
-            stacked_predict_heatmaps = np.array(predict_heatmaps[h, 0, :, :, 0])
+            stacked_predict_heatmaps = np.array(predict_heatmaps[h, :, :, 0])
             for i in range(NUM_COCO_KEYPOINTS):
                 if(i != 0):
-                    stacked_predict_heatmaps = np.hstack((stacked_predict_heatmaps, predict_heatmaps[h, 0, :, :, i]))
+                    stacked_predict_heatmaps = np.hstack((stacked_predict_heatmaps, predict_heatmaps[h, :, :, i]))
             if(h == 0):
                 stacked_hourglass_heatmaps = np.array(stacked_predict_heatmaps)
             else:
                 stacked_hourglass_heatmaps = np.vstack((stacked_hourglass_heatmaps, stacked_predict_heatmaps))
         return stacked_hourglass_heatmaps
 
-    #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
-    def save_stacked_evaluation_heatmaps(self, h, X, y, stacked_predict_heatmaps_file, stacked_ground_truth_heatmaps_file, filename):
-        predict_heatmaps=self.predict_heatmaps(h, X)
-        stacked_predict_heatmaps=self.stacked_predict_heatmaps(predict_heatmaps)
-        stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
+    def visualize_batch(self, X_batch, y_batch, m_batch):
+        predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
+        for i in range(len(X_batch)):
+            X = X_batch[i,]
+            y = y_batch[i,]
+            m = m_batch[i]
+            predicted_heatmaps = predicted_heatmaps_batch[:,i,]
+            self.save_stacked_evaluation_heatmaps(X, y, m, predicted_heatmaps)
 
-        # Save stacked images to disk
-        plt.imsave(stacked_predict_heatmaps_file, stacked_predict_heatmaps)
-        plt.imsave(stacked_ground_truth_heatmaps_file, stacked_ground_truth_heatmaps)
-        filename = filename
+
+    #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
+    def save_stacked_evaluation_heatmaps(self, X, y, m, predicted_heatmaps):
+        stacked_predict_heatmaps=self.stacked_predict_heatmaps(predicted_heatmaps)
+        stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
+        
+        # Reshape heatmaps to 3 channels with colour injection, normalize channels to [0,255]
+        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
+        stacked_predict_heatmaps = cv2.applyColorMap(stacked_predict_heatmaps, cv2.COLORMAP_JET)
+        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
+        stacked_ground_truth_heatmaps = cv2.cvtColor(stacked_ground_truth_heatmaps, cv2.COLOR_BGRA2RGB)
+        stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
         
         heatmap_imgs = []
-        heatmap_imgs.append(cv2.imread(stacked_predict_heatmaps_file))
-        heatmap_imgs.append(cv2.imread(stacked_ground_truth_heatmaps_file))
+        heatmap_imgs.append(stacked_predict_heatmaps)
+        heatmap_imgs.append(stacked_ground_truth_heatmaps)
 
         # Resize and vertically stack heatmap images
         img_v_resize = self._vstack_images(heatmap_imgs) 
-        
-        cv2.imwrite(filename, img_v_resize) 
+
+        filename = str(m['ann_id']) + '.png'
+        cv2.imwrite(os.path.join(self.output_sub_dir,filename), img_v_resize)
 
     # Resources for heatmaps to keypoints
     # https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/eddf0ae15715a88d7859847cfff5f5092b260ae1/src/eval/heatmap_process.py#L5
@@ -163,9 +177,11 @@ def load_and_preprocess_img(img_path, num_hg_blocks, x=None, y=None, w=None, h=N
                         interpolation=cv2.INTER_LINEAR)
     
     # Add a 'batch' axis
-    X_batch = np.expand_dims(new_img, axis=0)
+    X_batch = np.expand_dims(new_img.astype('float'), axis=0)
 
     # Add dummy heatmap "ground truth", duplicated 'num_hg_blocks' times
     y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS)) for _ in range(num_hg_blocks)]
 
+    # Normalize input image
+    X_batch /= 255
     return X_batch, y_batch

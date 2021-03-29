@@ -136,3 +136,4 @@ dmypy.json
 
 #Pickles and pickle directories
 Pickles/*
+!Pickles/representative_set.pkl

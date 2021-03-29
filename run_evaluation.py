@@ -3,56 +3,57 @@ import hourglass
 import imp
 imp.reload(hourglass)
 from hourglass import HourglassNet
-import data_generator
-imp.reload(data_generator)
-from data_generator import DataGenerator
-import evaluation
-imp.reload(evaluation)
-from evaluation import Evaluation
 from constants import *
 import matplotlib.pyplot as plt
+import os
 
 h = HourglassNet(NUM_COCO_KEYPOINTS,DEFAULT_NUM_HG,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
-train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
+_, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
 
 # %% Declare evaluation class instance
-eval = Evaluation(
-    # ensure model_json and weights files exist in current directory and num_hg_blocks matches model_json
-    model_json='hpe_hourglass_stacks_04_batchsize_012.json',
-    weights='hpe_epoch71_val_loss_0.0417_train_loss_0.0163.hdf5',
-    df=val_df,
-    num_hg_blocks=DEFAULT_NUM_HG,
-    batch_size=1)
-print("Created Evaluation instance")
+import pandas as pd
+import evaluation
+import HeatMap
+imp.reload(evaluation)
+imp.reload(HeatMap)
+
+representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
+subdir = '2021-03-22-20h-23m_batchsize_12_hg_8_loss_weighted_mse_aug_medium_resume_2021-03-25-20h-02m'
+eval = evaluation.Evaluation(
+    model_sub_dir=subdir,
+    epoch=43)
 
 # %% Save stacked evaluation heatmaps
-generator = DataGenerator(
-            df=val_df,
-            base_dir=DEFAULT_TRAIN_IMG_PATH,
+import data_generator
+imp.reload(data_generator)
+import data_generator
+import time
+
+generator = data_generator.DataGenerator(
+            df=representative_set_df,
+            base_dir=DEFAULT_VAL_IMG_PATH,
             input_dim=INPUT_DIM,
             output_dim=OUTPUT_DIM,
-            num_hg_blocks=DEFAULT_NUM_HG,
+            num_hg_blocks=eval.num_hg_blocks,
             shuffle=False,  
-            batch_size=1,
+            batch_size=len(representative_set_df),
             online_fetch=False)
 
 # Select image to predict heatmaps
-X_batch, y_stacked = generator[168] # choose one image for evaluation
+X_batch, y_stacked = generator[0] # There is only one batch in the generator
+# X_batch, y_stacked = evaluation.load_and_preprocess_img('data/skier.jpg', eval.num_hg_blocks)
 y_batch = y_stacked[0] # take first hourglass section
-X, y = X_batch[0], y_batch[0] # take first example of batch
-
 # Save stacked heatmap images to disk
-stacked_predict_heatmaps_file = 'stacked_predict_heatmaps.png'
-stacked_ground_truth_heatmaps_file = 'stacked_ground_truth_heatmaps.png'
-filename = 'heatmap_evaluation.png'
-eval.save_stacked_evaluation_heatmaps(h, X, y, stacked_predict_heatmaps_file, stacked_ground_truth_heatmaps_file, filename)
-print(f"Saved stacked evaluation heatmaps as {filename} to disk")
+m_batch = representative_set_df.to_dict('records') # TODO: eventually this will be passed from data generator as metadata
+print("\n\nEval start:   {}\n".format(time.ctime()))
+eval.visualize_batch(X_batch, y_batch, m_batch)
+print("\n\nEval end:   {}\n".format(time.ctime()))
 
 # %% Plot predicted keypoints from heatmaps on bounding box image
 import numpy as np
 from HeatMap import HeatMap
 
-generator = DataGenerator(
+generator = data_generator.DataGenerator(
             df=val_df,
             base_dir=DEFAULT_VAL_IMG_PATH,
             input_dim=INPUT_DIM,
@@ -68,11 +69,11 @@ y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 
 # Get predicted heatmaps for image
-predict_heatmaps=eval.predict_heatmaps(h, X)
+predict_heatmaps=eval.predict_heatmaps(X_batch)
 
 # Get predicted keypoints from last hourglass (eval.num_hg_blocks-1)
 keypoints = eval.heatmaps_to_keypoints(predict_heatmaps[eval.num_hg_blocks-1, 0, :, :, :])
-
+print(keypoints)
 # Get bounding box image from heatmap
 heatmap = y[:,:,0]
 hm = HeatMap(X,heatmap)
