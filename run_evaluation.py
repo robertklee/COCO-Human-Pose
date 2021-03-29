@@ -53,7 +53,7 @@ print("\n\nEval end:   {}\n".format(time.ctime()))
 import numpy as np
 from HeatMap import HeatMap
 
-generator = DataGenerator(
+generator = data_generator.DataGenerator(
             df=val_df,
             base_dir=DEFAULT_VAL_IMG_PATH,
             input_dim=INPUT_DIM,
@@ -69,11 +69,11 @@ y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 
 # Get predicted heatmaps for image
-predict_heatmaps=eval.predict_heatmaps(h, X)
+predict_heatmaps=eval.predict_heatmaps(X_batch)
 
 # Get predicted keypoints from last hourglass (eval.num_hg_blocks-1)
 keypoints = eval.heatmaps_to_keypoints(predict_heatmaps[eval.num_hg_blocks-1, 0, :, :, :])
-
+print(keypoints)
 # Get bounding box image from heatmap
 heatmap = y[:,:,0]
 hm = HeatMap(X,heatmap)
