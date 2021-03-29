@@ -32,7 +32,7 @@ from data_augmentation import *
 class DataGenerator(Sequence):
 
     def __init__(self, df, base_dir, input_dim, output_dim, num_hg_blocks, shuffle=False, \
-        batch_size=DEFAULT_BATCH_SIZE, online_fetch=False, img_aug_strength=None):
+        batch_size=DEFAULT_BATCH_SIZE, online_fetch=False, img_aug_strength=None, is_eval=False):
 
         self.df = df                    # df of the the annotations we want
         self.base_dir = base_dir        # where to read imgs from in collab runtime
@@ -41,13 +41,14 @@ class DataGenerator(Sequence):
         self.num_hg_blocks = num_hg_blocks
         self.shuffle = shuffle
         self.batch_size = batch_size
+        self.is_eval = is_eval
         # If true, images will be loaded from url over network rather than filesystem
         self.online_fetch = online_fetch
         if img_aug_strength is not None:
-            self.augmenter = get_augmenter_pipeline(img_aug_strength) 
+            self.augmenter = get_augmenter_pipeline(img_aug_strength)
         else:
-            self.augmenter = None 
-        
+            self.augmenter = None
+
         self.on_epoch_end()
 
     # after each epoch, shuffle indices so data order changes
@@ -149,7 +150,7 @@ class DataGenerator(Sequence):
             else:
                 x = kp.x
                 y = kp.y
-                v = 1 
+                v = 1
 
             transformed_label.append(x)
             transformed_label.append(y)
@@ -215,6 +216,7 @@ class DataGenerator(Sequence):
         # Order of last dimension: (heatmap for each kp) repeated num_hg_blocks times
         y = np.empty((self.batch_size, *self.output_dim, NUM_COCO_KEYPOINTS))
 
+        metadatas = []
         # get the indices of the requested batch
         indices = self.indices[idx*self.batch_size:(idx+1)*self.batch_size]
         for i, data_index in enumerate(indices):
@@ -231,6 +233,19 @@ class DataGenerator(Sequence):
                 img, ann['bbox'])
             transformed_label = self.transform_label(
                 ann['keypoints'], cropped_width, cropped_height, anchor_x, anchor_y)
+            if(self.is_eval):
+                metadata = {}
+                metadata["src_set_image_id"] = ann['src_set_image_id']
+                metadata["coco_url"] = ann['coco_url']
+                metadata["cropped_width"] = cropped_width
+                metadata["cropped_height"] = cropped_height
+                metadata["anchor_x"] = anchor_x
+                metadata["anchor_y"] = anchor_y
+                metadata["input_dim"] = self.input_dim
+                metadata["output_dim"] = self.output_dim
+                metadata["transformed_label"] = transformed_label #DEBUG
+                metadata["ground_truth_keypoints"] = ann['keypoints'] #DEBUG
+                metadatas.append(metadata)
 
             # if image augmentations should be applied
             if self.augmenter is not None:
@@ -258,5 +273,8 @@ class DataGenerator(Sequence):
         y_stacked = []
         for _ in range(self.num_hg_blocks):
             y_stacked.append(y)
+
+        if(self.is_eval):
+            return X, y_stacked, metadatas
 
         return X, y_stacked
