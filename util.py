@@ -4,27 +4,23 @@ import unicodedata
 
 from constants import *
 
-def get_optimizer_enum_from_string(optimizer_str):
+def str_to_enum(EnumClass, str):
     try:
-        optimizer = OptimizerType[optimizer_str]
+        enum_ = EnumClass[str]
     except KeyError:
-        print('OptimizerType was not found in possible options.')
-        print('Available options are:')
-        available_optimizers = [name for name, member in OptimizerType.__members__.items()]
-        print(available_optimizers)
-        exit(1)
-    return optimizer
+        return None
+    return enum_
 
-def validate_activation(activation):
-    try:
-        activ = OutputActivation[activation]
-    except KeyError:
-        print('OutputActivation was not found in possible options.')
+def validate_enum(EnumClass, str):
+    enum_ = str_to_enum(EnumClass=EnumClass, str=str)
+
+    if enum_ is None:
+        print(f'\'{str}\' was not found in possible options for Enum class: {EnumClass.__name__}.')
         print('Available options are:')
-        available_activs = [name for name, member in OutputActivation.__members__.items()]
-        print(available_activs)
+        options = [name for name, _ in EnumClass.__members__.items()]
+        print(options)
         exit(1)
-    return activ
+    return True
 
 def find_resume_json_weights_args(args):
     args.resume_json, args.resume_weights, args.resume_epoch = find_resume_json_weights_str(args.model_save, args.resume_subdir, args.resume_epoch)

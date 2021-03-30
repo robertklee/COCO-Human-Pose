@@ -132,9 +132,11 @@ def process_args():
         # Clean notes so it can be used in directory name
         args.notes = slugify(args.notes)
 
-    # just for validation, we throw the result away for now
-    get_optimizer_enum_from_string(args.optimizer)
-    validate_activation(args.activation)
+    # validate enum args
+    assert validate_enum(LossFunctionOptions, args.loss)
+    assert validate_enum(ImageAugmentationStrength, args.augment)
+    assert validate_enum(OptimizerType, args.optimizer)
+    assert validate_enum(OutputActivation, args.activation)
 
     return args
 
@@ -145,8 +147,6 @@ if __name__ == "__main__":
     setup_start = time.time()
 
     tensorflow_setup()
-
-    trainingRunTime = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
 
     hgnet = HourglassNet(
         num_classes=NUM_COCO_KEYPOINTS, 
