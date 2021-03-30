@@ -5,7 +5,7 @@ COLAB_TRAINING = False
 
 # Model Defaults
 DEFAULT_NUM_HG = 4 # NOTE in their final design, 8 were used
-DEFAULT_EPOCHS = 40
+DEFAULT_EPOCHS = 70
 DEFAULT_MODEL_BASE_DIR = 'models'
 DEFAULT_LOGS_BASE_DIR = 'logs'
 DEFAULT_OUTPUT_BASE_DIR = 'output'
@@ -75,7 +75,7 @@ OUTPUT_DIM = (64,64)
 NUM_CHANNELS = 256
 
 # Data Generator Constants
-DEFAULT_BATCH_SIZE = 10 #NOTE need to test optimal batch size
+DEFAULT_BATCH_SIZE = 12 #NOTE need to test optimal batch size
 NUM_COCO_KEYPOINTS = 17 # Number of joints to detect
 NUM_COCO_KP_ATTRBS = 3 # (x,y,v) * 17 keypoints
 BBOX_SLACK = 1.3 # before augmentation, increase bbox size to 130%
