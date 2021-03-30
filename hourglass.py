@@ -71,7 +71,7 @@ class HourglassNet(object):
         print(f'Optimizer function selected:          {self.optimizer_str}')
         print(f'Activation function selected:         {self.activation_str}')
         print(f'Learning rate selected:               {self.learningrate}')
-        print(f'Filtering out annotations <= to       {self.kp_filtering_gt:d}')
+        print(f'Filtering out annotations <=          {self.kp_filtering_gt:d}')
 
         self.loss = get_loss_from_string(self.loss_str)
         self._compile_model()
@@ -89,6 +89,9 @@ class HourglassNet(object):
         # Validation does not shuffle and does not augment images, by default.
         val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=VAL_SHUFFLE, batch_size=batch_size, img_aug_strength=None)
         
+        print('\n\n********* Unique Model Training ID. Add the args: --resume True --resume-subdir "training ID shown below" to resume training *********\n')
+        print(model_subdir)
+        print('\n******************************* END OF Unique Model Training ID *******************************\n\n')
 
         modelDir = os.path.join(model_base_dir, model_subdir)
         logsDir = os.path.join(DEFAULT_LOGS_BASE_DIR, model_subdir)
