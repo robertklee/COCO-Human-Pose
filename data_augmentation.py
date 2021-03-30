@@ -1,5 +1,6 @@
 # %% Import required libraries
 # Import utilities
+from util import validate_enum
 from imgaug.augmenters.meta import OneOf
 import numpy as np # linear algebra
 
@@ -13,23 +14,6 @@ from constants import ImageAugmentationStrength
 
 # Holy resources: https://nbviewer.jupyter.org/github/aleju/imgaug-doc/blob/master/notebooks/B01%20-%20Augment%20Keypoints.ipynb
 # Credit to the above notebook for their tutorial on keypoint augmentation
-
-def _print_options():
-    print('Image augmentation strength was not found in possible options.')
-    print('Available options are:')
-    available_strengths = [name for name, member in ImageAugmentationStrength.__members__.items()]
-    print(available_strengths)
-    exit(1)
-
-def get_strength_enum_from_string(img_aug_strength_str):
-    try:
-        strength = ImageAugmentationStrength[img_aug_strength_str]
-    except KeyError:
-        _print_options()
-    
-    return strength
-
-# %% Initialize augmentation pipeline
 
 # Not applied transformations but would be interesting to try:
 # - iaa.CoarseDropout - Randomly erases a larger chunk of the image - meant to improve robustness for occlusions
@@ -176,7 +160,8 @@ def get_augmenter_pipeline(strength_enum):
     elif strength_enum is ImageAugmentationStrength.none:
         return None
     else:
-        _print_options()
+        validate_enum(ImageAugmentationStrength, strength_enum.name)
+        exit(1)
 
     # Verify that min are lower than max
     assert iaaSharpenLightnessMin   <= iaaSharpenLightnessMax

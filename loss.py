@@ -1,4 +1,5 @@
 from enum import Enum
+from util import str_to_enum
 
 import keras
 import keras.backend as K
@@ -6,19 +7,8 @@ import tensorflow as tf
 
 from constants import LossFunctionOptions
 
-
-def _print_options():
-    print('Loss function was not found in possible options.')
-    print('Available options are:')
-    available_losses = [name for name, member in LossFunctionOptions.__members__.items()]
-    print(available_losses)
-    exit(1)
-
 def get_loss_from_string(loss_str):
-    try:
-        loss = LossFunctionOptions[loss_str]
-    except KeyError:
-        _print_options()
+    loss = str_to_enum(LossFunctionOptions, loss_str)
     
     if loss is LossFunctionOptions.keras_mse:
         return keras.losses.mean_squared_error
@@ -29,7 +19,7 @@ def get_loss_from_string(loss_str):
     elif loss is LossFunctionOptions.focal_loss:
         return focal_loss
     else:
-        _print_options()
+        return None
 
 # categorical_focal_loss and binary_focal_loss credit to 
 # https://github.com/aldi-dimara/keras-focal-loss/blob/master/focal_loss.py

@@ -82,7 +82,7 @@ class HourglassNet(object):
         else:
             train_df, val_df = self.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH, DEFAULT_VAL_ANNOT_PATH, subset)
 
-        img_aug_strength = get_strength_enum_from_string(self.image_aug_str)
+        img_aug_strength = str_to_enum(ImageAugmentationStrength, self.image_aug_str)
 
         train_generator = DataGenerator(train_df, DEFAULT_TRAIN_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=TRAIN_SHUFFLE, \
             batch_size=batch_size, img_aug_strength=img_aug_strength)
@@ -166,7 +166,7 @@ class HourglassNet(object):
             initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset)
     
     def _compile_model(self):
-        opt_enum = get_optimizer_enum_from_string(self.optimizer_str)
+        opt_enum = str_to_enum(OptimizerType, self.optimizer_str)
         if opt_enum is OptimizerType.rmsProp:
             optimizer = RMSprop(learning_rate=self.learningrate)
         else:
