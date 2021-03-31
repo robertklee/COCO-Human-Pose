@@ -145,7 +145,7 @@ class HourglassNet(object):
             print('Automatically locating model architecture .json and weights .hdf5...')
 
         print(f'Restoring model architecture json:  {model_json}')
-        print(f'Restoring model weights:            {model_weights}')
+        print(f'Restoring model weights:            {model_weights}\n')
 
         # NOTE, make sure loss function matches
         self._load_model(model_json, model_weights)
@@ -163,6 +163,7 @@ class HourglassNet(object):
         model_subdir = orig_model_subdir
 
         if new_run:
+            print("Resuming with a new session ID...\n")
             model_subdir += DEFAULT_RESUME_DIR_FLAG + current_time
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \

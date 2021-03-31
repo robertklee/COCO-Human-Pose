@@ -35,7 +35,7 @@ def is_highest_epoch_file(model_base_dir, model_subdir, epoch_):
 
             if epoch > epoch_:
                 return False
-    
+
     return True
 
 def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
@@ -63,8 +63,8 @@ def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     resume_json = os.path.join(enclosing_dir, model_jsons[0])
     resume_weights = os.path.join(enclosing_dir, model_saved_weights[resume_epoch])
 
-    print('Found model json: {}'.format(resume_json))
-    print('Found model weights for epoch {epoch:02d}: {weight_file_name}'.format(epoch=resume_epoch, weight_file_name=resume_weights))
+    print('Found model json:                  {}'.format(resume_json))
+    print('Found model weights for epoch {epoch:03d}: {weight_file_name}'.format(epoch=resume_epoch, weight_file_name=resume_weights))
 
     assert os.path.exists(resume_json)
     assert os.path.exists(resume_weights)

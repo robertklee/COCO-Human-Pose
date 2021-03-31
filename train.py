@@ -126,7 +126,7 @@ def process_args():
         # which may cause the graph to no longer be single-valued.
         # See https://github.com/tensorflow/tensorboard/issues/3732
         if not args.resume_with_new_run:
-            args.resume_with_new_run = is_highest_epoch_file(args.resume_json, args.resume_weights, args.resume_epoch)
+            args.resume_with_new_run = not is_highest_epoch_file(args.model_save, args.resume_subdir, args.resume_epoch)
 
         assert args.resume_json is not None and args.resume_weights is not None, \
             "Resume model training enabled, but no parameters received for: --resume-subdir, or both --resume-json and --resume-weights"
