@@ -89,11 +89,11 @@ class Evaluation():
             y = y_batch[i,]
             m = m_batch[i]
             predicted_heatmaps = predicted_heatmaps_batch[:,i,]
-            self.save_stacked_evaluation_heatmaps(X, y, m, predicted_heatmaps)
+            self.save_stacked_evaluation_heatmaps(X, y, str(m['ann_id']) + '.png', predicted_heatmaps)
 
 
     #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
-    def save_stacked_evaluation_heatmaps(self, X, y, m, predicted_heatmaps):
+    def save_stacked_evaluation_heatmaps(self, X, y, filename, predicted_heatmaps):
         stacked_predict_heatmaps=self.stacked_predict_heatmaps(predicted_heatmaps)
         stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
 
@@ -111,7 +111,6 @@ class Evaluation():
         # Resize and vertically stack heatmap images
         img_v_resize = self._vstack_images(heatmap_imgs)
 
-        filename = str(m['ann_id']) + '.png'
         cv2.imwrite(os.path.join(self.output_sub_dir,filename), img_v_resize)
 
     # Resources for heatmaps to keypoints
