@@ -40,19 +40,17 @@ def find_epochs(base_dir, sub_dir, epoch_dic, visited_models):
     for name in weight_file:
         match = re.search('hpe_epoch(\d+)', name)
         if match:
-            epoch.append((match.group(1), sub_dir))
+            epoch_dic.append((match.group(1), sub_dir))
 
     resume_file = [f for f in os.listdir(base_dir) if (sub_dir in f and f is not sub_dir)]
     for file in resume_file:
         visited_models.append(file)
         for name in os.listdir(os.path.join(base_dir, file)):
             match = re.search('hpe_epoch(\d+)', name)
-            #dup = find_dup(epoch, match.group(1))
-            #print("match is ", match, "dup is ", dup)
-            if match and not find_dup(epoch, match.group(1)):
-                epoch.append((match.group(1), file))
+            if match and not find_dup(epoch_dic, match.group(1)):
+                epoch_dic.append((match.group(1), file))
 
-    return list(set(epoch))
+    return list(set(epoch_dic))
 
 
 #%% save stacked evaluation heatmaps
