@@ -7,6 +7,7 @@ from constants import *
 import matplotlib.pyplot as plt
 import os
 
+#%%
 h = HourglassNet(NUM_COCO_KEYPOINTS,DEFAULT_NUM_HG,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
 _, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
 
@@ -18,10 +19,10 @@ imp.reload(evaluation)
 imp.reload(HeatMap)
 
 representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
-subdir = '2021-03-22-20h-23m_batchsize_12_hg_8_loss_weighted_mse_aug_medium_resume_2021-03-25-20h-02m'
+subdir = '2021-03-28-09h-24m_batchsize_16_hg_4_loss_keras_mse_aug_light_sigma4_learningrate_5.0e-03_opt_adam_gt-4kp_activ_linear_subset_0.50_resume_2021-03-28-22h-10m'
 eval = evaluation.Evaluation(
     model_sub_dir=subdir,
-    epoch=43)
+    epoch=30)
 
 # %% Save stacked evaluation heatmaps
 import data_generator
