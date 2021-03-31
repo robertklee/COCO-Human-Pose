@@ -28,7 +28,6 @@ eval = evaluation.Evaluation(
 # %% Save stacked evaluation heatmaps
 import data_generator
 imp.reload(data_generator)
-import data_generator
 import time
 
 generator = data_generator.DataGenerator(
@@ -55,20 +54,11 @@ print("\n\nEval end:   {}\n".format(time.ctime()))
 import numpy as np
 from HeatMap import HeatMap
 
-generator = data_generator.DataGenerator(
-            df=val_df,
-            base_dir=DEFAULT_VAL_IMG_PATH,
-            input_dim=INPUT_DIM,
-            output_dim=OUTPUT_DIM,
-            num_hg_blocks=DEFAULT_NUM_HG,
-            shuffle=False,
-            batch_size=1,
-            online_fetch=False)
-
 # Select image to predict heatmaps
 # X_batch, y_stacked = generator[168] # choose one image for evaluation
-img_name = 'IMG_1830.jpg'
-X_batch, y_stacked = evaluation.load_and_preprocess_img(os.path.join('data', img_name), DEFAULT_NUM_HG)
+img_name = 'IMG_3274.jpg'
+name_no_extension = img_name.split('.')[0]
+X_batch, y_stacked = evaluation.load_and_preprocess_img(os.path.join('data', img_name), eval.num_hg_blocks)
 y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 
@@ -95,6 +85,5 @@ for i in range(NUM_COCO_KEYPOINTS):
 plt.scatter(x,y)
 plt.imshow(img)
 
-nm = img_name.split('.')[0]
-plt.savefig(os.path.join(DEFAULT_OUTPUT_BASE_DIR, f'{nm}_saved_scatter.png'))
+plt.savefig(os.path.join(DEFAULT_OUTPUT_BASE_DIR, f'{name_no_extension}_saved_scatter.png'))
 # %%
