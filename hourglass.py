@@ -100,7 +100,7 @@ class HourglassNet(object):
         modelSavePath = os.path.join(modelDir, f'{HPE_EPOCH_PREFIX}{{epoch:02d}}_val_loss_{{val_loss:.4f}}_train_loss_{{loss:.4f}}.hdf5')
 
         if not os.path.exists(modelDir):
-            print(f"Model save directory created: {modelDir}")
+            print(f"Model save directory created:       {modelDir}")
             os.makedirs(modelDir)
 
         # Create callbacks
