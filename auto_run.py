@@ -126,15 +126,15 @@ def predict_kp_bbox(val_df, eval):
 h = HourglassNet(NUM_COCO_KEYPOINTS,DEFAULT_NUM_HG,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
 _, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
 
-base_dir = "/Users/wanze/Desktop/SENG_474_Project/COCO-Human-Pose/models"
-representative_set_df = pd.read_pickle(os.path.join("/Users/wanze/Desktop/SENG_474_Project/COCO-Human-Pose/Pickles", 'representative_set.pkl'))
-models = []
-epoch = []
-output_models = os.listdir(DEFAULT_OUTPUT_BASE_DIR)
-for sub_dir in os.listdir(base_dir):
+representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
+models = [] # keep track of the models that are visited 
+epoch = [] # extract out all epoch numbers (across different files) from model logs
+output_models = os.listdir(DEFAULT_OUTPUT_BASE_DIR) # keep track of the models have been explored before
+
+for sub_dir in os.listdir(DEFAULT_MODEL_BASE_DIR):
     if '_hg_' in sub_dir and sub_dir not in models and sub_dir not in output_models:
         models.append(sub_dir)
-        epoch = find_epochs(base_dir, sub_dir, epoch, models)
+        epoch = find_epochs(DEFAULT_MODEL_BASE_DIR, sub_dir, epoch, models)
         for (n_epoch, model_file) in epoch:
             eval = evaluation.Evaluation(
                     model_sub_dir=model_file,
