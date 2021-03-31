@@ -15,7 +15,7 @@ import hourglass
 
 class Evaluation():
 
-    def __init__(self, model_sub_dir, epoch, model_base_dir=DEFAULT_MODEL_BASE_DIR, output_base_dir=DEFAULT_OUTPUT_BASE_DIR): 
+    def __init__(self, model_sub_dir, epoch, model_base_dir=DEFAULT_MODEL_BASE_DIR, output_base_dir=DEFAULT_OUTPUT_BASE_DIR):
         # automatically retrieve json and weights
         self.model_sub_dir=model_sub_dir
         self.epoch=epoch
@@ -38,16 +38,16 @@ class Evaluation():
     # Vertically stack images of different widths
     # https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
     def _vstack_images(self, img_list, interpolation=cv2.INTER_CUBIC):
-        # take minimum width 
-        w_min = min(img.shape[1] for img in img_list) 
-        
-        # resizing images 
-        im_list_resize = [cv2.resize(img, 
-                        (w_min, int(img.shape[0] * w_min / img.shape[1])), 
-                                    interpolation = interpolation) 
-                        for img in img_list] 
-        # return final image 
-        return cv2.vconcat(im_list_resize) 
+        # take minimum width
+        w_min = min(img.shape[1] for img in img_list)
+
+        # resizing images
+        im_list_resize = [cv2.resize(img,
+                        (w_min, int(img.shape[0] * w_min / img.shape[1])),
+                                    interpolation = interpolation)
+                        for img in img_list]
+        # return final image
+        return cv2.vconcat(im_list_resize)
 
     # Returns np array of predicted heatmaps for a given image and model
     def predict_heatmaps(self, X_batch):
@@ -95,20 +95,20 @@ class Evaluation():
     def save_stacked_evaluation_heatmaps(self, X, y, m, predicted_heatmaps):
         stacked_predict_heatmaps=self.stacked_predict_heatmaps(predicted_heatmaps)
         stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
-        
+
         # Reshape heatmaps to 3 channels with colour injection, normalize channels to [0,255]
         stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
         stacked_predict_heatmaps = cv2.applyColorMap(stacked_predict_heatmaps, cv2.COLORMAP_JET)
         stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
         stacked_ground_truth_heatmaps = cv2.cvtColor(stacked_ground_truth_heatmaps, cv2.COLOR_BGRA2RGB)
         stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
-        
+
         heatmap_imgs = []
         heatmap_imgs.append(stacked_predict_heatmaps)
         heatmap_imgs.append(stacked_ground_truth_heatmaps)
 
         # Resize and vertically stack heatmap images
-        img_v_resize = self._vstack_images(heatmap_imgs) 
+        img_v_resize = self._vstack_images(heatmap_imgs)
 
         filename = str(m['ann_id']) + '.png'
         cv2.imwrite(os.path.join(self.output_sub_dir,filename), img_v_resize)
@@ -116,7 +116,7 @@ class Evaluation():
     # Resources for heatmaps to keypoints
     # https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/eddf0ae15715a88d7859847cfff5f5092b260ae1/src/eval/heatmap_process.py#L5
     # https://github.com/david8862/tf-keras-stacked-hourglass-keypoint-detection/blob/56707252501c73b2bf2aac8fff3e22760fd47dca/hourglass/postprocess.py#L17
-   
+
     ### Returns np array of predicted keypoints from one image's heatmaps
     def heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
         keypoints = list()
@@ -168,14 +168,14 @@ def load_and_preprocess_img(img_path, num_hg_blocks, x=None, y=None, w=None, h=N
     else:
         # If a bounding box is provided, use it
         bbox = [x, y, w, h]
-    
+
     bbox = np.array(bbox)
-    
+
     cropped_img = img.crop(box=bbox)
     cropped_width, cropped_height = cropped_img.size
     new_img = cv2.resize(np.array(cropped_img), INPUT_DIM,
                         interpolation=cv2.INTER_LINEAR)
-    
+
     # Add a 'batch' axis
     X_batch = np.expand_dims(new_img.astype('float'), axis=0)
 

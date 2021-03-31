@@ -35,7 +35,7 @@ generator = data_generator.DataGenerator(
             input_dim=INPUT_DIM,
             output_dim=OUTPUT_DIM,
             num_hg_blocks=eval.num_hg_blocks,
-            shuffle=False,  
+            shuffle=False,
             batch_size=len(representative_set_df),
             online_fetch=False)
 
@@ -59,7 +59,7 @@ generator = data_generator.DataGenerator(
             input_dim=INPUT_DIM,
             output_dim=OUTPUT_DIM,
             num_hg_blocks=DEFAULT_NUM_HG,
-            shuffle=False,  
+            shuffle=False,
             batch_size=1,
             online_fetch=False)
 

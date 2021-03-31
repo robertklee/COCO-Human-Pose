@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 def check_pickle_folder(pickle_folder, pickle_path = DEFAULT_PICKLE_PATH) -> bool:
     # Checks if the folder exists
     return os.path.isdir(os.path.join(pickle_path, pickle_folder))
-    
+
 
 def create_folder(pickle_folder, pickle_path = DEFAULT_PICKLE_PATH):
     # Creates a folder
@@ -49,7 +49,7 @@ def make_pickle(is_crowd: bool, drop_empty: bool, scale: float,TV_split: float, 
     df_V.to_pickle(os.path.join(pickle_folder, f'Val_{pickle_name}.pkl'))
     df_Tst.to_pickle(os.path.join(pickle_folder, f'Test_{pickle_name}.pkl'))
     return
-    
+
 
 def get_pickle(pickle_name):
     pickle_folder = os.path.join(DEFAULT_PICKLE_PATH, pickle_name)

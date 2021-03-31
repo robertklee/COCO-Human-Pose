@@ -21,7 +21,7 @@ generator = data_generator.DataGenerator(
             input_dim=INPUT_DIM,
             output_dim=OUTPUT_DIM,
             num_hg_blocks=1, # doesn't matter for evaluation b/c we take one stack for GT
-            shuffle=False,  
+            shuffle=False,
             batch_size=len(representative_set_df),
             online_fetch=False)
 

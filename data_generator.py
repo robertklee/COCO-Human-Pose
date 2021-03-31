@@ -44,10 +44,10 @@ class DataGenerator(Sequence):
         # If true, images will be loaded from url over network rather than filesystem
         self.online_fetch = online_fetch
         if img_aug_strength is not None:
-            self.augmenter = get_augmenter_pipeline(img_aug_strength) 
+            self.augmenter = get_augmenter_pipeline(img_aug_strength)
         else:
-            self.augmenter = None 
-        
+            self.augmenter = None
+
         self.on_epoch_end()
 
     # after each epoch, shuffle indices so data order changes
@@ -149,7 +149,7 @@ class DataGenerator(Sequence):
             else:
                 x = kp.x
                 y = kp.y
-                v = 1 
+                v = 1
 
             transformed_label.append(x)
             transformed_label.append(y)
