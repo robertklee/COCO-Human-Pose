@@ -9,7 +9,7 @@ from constants import LossFunctionOptions
 
 def get_loss_from_string(loss_str):
     loss = str_to_enum(LossFunctionOptions, loss_str)
-    
+
     if loss is LossFunctionOptions.keras_mse:
         return keras.losses.mean_squared_error
     elif loss is LossFunctionOptions.euclidean_loss:
@@ -21,7 +21,7 @@ def get_loss_from_string(loss_str):
     else:
         return None
 
-# categorical_focal_loss and binary_focal_loss credit to 
+# categorical_focal_loss and binary_focal_loss credit to
 # https://github.com/aldi-dimara/keras-focal-loss/blob/master/focal_loss.py
 def categorical_focal_loss(gamma=2.0, alpha=0.25):
     """
@@ -52,7 +52,7 @@ def categorical_focal_loss(gamma=2.0, alpha=0.25):
         # Sum the losses in mini_batch
         loss = K.sum(loss, axis=1)
         return loss
-    
+
     return focal_loss
 
 def binary_focal_loss(gamma=2.0, alpha=0.25):
@@ -60,13 +60,13 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
     Implementation of Focal Loss from the paper in multiclass classification
     Formula:
         loss = -alpha_t*((1-p_t)^gamma)*log(p_t)
-        
+
         p_t = y_pred, if y_true = 1
         p_t = 1-y_pred, otherwise
-        
+
         alpha_t = alpha, if y_true=1
         alpha_t = 1-alpha, otherwise
-        
+
         cross_entropy = -log(p_t)
     Parameters:
         alpha -- the same as wighting factor in balanced cross entropy
@@ -96,8 +96,8 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
         # Sum the losses in mini_batch
         loss = K.sum(loss, axis=1)
         return loss
-    
-    return focal_loss    
+
+    return focal_loss
 
 # Compatible with tensorflow backend
 
@@ -110,7 +110,7 @@ def focal_loss_fixed(gamma=2., alpha=.25):
 
 # This isn't ideal since it uses tf operations, but I think the investment required to validate any translation we do
 # to Keras backend is lower priority than other backlog items
-# The original focal loss was developed for large class imbalance categorical outputs, 
+# The original focal loss was developed for large class imbalance categorical outputs,
 # but it looks like this has been adapted for heat maps
 def focal_loss(hm_true, hm_pred):
     """
@@ -150,7 +150,7 @@ def weighted_mean_squared_error(y_true, y_pred):
     loss += tf.math.reduce_mean(tf.math.square(y_true - y_pred) * weights)
 
     return loss
-    
+
 def vanilla_mean_squared_error(y_true, y_pred):
     return K.mean(K.square(y_pred - y_true), axis=-1)
 

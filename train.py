@@ -117,7 +117,7 @@ def process_args():
         # Automatically locate architecture json and model weights
         if args.resume_subdir is not None:
             find_resume_json_weights_args(args)
-        
+
         assert args.resume_json is not None and args.resume_weights is not None, \
             "Resume model training enabled, but no parameters received for: --resume-subdir, or both --resume-json and --resume-weights"
 
@@ -149,9 +149,9 @@ if __name__ == "__main__":
     tensorflow_setup()
 
     hgnet = HourglassNet(
-        num_classes=NUM_COCO_KEYPOINTS, 
-        num_stacks=args.hourglass, 
-        num_channels=NUM_CHANNELS, 
+        num_classes=NUM_COCO_KEYPOINTS,
+        num_stacks=args.hourglass,
+        num_channels=NUM_CHANNELS,
         inres=INPUT_DIM,
         outres=OUTPUT_DIM,
         loss_str=args.loss,

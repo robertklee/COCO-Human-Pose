@@ -38,7 +38,7 @@ fi
 #######################################
 
 # if the second argument is "no_image" then we want the images.
-if [[ $2 != "no_image" ]]; then 
+if [[ $2 != "no_image" ]]; then
     if [ ! -d "coco" ]; then
         mkdir coco
     fi
@@ -52,7 +52,7 @@ if [[ $2 != "no_image" ]]; then
             echo "Downloading from... http://images.cocodataset.org/zips/$imgs_zip.zip"
             curl -OL http://images.cocodataset.org/zips/$imgs_zip.zip
         fi
-        
+
         if [ -f $imgs_zip.zip ]; then
             if [ "$enable_unzip" = true ] ; then
                 echo "Unzipping: $imgs_zip.zip"

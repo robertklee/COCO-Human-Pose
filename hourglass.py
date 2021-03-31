@@ -50,7 +50,7 @@ class HourglassNet(object):
         # show model summary and layer name
         if show:
             self.model.summary()
-    
+
     def load_and_filter_annotations(self, path_to_train_anns,path_to_val_anns, subset):
         df = coco_df.get_df(path_to_train_anns,path_to_val_anns)
         # apply filters here
@@ -88,7 +88,7 @@ class HourglassNet(object):
             batch_size=batch_size, img_aug_strength=img_aug_strength)
         # Validation does not shuffle and does not augment images, by default.
         val_generator = DataGenerator(val_df, DEFAULT_VAL_IMG_PATH, self.inres, self.outres, self.num_stacks, shuffle=VAL_SHUFFLE, batch_size=batch_size, img_aug_strength=None)
-        
+
         print('\n\n********* Unique Model Training ID. Add the args: --resume True --resume-subdir "training ID shown below" to resume training *********\n')
         print(model_subdir)
         print('\n******************************* END OF Unique Model Training ID *******************************\n\n')
@@ -96,7 +96,7 @@ class HourglassNet(object):
         modelDir = os.path.join(model_base_dir, model_subdir)
         logsDir = os.path.join(DEFAULT_LOGS_BASE_DIR, model_subdir)
 
-        # If this path is changed, the corresponding logic to resume should be updated in util.py 
+        # If this path is changed, the corresponding logic to resume should be updated in util.py
         modelSavePath = os.path.join(modelDir, '{prefix}{{epoch:02d}}_val_loss_{{val_loss:.4f}}_train_loss_{{loss:.4f}}.hdf5'.format(prefix=HPE_EPOCH_PREFIX))
 
         if not os.path.exists(modelDir):
@@ -139,7 +139,7 @@ class HourglassNet(object):
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
             initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset)
-    
+
     def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset):
         if resume_subdir is not None:
             print('Automatically locating model architecture .json and weights .hdf5...')
@@ -164,7 +164,7 @@ class HourglassNet(object):
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
             initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset)
-    
+
     def _compile_model(self):
         opt_enum = str_to_enum(OptimizerType, self.optimizer_str)
         if opt_enum is OptimizerType.rmsProp:

@@ -33,10 +33,10 @@ def get_augmenter_pipeline(strength_enum):
     ### Parameters:
     strength_enum : {ImageAugmentationStrength enum}
         Corresponds to the level of data augmentation that should be applied.
-    
+
     ### Returns:
     Data augmentation pipeline that handles images and corresponding keypoints simultaneously.
-    NOTE that both the keypoints and the images must be passed in one call, or different 
+    NOTE that both the keypoints and the images must be passed in one call, or different
     transformations will be applied to them, rendering them useless.
 
     #### Options:
@@ -174,23 +174,23 @@ def get_augmenter_pipeline(strength_enum):
 
     iaaSomeOfImageAppearance = [
             # change their color
-            iaa.AddToHueAndSaturation((iaaHueSaturationMin, iaaHueSaturationMax)),  
+            iaa.AddToHueAndSaturation((iaaHueSaturationMin, iaaHueSaturationMax)),
             iaa.OneOf([
                 iaa.AddToBrightness((iaaBrightnessMin,iaaBrightnessMax)),
                 iaa.LinearContrast((iaaLinearContrastMin, iaaLinearContrastMax)),
             ]),
         ]
-    
+
     # Conditionally add the following transformations
     if iaaApplySharpening:
         iaaSomeOfImageAppearance.append(
-            iaa.Sharpen(alpha=(0, iaaSharpenAlphaMax), lightness=(iaaSharpenLightnessMin, iaaSharpenLightnessMax)), 
+            iaa.Sharpen(alpha=(0, iaaSharpenAlphaMax), lightness=(iaaSharpenLightnessMin, iaaSharpenLightnessMax)),
         )
     if iaaApplyDropoutAndGaussian:
         # Only apply one of the following because they may overlap and do the same thing
         iaaSomeOfImageAppearance.append(iaa.OneOf([
             # randomly remove up to x % of the pixels
-            iaa.Dropout((0, iaaDropoutPercentPixels), per_channel=0.5), 
+            iaa.Dropout((0, iaaDropoutPercentPixels), per_channel=0.5),
             # Add gaussian noise.
             # For 50% of all images, we sample the noise once per pixel.
             # For the other 50% of all images, we sample the noise per pixel AND
@@ -201,16 +201,16 @@ def get_augmenter_pipeline(strength_enum):
     # define an augmentation pipeline
     aug_pipeline = iaa.Sequential([
         # apply Gaussian blur with a sigma between 0 and x to 30% of the images
-        iaa.Sometimes(0.3, iaa.GaussianBlur((0, iaaGaussianBlurSigmaMax))), 
+        iaa.Sometimes(0.3, iaa.GaussianBlur((0, iaaGaussianBlurSigmaMax))),
         # horizontally flip 50% of the time
-        iaa.Sometimes(0.5, iaa.Fliplr(1.0)), 
-        iaa.SomeOf((0, iaaMaxNumberImageAppearanceOperations), 
+        iaa.Sometimes(0.5, iaa.Fliplr(1.0)),
+        iaa.SomeOf((0, iaaMaxNumberImageAppearanceOperations),
             iaaSomeOfImageAppearance
         ),
-        # Only apply one of the following because otherwise there is a risk that keypoints will 
+        # Only apply one of the following because otherwise there is a risk that keypoints will
         # be pointing to a non-existent part of the image
         iaa.SomeOf((0,1),[
-            iaa.CropAndPad(percent=(-1 * iaaCropAndPadPercentMagnitude, iaaCropAndPadPercentMagnitude), keep_size=True, sample_independently=False), 
+            iaa.CropAndPad(percent=(-1 * iaaCropAndPadPercentMagnitude, iaaCropAndPadPercentMagnitude), keep_size=True, sample_independently=False),
             iaa.Rotate((-1 * iaaRotateDegreesMagnitude, iaaRotateDegreesMagnitude)),
         ])
     ],

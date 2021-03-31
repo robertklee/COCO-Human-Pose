@@ -30,7 +30,7 @@ def display_img(annId):
   if len(img_df_rows) == 0:
       print(f"Image with ann id {annId} does not exist.")
       return
-  
+
   coco = train_coco if img_df_rows['source'].iloc[0] == 0 else val_coco
 
   # Get img id from file name
@@ -66,7 +66,7 @@ generator = DataGenerator(
     input_dim=INPUT_DIM,
     output_dim=OUTPUT_DIM,
     num_hg_blocks=DEFAULT_NUM_HG,
-    shuffle=False,  
+    shuffle=False,
     batch_size=1,
     online_fetch=False)
 
