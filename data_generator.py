@@ -233,7 +233,7 @@ class DataGenerator(Sequence):
                 img, ann['bbox'])
             transformed_label = self.transform_label(
                 ann['keypoints'], cropped_width, cropped_height, anchor_x, anchor_y)
-            if(self.is_eval):
+            if self.is_eval:
                 metadata = {}
                 metadata["src_set_image_id"] = ann['src_set_image_id']
                 metadata["ann_id"] = ann['ann_id']
@@ -275,7 +275,7 @@ class DataGenerator(Sequence):
         for _ in range(self.num_hg_blocks):
             y_stacked.append(y)
 
-        if(self.is_eval):
+        if self.is_eval:
             return X, y_stacked, metadatas
 
         return X, y_stacked

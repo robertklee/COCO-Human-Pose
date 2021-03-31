@@ -142,8 +142,7 @@ print('Doneee')
 
 
 # %%
-annFile = "person_keypoints_val2017.json"
-cocoGt=COCO(annFile)
+cocoGt=COCO(DEFAULT_VAL_ANNOT_PATH)
 
 resFile = "output/predictions.json"
 cocoDt=cocoGt.loadRes(resFile)

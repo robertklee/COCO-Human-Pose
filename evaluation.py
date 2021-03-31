@@ -44,8 +44,9 @@ class Evaluation():
 
         # resizing images
         im_list_resize = [cv2.resize(img,
-                        (w_min, int(img.shape[0] * w_min / img.shape[1])),
-                                    interpolation = interpolation)
+                            (w_min,
+                            int(img.shape[0] * w_min / img.shape[1])),
+                            interpolation = interpolation)
                         for img in img_list]
         # return final image
         return cv2.vconcat(im_list_resize)
@@ -147,9 +148,6 @@ class Evaluation():
         under_thresh_indices = plain < threshold
         plain[under_thresh_indices] = 0
         return plain * (plain == maximum_filter(plain, footprint=np.ones((windowSize, windowSize))))
-        img_v_resize = self._vstack_images(heatmap_imgs)
-
-        cv2.imwrite(filename, img_v_resize)
 
     """
         Parameters
@@ -160,7 +158,7 @@ class Evaluation():
         untransformed_x : int
         x coordinate to
     """
-    def __undo_x(self, metadata, untransformed_x):
+    def _undo_x(self, metadata, untransformed_x):
       predicted_x = round(untransformed_x * metadata['cropped_width'] / metadata['input_dim'][0] + metadata['anchor_x'])
       return int(predicted_x)
 
@@ -173,7 +171,7 @@ class Evaluation():
         untransformed_y : int
         x coordinate to
     """
-    def __undo_y(self, metadata, untransformed_y):
+    def _undo_y(self, metadata, untransformed_y):
       predicted_y = round(untransformed_y * metadata['cropped_height'] / metadata['input_dim'][1] + metadata['anchor_y'])
       return int(predicted_y)
 
@@ -188,25 +186,25 @@ class Evaluation():
         Example:  [1,2,0,1,4,666,32...]
     """
     def undo_bounding_box_transformations(self, metadata, untransformed_predictions):
-      untransformed_predictions = np.array(untransformed_predictions).flatten()
-      predicted_labels = []
-      list_of_scores = []
-      for i in range(len(untransformed_predictions)):
-        if( i % 3 == 0 ): # is an x-coord
-          predicted_labels.append(self.__undo_x(metadata, untransformed_predictions[i]))
-        elif( i % 3 == 1 ): # is a y-coord
-          predicted_labels.append(self.__undo_y(metadata, untransformed_predictions[i]))
-        elif( i % 3 == 2) : # is v (visbility)
-          if(untransformed_predictions[i] == 0):
-            predicted_labels[i-1] = 0 # Set y value to 0
-            predicted_labels[i-2] = 0 # Set x value to 0
-            predicted_labels.append(0)
-          else:
-            predicted_labels.append(1)
-            list_of_scores.append(untransformed_predictions[i])
-      metadata['predicted_labels'] = predicted_labels
-      metadata['score'] = float(np.mean(np.array(list_of_scores)))
-      return metadata
+        untransformed_predictions = np.array(untransformed_predictions).flatten()
+        predicted_labels = []
+        list_of_scores = []
+        for i in range(len(untransformed_predictions)):
+            if i % 3 == 0: # is an x-coord
+                predicted_labels.append(self._undo_x(metadata, untransformed_predictions[i]))
+            elif i % 3 == 1: # is a y-coord
+                predicted_labels.append(self._undo_y(metadata, untransformed_predictions[i]))
+            elif i % 3 == 2: # is a confidence score
+                if(untransformed_predictions[i] == 0): # this keypoint is not predicted
+                    predicted_labels[i-1] = 0 # Set y value to 0
+                    predicted_labels[i-2] = 0 # Set x value to 0
+                    predicted_labels.append(0) # set visibility to 0
+                else:
+                    predicted_labels.append(1) # set visibility to 1
+                    list_of_scores.append(untransformed_predictions[i])
+        metadata['predicted_labels'] = predicted_labels
+        metadata['score'] = float(np.mean(np.array(list_of_scores)))
+        return metadata
 
     def write_to_json_file(self, list_of_predictions, location):
         f = open(location, "w")
@@ -223,15 +221,15 @@ class Evaluation():
         oks_obj["image_id"] = int(metadata['src_set_image_id'])
         oks_obj["category_id"] = 1
         oks_obj["keypoints"] = metadata['predicted_labels']
-        oks_obj["score"] = float(metadata['score']) # TODO figure out score category
+        oks_obj["score"] = float(metadata['score'])
         return oks_obj
 
     def predict_keypoints(self,generator, location):
         list_of_predictions = []
         image_ids = []
-        for i in range(len(generator)):
+        for X_batch, y_stacked, metadatas in generator:
             j = 0
-            X_batch, y_stacked, metadatas = generator[i] # choose one image for evaluation
+            # X_batch, y_stacked, metadatas = generator[i]
             predict_heatmaps= self.predict_heatmaps(X_batch)
             for X, metadata in zip(X_batch, metadatas):
                 keypoints = self.heatmaps_to_keypoints(predict_heatmaps[self.num_hg_blocks-1, j, :, :, :])
