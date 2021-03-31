@@ -55,10 +55,13 @@ import numpy as np
 from HeatMap import HeatMap
 
 # Select image to predict heatmaps
-# X_batch, y_stacked = generator[168] # choose one image for evaluation
-img_name = 'IMG_3274.jpg'
-name_no_extension = img_name.split('.')[0]
-X_batch, y_stacked = evaluation.load_and_preprocess_img(os.path.join('data', img_name), eval.num_hg_blocks)
+X_batch, y_stacked = generator[168] # choose one image for evaluation
+name_no_extension = "tmp"
+
+## Uncomment below for arbitrary images
+# img_name = 'IMG_3274.jpg'
+# name_no_extension = img_name.split('.')[0]
+# X_batch, y_stacked = evaluation.load_and_preprocess_img(os.path.join('data', img_name), eval.num_hg_blocks)
 y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 
