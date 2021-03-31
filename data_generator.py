@@ -236,6 +236,7 @@ class DataGenerator(Sequence):
             if(self.is_eval):
                 metadata = {}
                 metadata["src_set_image_id"] = ann['src_set_image_id']
+                metadata["ann_id"] = ann['ann_id']
                 metadata["coco_url"] = ann['coco_url']
                 metadata["cropped_width"] = cropped_width
                 metadata["cropped_height"] = cropped_height

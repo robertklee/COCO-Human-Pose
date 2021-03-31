@@ -10,6 +10,7 @@ from constants import *
 import HeatMap  # https://github.com/LinShanify/HeatMap
 import util
 import hourglass
+import json
 
 
 
@@ -134,7 +135,7 @@ class Evaluation():
             # and get its coordinates and confidence
             y, x = np.where(peaks == peaks.max())
             if int(x[0]) > 0 and int(y[0]) > 0:
-                keypoints.append((int(x[0]), int(y[0]), 1))
+                keypoints.append((int(x[0]), int(y[0]), peaks[y[0], x[0]]))
             else:
                 keypoints.append((0, 0, 0))
         # Turn keypoints into np array
@@ -161,7 +162,7 @@ class Evaluation():
     """
     def __undo_x(self, metadata, untransformed_x):
       predicted_x = round(untransformed_x * metadata['cropped_width'] / metadata['input_dim'][0] + metadata['anchor_x'])
-      return predicted_x
+      return int(predicted_x)
 
     """
         Parameters
@@ -174,7 +175,7 @@ class Evaluation():
     """
     def __undo_y(self, metadata, untransformed_y):
       predicted_y = round(untransformed_y * metadata['cropped_height'] / metadata['input_dim'][1] + metadata['anchor_y'])
-      return predicted_y
+      return int(predicted_y)
 
     """
         Parameters
@@ -189,6 +190,7 @@ class Evaluation():
     def undo_bounding_box_transformations(self, metadata, untransformed_predictions):
       untransformed_predictions = np.array(untransformed_predictions).flatten()
       predicted_labels = []
+      list_of_scores = []
       for i in range(len(untransformed_predictions)):
         if( i % 3 == 0 ): # is an x-coord
           predicted_labels.append(self.__undo_x(metadata, untransformed_predictions[i]))
@@ -201,30 +203,32 @@ class Evaluation():
             predicted_labels.append(0)
           else:
             predicted_labels.append(1)
+            list_of_scores.append(untransformed_predictions[i])
       metadata['predicted_labels'] = predicted_labels
+      metadata['score'] = float(np.mean(np.array(list_of_scores)))
       return metadata
 
     def write_to_json_file(self, list_of_predictions, location):
         f = open(location, "w")
         f.write('[')
         for i in range(len(list_of_predictions)):
-            f.write(str(list_of_predictions[i]))
+            f.write(json.dumps(list_of_predictions[i]))
             if(i < len(list_of_predictions) - 1):
                 f.write(',')
         f.write(']')
         f.close()
 
     def create_oks_obj(self, metadata):
-        # TODO figure out score category
         oks_obj = {}
-        oks_obj['image_id'] = metadata['src_set_image_id']
-        oks_obj['category_id'] = 1
-        oks_obj['keypoints'] = metadata['predicted_labels']
-        oks_obj['score'] = 0.502
+        oks_obj["image_id"] = int(metadata['src_set_image_id'])
+        oks_obj["category_id"] = 1
+        oks_obj["keypoints"] = metadata['predicted_labels']
+        oks_obj["score"] = float(metadata['score']) # TODO figure out score category
         return oks_obj
 
     def predict_keypoints(self,generator, location):
         list_of_predictions = []
+        image_ids = []
         for i in range(len(generator)):
             j = 0
             X_batch, y_stacked, metadatas = generator[i] # choose one image for evaluation
@@ -233,9 +237,10 @@ class Evaluation():
                 keypoints = self.heatmaps_to_keypoints(predict_heatmaps[self.num_hg_blocks-1, j, :, :, :])
                 metadata = self.undo_bounding_box_transformations(metadata, keypoints)
                 list_of_predictions.append(self.create_oks_obj(metadata))
+                image_ids.append(metadata['src_set_image_id'])
                 j+=1
         self.write_to_json_file(list_of_predictions, location)
-        print('DONE')
+        return image_ids
 # ----------------------- End of Class -----------------------
 
 """
