@@ -116,7 +116,7 @@ def process_args():
     if args.resume:
         # Automatically locate architecture json and model weights
         if args.resume_subdir is not None:
-            find_resume_json_weights_args(args)
+            args.resume_json, args.resume_weights, args.resume_epoch = find_resume_json_weights_str(args.model_save, args.resume_subdir, args.resume_epoch)
 
         assert args.resume_json is not None and args.resume_weights is not None, \
             "Resume model training enabled, but no parameters received for: --resume-subdir, or both --resume-json and --resume-weights"
