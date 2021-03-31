@@ -140,7 +140,7 @@ class HourglassNet(object):
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
             initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset)
 
-    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset):
+    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset, new_run=True):
         if resume_subdir is not None:
             print('Automatically locating model architecture .json and weights .hdf5...')
 
@@ -160,7 +160,10 @@ class HourglassNet(object):
             # strip everything after resume flag
             orig_model_subdir = orig_model_subdir[:orig_model_subdir.find(DEFAULT_RESUME_DIR_FLAG)]
 
-        model_subdir = orig_model_subdir + DEFAULT_RESUME_DIR_FLAG + current_time
+        model_subdir = orig_model_subdir
+
+        if new_run:
+            model_subdir += DEFAULT_RESUME_DIR_FLAG + current_time
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
             initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset)

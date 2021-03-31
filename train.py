@@ -99,6 +99,9 @@ def process_args():
     argparser.add_argument('--resume-subdir',
                         default=None,
                         help='Subdirectory containing architecture json and weights')
+    argparser.add_argument('--resume-with-new-run',
+                        default=False,
+                        help='start a new session ID on resume. Default will be true if resume epoch is not the latest weight file.')
     argparser.add_argument('--pickle',
                         default=None,
                         help='Name of folder with pickled dataframes')
@@ -117,6 +120,13 @@ def process_args():
         # Automatically locate architecture json and model weights
         if args.resume_subdir is not None:
             args.resume_json, args.resume_weights, args.resume_epoch = find_resume_json_weights_str(args.model_save, args.resume_subdir, args.resume_epoch)
+
+        # If we are not resuming from the highest epoch in that subdir, start a new run
+        # This is because Tensorboard does not overwrite epoch information on resume,
+        # which may cause the graph to no longer be single-valued.
+        # See https://github.com/tensorflow/tensorboard/issues/3732
+        if not args.resume_with_new_run:
+            args.resume_with_new_run = is_highest_epoch_file(args.resume_json, args.resume_weights, args.resume_epoch)
 
         assert args.resume_json is not None and args.resume_weights is not None, \
             "Resume model training enabled, but no parameters received for: --resume-subdir, or both --resume-json and --resume-weights"
@@ -169,7 +179,7 @@ if __name__ == "__main__":
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
         hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, \
-            args.resume_epoch, args.epochs, args.resume_subdir, args.subset)
+            args.resume_epoch, args.epochs, args.resume_subdir, args.subset, new_run=args.resume_with_new_run)
     else:
         hgnet.build_model(show=True)
 
