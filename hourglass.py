@@ -97,10 +97,10 @@ class HourglassNet(object):
         logsDir = os.path.join(DEFAULT_LOGS_BASE_DIR, model_subdir)
 
         # If this path is changed, the corresponding logic to resume should be updated in util.py
-        modelSavePath = os.path.join(modelDir, '{prefix}{{epoch:02d}}_val_loss_{{val_loss:.4f}}_train_loss_{{loss:.4f}}.hdf5'.format(prefix=HPE_EPOCH_PREFIX))
+        modelSavePath = os.path.join(modelDir, f'{HPE_EPOCH_PREFIX}{{epoch:02d}}_val_loss_{{val_loss:.4f}}_train_loss_{{loss:.4f}}.hdf5')
 
         if not os.path.exists(modelDir):
-            print("Model save directory created: {}".format(modelDir))
+            print(f"Model save directory created: {modelDir}")
             os.makedirs(modelDir)
 
         # Create callbacks
@@ -113,13 +113,13 @@ class HourglassNet(object):
 
         callbacks = [mc_val, mc_train, tb, csv_logger]
 
-        architecture_json_file = os.path.join(modelDir, '{}_{:02d}_batchsize_{:03d}.json'.format(HPE_HOURGLASS_STACKS_PREFIX, self.num_stacks, batch_size))
+        architecture_json_file = os.path.join(modelDir, f'{HPE_HOURGLASS_STACKS_PREFIX}_{self.num_stacks:02d}_batchsize_{batch_size:03d}.json')
         if not os.path.exists(architecture_json_file):
             with open(architecture_json_file, 'w') as f:
-                print("Model architecture json saved to: {}".format(architecture_json_file))
+                print(f"Model architecture json saved to:   {architecture_json_file}")
                 f.write(self.model.to_json())
 
-        print("Model checkpoints saved to: {}".format(modelSavePath))
+        print(f"Model checkpoints saved to:         {modelSavePath}")
 
         self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
@@ -140,12 +140,12 @@ class HourglassNet(object):
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
             initial_epoch=0, model_subdir=model_subdir, current_time=current_time, subset=subset)
 
-    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset):
+    def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset, new_run=True):
         if resume_subdir is not None:
             print('Automatically locating model architecture .json and weights .hdf5...')
 
-        print('Restoring model architecture json: {}'.format(model_json))
-        print('Restoring model weights: {}'.format(model_weights))
+        print(f'Restoring model architecture json:  {model_json}')
+        print(f'Restoring model weights:            {model_weights}\n')
 
         # NOTE, make sure loss function matches
         self._load_model(model_json, model_weights)
@@ -160,7 +160,11 @@ class HourglassNet(object):
             # strip everything after resume flag
             orig_model_subdir = orig_model_subdir[:orig_model_subdir.find(DEFAULT_RESUME_DIR_FLAG)]
 
-        model_subdir = orig_model_subdir + DEFAULT_RESUME_DIR_FLAG + current_time
+        model_subdir = orig_model_subdir
+
+        if new_run:
+            print("Resuming with a new session ID...\n")
+            model_subdir += DEFAULT_RESUME_DIR_FLAG + current_time
 
         self._start_train(batch_size=batch_size, model_base_dir=model_save_base_dir, epochs=epochs, \
             initial_epoch=init_epoch, model_subdir=model_subdir, current_time=current_time, subset=subset)

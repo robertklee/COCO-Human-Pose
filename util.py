@@ -22,8 +22,21 @@ def validate_enum(EnumClass, str):
         exit(1)
     return True
 
-def find_resume_json_weights_args(args):
-    args.resume_json, args.resume_weights, args.resume_epoch = find_resume_json_weights_str(args.model_save, args.resume_subdir, args.resume_epoch)
+def is_highest_epoch_file(model_base_dir, model_subdir, epoch_):
+    enclosing_dir = os.path.join(model_base_dir, model_subdir)
+
+    files = os.listdir(enclosing_dir)
+
+    for f in files:
+        match = re.match(f'^{HPE_EPOCH_PREFIX}([\d]+).*\.hdf5$', f)
+
+        if match:
+            epoch = int(match.group(1))
+
+            if epoch > epoch_:
+                return False
+
+    return True
 
 def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     enclosing_dir = os.path.join(model_base_dir, model_subdir)
@@ -50,8 +63,8 @@ def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     resume_json = os.path.join(enclosing_dir, model_jsons[0])
     resume_weights = os.path.join(enclosing_dir, model_saved_weights[resume_epoch])
 
-    print('Found model json: {}'.format(resume_json))
-    print('Found model weights for epoch {epoch:02d}: {weight_file_name}'.format(epoch=resume_epoch, weight_file_name=resume_weights))
+    print('Found model json:                  {}'.format(resume_json))
+    print('Found model weights for epoch {epoch:03d}: {weight_file_name}'.format(epoch=resume_epoch, weight_file_name=resume_weights))
 
     assert os.path.exists(resume_json)
     assert os.path.exists(resume_weights)
