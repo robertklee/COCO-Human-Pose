@@ -19,14 +19,40 @@ from tensorflow.keras.utils import Sequence
 from constants import *
 from data_augmentation import *
 
-# TODO: Data Augementation:
-# - bounding box varied through data augmentation 110% to 150%
-# - horizontal flips
-# - rotations
-# - brightness adjustments
-# - contrast
-# - noise/grain
 
+def transform_bbox_square(bbox, slack=1):
+    """
+        Transforms a bounding box anchored at top left corner of shape () to a square with
+        edge length being the larger of the bounding box's height or width.
+
+        Only supports square aspect ratios currently.
+
+        ## Parameters
+
+        bbox : {tuple or ndarray of len 4}
+            Given as two points, anchored at top left of image being 0,0: left, upper, right, lower
+
+        slack : {int, float}
+            The amount of extra padding that should be applied to the edges of the bounding box after
+            transforming
+        ##
+    """
+    x, y, w, h = [i for i in bbox]  # (x,y,w,h) anchored to top left
+    center_x = x+w/2
+    center_y = y+h/2
+
+    if w >= h:
+        new_w = w
+        new_h = w
+    else:
+        new_w = h
+        new_h = h
+
+    new_w *= slack  # add slack to bbox
+    new_h *= slack  # add slack to bbox
+    new_x = center_x - new_w/2
+    new_y = center_y - new_h/2
+    return (round(new_x), round(new_y), round(new_x+new_w), round(new_y+new_h))
 
 # inherit from Sequence to access multicore functionality: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class DataGenerator(Sequence):
@@ -36,6 +62,7 @@ class DataGenerator(Sequence):
 
         self.df = df                    # df of the the annotations we want
         self.base_dir = base_dir        # where to read imgs from in collab runtime
+        # NOTE update image transformation logic if input is no longer square
         self.input_dim = input_dim      # model requirement for input image dimensions
         self.output_dim = output_dim    # dimesnions of output heatmap of model
         self.num_hg_blocks = num_hg_blocks
@@ -61,29 +88,12 @@ class DataGenerator(Sequence):
         return int(len(self.df) / self.batch_size)
 
     def transform_image(self, img, bbox):
-        new_bbox = self.transform_bbox(bbox)
+        new_bbox = transform_bbox_square(bbox, slack=BBOX_SLACK)
         cropped_img = img.crop(box=new_bbox)
         cropped_width, cropped_height = cropped_img.size
         new_img = cv2.resize(np.array(cropped_img), self.input_dim,
                              interpolation=cv2.INTER_LINEAR)
         return new_img, cropped_width, cropped_height, new_bbox[0], new_bbox[1]
-
-    def transform_bbox(self, bbox):
-        x, y, w, h = [i for i in bbox]  # (x,y,w,h) anchored to top left
-        center_x = x+w/2
-        center_y = y+h/2
-        if w >= h:
-            new_w = w
-            new_h = w * self.input_dim[1]/self.input_dim[0]
-        else:
-            new_w = h * self.input_dim[0]/self.input_dim[1]
-            new_h = h
-
-        new_w *= BBOX_SLACK  # add slack to bbox
-        new_h *= BBOX_SLACK  # add slack to bbox
-        new_x = center_x - new_w/2
-        new_y = center_y - new_h/2
-        return (round(new_x), round(new_y), round(new_x+new_w), round(new_y+new_h))
 
     def transform_label(self, label, cropped_width, cropped_height, anchor_x, anchor_y):
         label = [int(v) for v in label]
