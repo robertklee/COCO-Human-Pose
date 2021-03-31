@@ -121,8 +121,8 @@ representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'repres
 subdir = '2021-03-29-11h-07m_batchsize_16_hg_4_loss_weighted_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_linear_subset_0.50_wmse-5'
 eval = Evaluation(
     # ensure model_json and weights files exist in current directory and num_hg_blocks matches model_json
-    model_sub_dir = subdir
-    ,epoch = 15)
+    model_sub_dir = subdir,
+    epoch = 15)
 print("Created Evaluation instance")
 
 generator = DataGenerator(
