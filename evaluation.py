@@ -1,16 +1,17 @@
 import os
 import re
+
 import cv2
-from scipy.ndimage import gaussian_filter, maximum_filter
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageOps
+from scipy.ndimage import gaussian_filter, maximum_filter
 
-from constants import *
 import HeatMap  # https://github.com/LinShanify/HeatMap
-import util
 import hourglass
-
+import util
+from constants import *
+import data_generator
 
 
 class Evaluation():
@@ -158,44 +159,31 @@ num_hg_blocks : {int} number of hourglass blocks to generate dummy ground truth 
 
 x,y,w,h : {int or float} optional bounding box info, anchored at top left of image
 """
-def load_and_preprocess_img(img_path, num_hg_blocks, x=None, y=None, w=None, h=None):
+def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
     img = Image.open(img_path).convert('RGB')
 
-    # Required because PIL will read EXIF tags about rotation by default. We want to 
+    # Required because PIL will read EXIF tags about rotation by default. We want to
     # preserve the input image rotation so we manually apply the rotation if required.
     # See https://stackoverflow.com/questions/4228530/pil-thumbnail-is-rotating-my-image/
     # and the answer I used: https://stackoverflow.com/a/63798032
     img = ImageOps.exif_transpose(img)
-    plt.imshow(img)
-    plt.show()
 
-    if x is None or y is None or w is None or h is None:
-        h, w = img.size
+    if bbox is None:
+        w, h = img.size
 
-        center_x = w/2
-        center_y = h/2
-        if w >= h:
-            new_w = w
-            new_h = w * INPUT_DIM[1]/INPUT_DIM[0]
-        else:
-            new_w = h * INPUT_DIM[0]/INPUT_DIM[1]
-            new_h = h
+        if w != h:
+            # if the image is not square
+            # Indexed so upper left corner is (0,0)
+            bbox = data_generator.transform_bbox_square((0, 0, w, h))
 
-        new_x = center_x - new_w/2
-        new_y = center_y - new_h/2
-        bbox = [round(new_x), round(new_y), round(new_x+new_w), round(new_y+new_h)]
-    else:
+    if bbox is not None:
         # If a bounding box is provided, use it
-        bbox = [x, y, w, h]
+        bbox = np.array(bbox, dtype=int)
 
-    bbox = np.array(bbox)
+        # Crop with box of order left, upper, right, lower
+        img = img.crop(box=bbox)
 
-    cropped_img = img.crop(box=bbox)
-    plt.imshow(cropped_img)
-    plt.show()
-    
-    cropped_width, cropped_height = cropped_img.size
-    new_img = cv2.resize(np.array(cropped_img), INPUT_DIM,
+    new_img = cv2.resize(np.array(img), INPUT_DIM,
                         interpolation=cv2.INTER_LINEAR)
 
     # Add a 'batch' axis
