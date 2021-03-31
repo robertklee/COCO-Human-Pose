@@ -190,7 +190,7 @@ def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
     X_batch = np.expand_dims(new_img.astype('float'), axis=0)
 
     # Add dummy heatmap "ground truth", duplicated 'num_hg_blocks' times
-    y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS)) for _ in range(num_hg_blocks)]
+    y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS), dtype='float') for _ in range(num_hg_blocks)]
 
     # Normalize input image
     X_batch /= 255
