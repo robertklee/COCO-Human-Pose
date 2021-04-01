@@ -168,4 +168,40 @@ cocoEval.accumulate()
 
 print('\nSummary: ')
 cocoEval.summarize()
+# %% Run PCK Evaluation
+import imp
+
+import data_generator
+imp.reload(data_generator)
+from data_generator import DataGenerator
+
+import evaluation
+imp.reload(evaluation)
+from evaluation import Evaluation
+
+from constants import *
+import pandas as pd
+
+representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
+
+subdir = '2021-03-19-23h-46m_batchsize_12_hg_4_subset_0.50_loss_weighted_mse_resume_2021-03-20-23h-48m'
+eval = Evaluation(
+    model_sub_dir = subdir,
+    epoch = 80)
+print("Created Evaluation Instance")
+
+generator = DataGenerator(
+            df=representative_set_df,
+            base_dir=DEFAULT_VAL_IMG_PATH,
+            input_dim=INPUT_DIM,
+            output_dim=OUTPUT_DIM,
+            num_hg_blocks=DEFAULT_NUM_HG,
+            shuffle=False,
+            batch_size=1,
+            online_fetch=True,
+            is_eval=True)
+print("Created DataGenerator Instance\n")
+
+eval.pck_eval(generator, 'output/predictions.json', DEFAULT_VAL_ANNOT_PATH)
+
 # %%

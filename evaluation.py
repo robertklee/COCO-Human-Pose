@@ -237,7 +237,97 @@ class Evaluation():
                 image_ids.append(metadata['src_set_image_id'])
                 j+=1
         self.write_to_json_file(list_of_predictions, location)
-        return image_ids
+        return image_ids, list_of_predictions
+
+    def pck_eval(self, generator, location, annotation_file):
+        _, list_of_predictions = self.predict_keypoints(generator, location)
+        f = open(annotation_file,)
+        data = json.load(f)
+
+        dist_list = []
+        correct_keypoints = {
+            "nose": 0,
+            "left_eye": 0,
+            "right_eye": 0,
+            "left_ear": 0,
+            "right_ear": 0,
+            "left_shoulder": 0,
+            "right_shoulder": 0,
+            "left_elbow": 0,
+            "right_elbow": 0,
+            "left_wrist": 0,
+            "right_wrist": 0,
+            "left_hip": 0,
+            "right_hip": 0,
+            "left_knee": 0,
+            "right_knee": 0,
+            "left_ankle": 0,
+            "right_ankle": 0
+        }
+
+        for prediction in list_of_predictions:
+            prediction_image_id = prediction['image_id']
+            prediction_keypoints = prediction['keypoints']
+            for i, ann in enumerate(data['annotations']):
+                if data['annotations'][i]['image_id'] == prediction_image_id:
+                    annotation_keypoints = data['annotations'][i]['keypoints']
+                    prediction_keypoints = np.array(prediction_keypoints)
+                    annotation_keypoints = np.array(annotation_keypoints)
+
+                    # Joint at 11 is left hip, Joint at 12 is right hip
+                    left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
+                    right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
+                    # PCK@0.2 == Distance between predicted and true joint < 0.2 * torso diameter
+                    torso = np.linalg.norm(left_hip_point-right_hip_point)
+                    threshold = 0.2*torso
+
+                    for i in range(50):
+                        if i % 3 == 0:
+                            prediction_point = np.array(prediction_keypoints[i], prediction_keypoints[i+1])
+                            annotation_point = np.array(annotation_keypoints[i], annotation_keypoints[i+1])
+                            dist = (np.linalg.norm(prediction_point-annotation_point))
+                            dist_list.append(dist)
+
+                    correct_keypoints["nose"] += dist_list[0]<threshold
+                    correct_keypoints["left_eye"] += dist_list[1]<threshold
+                    correct_keypoints["right_eye"] += dist_list[2]<threshold
+                    correct_keypoints["left_ear"] += dist_list[3]<threshold
+                    correct_keypoints["right_ear"] += dist_list[4]<threshold
+                    correct_keypoints["left_shoulder"] += dist_list[5]<threshold
+                    correct_keypoints["right_shoulder"] += dist_list[6]<threshold
+                    correct_keypoints["left_elbow"] += dist_list[7]<threshold
+                    correct_keypoints["right_elbow"] += dist_list[8]<threshold
+                    correct_keypoints["left_wrist"] += dist_list[9]<threshold
+                    correct_keypoints["right_wrist"] += dist_list[10]<threshold
+                    correct_keypoints["left_hip"] += dist_list[11]<threshold
+                    correct_keypoints["right_hip"] += dist_list[12]<threshold
+                    correct_keypoints["left_knee"] += dist_list[13]<threshold
+                    correct_keypoints["right_knee"] += dist_list[14]<threshold
+                    correct_keypoints["left_ankle"] += dist_list[15]<threshold
+                    correct_keypoints["right_ankle"] += dist_list[16]<threshold
+                    dist_list = []
+
+        samples = len(list_of_predictions)
+        print("Percentage of Correct Key Points (PCK)\n")
+        print("Nose: {:.2f}".format(correct_keypoints["nose"]/samples))
+        print("Left Eye: {:.2f}".format(correct_keypoints["left_eye"]/samples))
+        print("Right Eye: {:.2f}".format(correct_keypoints["right_eye"]/samples))
+        print("Left Ear: {:.2f}".format(correct_keypoints["left_ear"]/samples))
+        print("Right Ear: {:.2f}".format(correct_keypoints["right_ear"]/samples))
+        print("Left Shoulder: {:.2f}".format(correct_keypoints["left_shoulder"]/samples))
+        print("Right Shoulder: {:.2f}".format(correct_keypoints["right_shoulder"]/samples))
+        print("Left Elbow: {:.2f}".format(correct_keypoints["left_elbow"]/samples))
+        print("Right Elbow: {:.2f}".format(correct_keypoints["right_elbow"]/samples))
+        print("Left Wrist: {:.2f}".format(correct_keypoints["left_wrist"]/samples))
+        print("Right Wrist: {:.2f}".format(correct_keypoints["right_wrist"]/samples))
+        print("Left Hip: {:.2f}".format(correct_keypoints["left_hip"]/samples))
+        print("Right Hip: {:.2f}".format(correct_keypoints["right_hip"]/samples))
+        print("Left Knee: {:.2f}".format(correct_keypoints["left_knee"]/samples))
+        print("Right Knee: {:.2f}".format(correct_keypoints["right_knee"]/samples))
+        print("Left Ankle: {:.2f}".format(correct_keypoints["left_ankle"]/samples))
+        print("Right Ankle: {:.2f}".format(correct_keypoints["right_ankle"]/samples))
+        f.close()
+
 # ----------------------- End of Class -----------------------
 
 """
