@@ -4,7 +4,7 @@ import cv2
 from scipy.ndimage import gaussian_filter, maximum_filter
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 from constants import *
 import HeatMap  # https://github.com/LinShanify/HeatMap
