@@ -56,19 +56,25 @@ def display_img(annId):
   plt.show()
 
 # %% Test the generator
+import pandas as pd
+import data_augmentation
+imp.reload(data_augmentation)
 import data_generator
 imp.reload(data_generator)
 from data_generator import DataGenerator
 
+
+representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
 generator = DataGenerator(
-    df=val_df,
-    base_dir=DEFAULT_TRAIN_IMG_PATH,
+    df=representative_set_df,
+    base_dir=DEFAULT_VAL_IMG_PATH,
     input_dim=INPUT_DIM,
     output_dim=OUTPUT_DIM,
     num_hg_blocks=DEFAULT_NUM_HG,
     shuffle=False,
     batch_size=1,
-    online_fetch=False)
+    online_fetch=False,
+    img_aug_strength=ImageAugmentationStrength.heavy)
 
 # Test the generator
 import time
@@ -79,16 +85,16 @@ pylab.rcParams['figure.figsize'] = (10.0, 10.0)
 from HeatMap import HeatMap # https://github.com/LinShanify/HeatMap
 
 start = time.time()
-X_batch, y_stacked = generator[168]
+X_batch, y_stacked = generator[0]
 print("Retrieving batch took: ",time.time() - start, " s")
 y_batch = y_stacked[0] # take first hourglass section
 print("Batch shape is: ", X_batch.shape, y_batch.shape)
 X, y = X_batch[0], y_batch[0] # take first example of batch
 print("Example shape is: ", X.shape,y.shape)
 
-heatmap = y[:,:,1]
-print(X.max(), X.min(), X.mean())
-print(y.max(), y.min(), y.mean())
-hm = HeatMap(X,heatmap)
-hm.plot(transparency=0.5,show_axis=True,show_colorbar=True)
+for i in range(NUM_COCO_KEYPOINTS):
+  print(COCO_KEYPOINT_LABEL_ARR[i])
+  heatmap = y[:,:,i]
+  hm = HeatMap(X,heatmap)
+  hm.plot(transparency=0.5,show_axis=True,show_colorbar=True)
 # %%
