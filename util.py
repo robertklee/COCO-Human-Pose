@@ -58,7 +58,7 @@ def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     if resume_epoch is None or resume_epoch <= 0:
         resume_epoch = max(k for k, _ in model_saved_weights.items())
 
-        print(f'No epoch number provided. Automatically using largest epoch number {resume_epoch}.')
+        print(f'No epoch number provided. Automatically using largest epoch number {resume_epoch:3d}.')
 
     resume_json = os.path.join(enclosing_dir, model_jsons[0])
     resume_weights = os.path.join(enclosing_dir, model_saved_weights[resume_epoch])
