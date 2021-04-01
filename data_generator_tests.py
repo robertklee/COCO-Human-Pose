@@ -92,7 +92,7 @@ print("Batch shape is: ", X_batch.shape, y_batch.shape)
 X, y = X_batch[0], y_batch[0] # take first example of batch
 print("Example shape is: ", X.shape,y.shape)
 
-for i in range(7,8):
+for i in range(NUM_COCO_KEYPOINTS):
   print(COCO_KEYPOINT_LABEL_ARR[i])
   heatmap = y[:,:,i]
   hm = HeatMap(X,heatmap)
