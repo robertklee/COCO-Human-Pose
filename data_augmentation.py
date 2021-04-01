@@ -1,5 +1,6 @@
 # %% Import required libraries
 # Import utilities
+from util import validate_enum
 from imgaug.augmenters.meta import OneOf
 import numpy as np # linear algebra
 
@@ -13,23 +14,6 @@ from constants import ImageAugmentationStrength
 
 # Holy resources: https://nbviewer.jupyter.org/github/aleju/imgaug-doc/blob/master/notebooks/B01%20-%20Augment%20Keypoints.ipynb
 # Credit to the above notebook for their tutorial on keypoint augmentation
-
-def _print_options():
-    print('Image augmentation strength was not found in possible options.')
-    print('Available options are:')
-    available_strengths = [name for name, member in ImageAugmentationStrength.__members__.items()]
-    print(available_strengths)
-    exit(1)
-
-def get_strength_enum_from_string(img_aug_strength_str):
-    try:
-        strength = ImageAugmentationStrength[img_aug_strength_str]
-    except KeyError:
-        _print_options()
-    
-    return strength
-
-# %% Initialize augmentation pipeline
 
 # Not applied transformations but would be interesting to try:
 # - iaa.CoarseDropout - Randomly erases a larger chunk of the image - meant to improve robustness for occlusions
@@ -49,10 +33,10 @@ def get_augmenter_pipeline(strength_enum):
     ### Parameters:
     strength_enum : {ImageAugmentationStrength enum}
         Corresponds to the level of data augmentation that should be applied.
-    
+
     ### Returns:
     Data augmentation pipeline that handles images and corresponding keypoints simultaneously.
-    NOTE that both the keypoints and the images must be passed in one call, or different 
+    NOTE that both the keypoints and the images must be passed in one call, or different
     transformations will be applied to them, rendering them useless.
 
     #### Options:
@@ -176,7 +160,8 @@ def get_augmenter_pipeline(strength_enum):
     elif strength_enum is ImageAugmentationStrength.none:
         return None
     else:
-        _print_options()
+        validate_enum(ImageAugmentationStrength, strength_enum.name)
+        exit(1)
 
     # Verify that min are lower than max
     assert iaaSharpenLightnessMin   <= iaaSharpenLightnessMax
@@ -189,23 +174,23 @@ def get_augmenter_pipeline(strength_enum):
 
     iaaSomeOfImageAppearance = [
             # change their color
-            iaa.AddToHueAndSaturation((iaaHueSaturationMin, iaaHueSaturationMax)),  
+            iaa.AddToHueAndSaturation((iaaHueSaturationMin, iaaHueSaturationMax)),
             iaa.OneOf([
                 iaa.AddToBrightness((iaaBrightnessMin,iaaBrightnessMax)),
                 iaa.LinearContrast((iaaLinearContrastMin, iaaLinearContrastMax)),
             ]),
         ]
-    
+
     # Conditionally add the following transformations
     if iaaApplySharpening:
         iaaSomeOfImageAppearance.append(
-            iaa.Sharpen(alpha=(0, iaaSharpenAlphaMax), lightness=(iaaSharpenLightnessMin, iaaSharpenLightnessMax)), 
+            iaa.Sharpen(alpha=(0, iaaSharpenAlphaMax), lightness=(iaaSharpenLightnessMin, iaaSharpenLightnessMax)),
         )
     if iaaApplyDropoutAndGaussian:
         # Only apply one of the following because they may overlap and do the same thing
         iaaSomeOfImageAppearance.append(iaa.OneOf([
             # randomly remove up to x % of the pixels
-            iaa.Dropout((0, iaaDropoutPercentPixels), per_channel=0.5), 
+            iaa.Dropout((0, iaaDropoutPercentPixels), per_channel=0.5),
             # Add gaussian noise.
             # For 50% of all images, we sample the noise once per pixel.
             # For the other 50% of all images, we sample the noise per pixel AND
@@ -216,16 +201,16 @@ def get_augmenter_pipeline(strength_enum):
     # define an augmentation pipeline
     aug_pipeline = iaa.Sequential([
         # apply Gaussian blur with a sigma between 0 and x to 30% of the images
-        iaa.Sometimes(0.3, iaa.GaussianBlur((0, iaaGaussianBlurSigmaMax))), 
+        iaa.Sometimes(0.3, iaa.GaussianBlur((0, iaaGaussianBlurSigmaMax))),
         # horizontally flip 50% of the time
-        iaa.Sometimes(0.5, iaa.Fliplr(1.0)), 
-        iaa.SomeOf((0, iaaMaxNumberImageAppearanceOperations), 
+        iaa.Sometimes(0.5, iaa.Fliplr(1.0)),
+        iaa.SomeOf((0, iaaMaxNumberImageAppearanceOperations),
             iaaSomeOfImageAppearance
         ),
-        # Only apply one of the following because otherwise there is a risk that keypoints will 
+        # Only apply one of the following because otherwise there is a risk that keypoints will
         # be pointing to a non-existent part of the image
         iaa.SomeOf((0,1),[
-            iaa.CropAndPad(percent=(-1 * iaaCropAndPadPercentMagnitude, iaaCropAndPadPercentMagnitude), keep_size=True, sample_independently=False), 
+            iaa.CropAndPad(percent=(-1 * iaaCropAndPadPercentMagnitude, iaaCropAndPadPercentMagnitude), keep_size=True, sample_independently=False),
             iaa.Rotate((-1 * iaaRotateDegreesMagnitude, iaaRotateDegreesMagnitude)),
         ])
     ],

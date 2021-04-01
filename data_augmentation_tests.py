@@ -1,7 +1,7 @@
 # %% Load Annotations into dataframes
 import matplotlib
 # %matplotlib notebook
-# %matplotlib inline 
+# %matplotlib inline
 matplotlib.use('TkAgg')
 import hourglass
 import imp
@@ -42,7 +42,7 @@ generator = DataGenerator(
     input_dim=INPUT_DIM,
     output_dim=OUTPUT_DIM,
     num_hg_blocks=DEFAULT_NUM_HG,
-    shuffle=False,  
+    shuffle=False,
     batch_size=1,
     online_fetch=False,
     img_aug_strength=ImageAugmentationStrength.light)

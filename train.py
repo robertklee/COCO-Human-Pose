@@ -69,6 +69,16 @@ def process_args():
                         '--augment',
                         default=DEFAULT_AUGMENT,
                         help='Strength of image augmentation')
+    argparser.add_argument('--optimizer',
+                        default=DEFAULT_OPTIMIZER,
+                        help='name of optimizer to use')
+    argparser.add_argument('--learning-rate',
+                        type=float,
+                        default=DEFAULT_LEARNING_RATE,
+                        help='learning rate of optimizer')
+    argparser.add_argument('--activation',
+                        default=DEFAULT_ACTIVATION,
+                        help='activation for output layer')
     # Resume model training arguments
     # TODO make a consistent way to generate and retrieve epoch checkpoint filenames
     argparser.add_argument('-r',
@@ -89,6 +99,9 @@ def process_args():
     argparser.add_argument('--resume-subdir',
                         default=None,
                         help='Subdirectory containing architecture json and weights')
+    argparser.add_argument('--resume-with-new-run',
+                        default=False,
+                        help='start a new session ID on resume. Default will be true if resume epoch is not the latest weight file.')
     argparser.add_argument('--pickle',
                         default=None,
                         help='Name of folder with pickled dataframes')
@@ -104,12 +117,17 @@ def process_args():
     assert (args.subset > 0 and args.subset <= 1.0), "Subset must be fraction between 0 and 1.0"
 
     if args.resume:
-        assert args.resume_epoch > 0, "Resume epoch number must be greater than 0."
-
         # Automatically locate architecture json and model weights
         if args.resume_subdir is not None:
-            find_resume_json_weights_args(args)
-        
+            args.resume_json, args.resume_weights, args.resume_epoch = find_resume_json_weights_str(args.model_save, args.resume_subdir, args.resume_epoch)
+
+        # If we are not resuming from the highest epoch in that subdir, start a new run
+        # This is because Tensorboard does not overwrite epoch information on resume,
+        # which may cause the graph to no longer be single-valued.
+        # See https://github.com/tensorflow/tensorboard/issues/3732
+        if not args.resume_with_new_run:
+            args.resume_with_new_run = not is_highest_epoch_file(args.model_save, args.resume_subdir, args.resume_epoch)
+
         assert args.resume_json is not None and args.resume_weights is not None, \
             "Resume model training enabled, but no parameters received for: --resume-subdir, or both --resume-json and --resume-weights"
 
@@ -124,6 +142,12 @@ def process_args():
         # Clean notes so it can be used in directory name
         args.notes = slugify(args.notes)
 
+    # validate enum args
+    assert validate_enum(LossFunctionOptions, args.loss)
+    assert validate_enum(ImageAugmentationStrength, args.augment)
+    assert validate_enum(OptimizerType, args.optimizer)
+    assert validate_enum(OutputActivation, args.activation)
+
     return args
 
 if __name__ == "__main__":
@@ -134,18 +158,28 @@ if __name__ == "__main__":
 
     tensorflow_setup()
 
-    trainingRunTime = datetime.today().strftime('%Y-%m-%d-%Hh-%Mm')
-
-    hgnet = HourglassNet(num_classes=NUM_COCO_KEYPOINTS, num_stacks=args.hourglass, num_channels=NUM_CHANNELS, inres=INPUT_DIM,
-                            outres=OUTPUT_DIM)
+    hgnet = HourglassNet(
+        num_classes=NUM_COCO_KEYPOINTS,
+        num_stacks=args.hourglass,
+        num_channels=NUM_CHANNELS,
+        inres=INPUT_DIM,
+        outres=OUTPUT_DIM,
+        loss_str=args.loss,
+        image_aug_str=args.augment,
+        pickle_name=args.pickle,
+        optimizer_str=args.optimizer,
+        learning_rate=args.learning_rate,
+        activation_str=args.activation
+    )
 
     training_start = time.time()
 
+    # TODO Save all model parameters in JSON for easy resuming and parsing later on
     if args.resume:
         print("\n\nResume training start: {}\n".format(time.ctime()))
 
         hgnet.resume_train(args.batch, args.model_save, args.resume_json, args.resume_weights, \
-            args.resume_epoch, args.epochs, args.resume_subdir, args.subset, loss_str=args.loss, image_aug_str=args.augment, pickle_name=args.pickle)
+            args.resume_epoch, args.epochs, args.resume_subdir, args.subset, new_run=args.resume_with_new_run)
     else:
         hgnet.build_model(show=True)
 
@@ -153,7 +187,7 @@ if __name__ == "__main__":
         print("Hourglass blocks: {:2d}, epochs: {:3d}, batch size: {:2d}, subset: {:.2f}".format(\
             args.hourglass, args.epochs, args.batch, args.subset))
 
-        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes, loss_str=args.loss, image_aug_str=args.augment, pickle_name=args.pickle)
+        hgnet.train(args.batch, args.model_save, args.epochs, args.subset, args.notes)
 
     print("\n\nTraining end:   {}\n".format(time.ctime()))
 
