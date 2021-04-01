@@ -96,6 +96,7 @@ BBOX_MIN_SIZE = 900 # Filter out images smaller than 30x30, TODO tweak
 
 # Output filtering constants
 HM_TO_KP_THRESHOLD = 0.2
+PCK_THRESHOLD = 0.2
 
 # Data aug flip R/L probability
 RL_FLIP = 0.5

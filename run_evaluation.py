@@ -144,7 +144,7 @@ generator = DataGenerator(
             is_eval=True)
 print("Created DataGen instance")
 
-image_ids = eval.predict_keypoints(generator, location='output/predictions.json')
+image_ids,_ = eval.predict_keypoints(generator, location='output/predictions.json')
 print('Doneee')
 
 
