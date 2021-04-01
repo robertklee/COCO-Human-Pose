@@ -1,16 +1,16 @@
 import os
 import re
-
 import cv2
+from scipy.ndimage import gaussian_filter, maximum_filter
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image, ImageOps
-from scipy.ndimage import gaussian_filter, maximum_filter
+from PIL import Image
 
-import HeatMap  # https://github.com/LinShanify/HeatMap
-import hourglass
-import util
 from constants import *
+import HeatMap  # https://github.com/LinShanify/HeatMap
+import util
+import hourglass
+import json
 import data_generator
 
 
@@ -44,9 +44,10 @@ class Evaluation():
 
         # resizing images
         im_list_resize = [cv2.resize(img,
-                        (w_min, int(img.shape[0] * w_min / img.shape[1])),
-                                    interpolation = interpolation)
-                        for img in img_list]
+                            (w_min,
+                            int(img.shape[0] * w_min / img.shape[1])),
+                            interpolation = interpolation)
+                          for img in img_list]
         # return final image
         return cv2.vconcat(im_list_resize)
 
@@ -134,7 +135,7 @@ class Evaluation():
             # and get its coordinates and confidence
             y, x = np.where(peaks == peaks.max())
             if int(x[0]) > 0 and int(y[0]) > 0:
-                keypoints.append((int(x[0]), int(y[0]), 1))
+                keypoints.append((int(x[0]), int(y[0]), peaks[y[0], x[0]]))
             else:
                 keypoints.append((0, 0, 0))
         # Turn keypoints into np array
@@ -146,6 +147,98 @@ class Evaluation():
         under_thresh_indices = plain < threshold
         plain[under_thresh_indices] = 0
         return plain * (plain == maximum_filter(plain, footprint=np.ones((windowSize, windowSize))))
+
+    """
+        Parameters
+        ----------
+        metadata : object
+        should be metadata associated to a single image
+
+        untransformed_x : int
+        x coordinate to
+    """
+    def _undo_x(self, metadata, untransformed_x):
+      predicted_x = round(untransformed_x * metadata['cropped_width'] / metadata['input_dim'][0] + metadata['anchor_x'])
+      return int(predicted_x)
+
+    """
+        Parameters
+        ----------
+        metadata : object
+        should be metadata associated to a single image
+
+        untransformed_y : int
+        x coordinate to
+    """
+    def _undo_y(self, metadata, untransformed_y):
+      predicted_y = round(untransformed_y * metadata['cropped_height'] / metadata['input_dim'][1] + metadata['anchor_y'])
+      return int(predicted_y)
+
+    """
+        Parameters
+        ----------
+        metadata : object
+        should be metadata associated to a single image
+
+        untransformed_predictions : list
+        a list of precitions that need to be transformed
+        Example:  [1,2,0,1,4,666,32...]
+    """
+    def undo_bounding_box_transformations(self, metadata, untransformed_predictions):
+        untransformed_predictions = np.array(untransformed_predictions).flatten()
+        predicted_labels = []
+        list_of_scores = []
+        for i in range(len(untransformed_predictions)):
+            if i % 3 == 0: # is an x-coord
+                predicted_labels.append(self._undo_x(metadata, untransformed_predictions[i]))
+            elif i % 3 == 1: # is a y-coord
+                predicted_labels.append(self._undo_y(metadata, untransformed_predictions[i]))
+            elif i % 3 == 2: # is a confidence score
+                if(untransformed_predictions[i] == 0): # this keypoint is not predicted
+                    predicted_labels[i-1] = 0 # Set y value to 0
+                    predicted_labels[i-2] = 0 # Set x value to 0
+                    predicted_labels.append(0) # set visibility to 0
+                else:
+                    predicted_labels.append(1) # set visibility to 1
+                    list_of_scores.append(untransformed_predictions[i])
+        metadata['predicted_labels'] = predicted_labels
+        metadata['score'] = float(np.mean(np.array(list_of_scores)))
+        return metadata
+
+    def write_to_json_file(self, list_of_predictions, location):
+        f = open(location, "w")
+        f.write('[')
+        for i in range(len(list_of_predictions)):
+            f.write(json.dumps(list_of_predictions[i]))
+            if(i < len(list_of_predictions) - 1):
+                f.write(',')
+        f.write(']')
+        f.close()
+
+    def create_oks_obj(self, metadata):
+        oks_obj = {}
+        oks_obj["image_id"] = int(metadata['src_set_image_id'])
+        oks_obj["category_id"] = 1
+        oks_obj["keypoints"] = metadata['predicted_labels']
+        oks_obj["score"] = float(metadata['score'])
+        return oks_obj
+
+    def predict_keypoints(self,generator, location):
+        list_of_predictions = []
+        image_ids = []
+        for X_batch, y_stacked, metadatas in generator:
+            j = 0
+            # X_batch, y_stacked, metadatas = generator[i]
+            predict_heatmaps= self.predict_heatmaps(X_batch)
+            for X, metadata in zip(X_batch, metadatas):
+                keypoints = self.heatmaps_to_keypoints(predict_heatmaps[self.num_hg_blocks-1, j, :, :, :])
+                metadata = self.undo_bounding_box_transformations(metadata, keypoints)
+                list_of_predictions.append(self.create_oks_obj(metadata))
+                image_ids.append(metadata['src_set_image_id'])
+                j+=1
+        self.write_to_json_file(list_of_predictions, location)
+        return image_ids
+# ----------------------- End of Class -----------------------
 
 """
 Runs the model for any general file. This aims to extend the DataGenerator output format for arbitrary images
@@ -177,6 +270,7 @@ def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
 
     if bbox is not None:
         # If a bounding box is provided, use it
+
         bbox = np.array(bbox, dtype=int)
 
         # Crop with box of order left, upper, right, lower

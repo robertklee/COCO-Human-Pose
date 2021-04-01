@@ -7,6 +7,6 @@ h5py==2.10.0
 opencv-contrib-python==4.4.0.42
 opencv-python==4.4.0.42
 matplotlib
-numpy
+numpy==1.17.0
 requests
 pycocotools @ git+https://github.com/philferriere/cocoapi.git@2929bd2ef6b451054755dfd7ceb09278f935f7ad#subdirectory=PythonAPI

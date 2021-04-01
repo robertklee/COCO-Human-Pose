@@ -54,6 +54,16 @@ print("\n\nEval end:   {}\n".format(time.ctime()))
 import numpy as np
 from HeatMap import HeatMap
 
+generator = data_generator.DataGenerator(
+            df=val_df,
+            base_dir=DEFAULT_VAL_IMG_PATH,
+            input_dim=INPUT_DIM,
+            output_dim=OUTPUT_DIM,
+            num_hg_blocks=DEFAULT_NUM_HG,
+            shuffle=False,
+            batch_size=1,
+            online_fetch=False)
+
 # Select image to predict heatmaps
 X_batch, y_stacked = generator[168] # choose one image for evaluation
 name_no_extension = "tmp"
@@ -88,5 +98,74 @@ for i in range(NUM_COCO_KEYPOINTS):
 plt.scatter(x,y)
 plt.imshow(img)
 
-plt.savefig(os.path.join(DEFAULT_OUTPUT_BASE_DIR, f'{name_no_extension}_saved_scatter.png'))
+# %% Run Predictions
+import imp
+
+import hourglass
+imp.reload(hourglass)
+from hourglass import HourglassNet
+
+import data_generator
+imp.reload(data_generator)
+from data_generator import DataGenerator
+
+import evaluation
+imp.reload(evaluation)
+from evaluation import Evaluation
+
+from constants import *
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
+
+# h = HourglassNet(NUM_COCO_KEYPOINTS,DEFAULT_NUM_HG,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
+representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
+# train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
+
+subdir = '2021-03-29-11h-07m_batchsize_16_hg_4_loss_weighted_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_linear_subset_0.50_wmse-5'
+eval = Evaluation(
+    # ensure model_json and weights files exist in current directory and num_hg_blocks matches model_json
+    model_sub_dir = subdir,
+    epoch = 15)
+print("Created Evaluation instance")
+
+generator = DataGenerator(
+            df=representative_set_df,
+            base_dir=DEFAULT_VAL_IMG_PATH,
+            input_dim=INPUT_DIM,
+            output_dim=OUTPUT_DIM,
+            num_hg_blocks=DEFAULT_NUM_HG,
+            shuffle=False,
+            batch_size=2,
+            online_fetch=True,
+            is_eval=True)
+print("Created DataGen instance")
+
+image_ids = eval.predict_keypoints(generator, location='output/predictions.json')
+print('Doneee')
+
+
+# %%
+cocoGt=COCO(DEFAULT_VAL_ANNOT_PATH)
+
+resFile = "output/predictions.json"
+cocoDt=cocoGt.loadRes(resFile)
+
+annType = "keypoints"
+catId = 1
+
+cocoEval = COCOeval(cocoGt,cocoDt,annType)
+cocoEval.params.imgIds = image_ids
+cocoEval.params.catIds = [1] # Person category
+cocoEval.evaluate()
+cocoEval.accumulate()
+
+# for imgId in image_ids:
+#     print('\nObject Keypoint Similarity (Average Precision, Average Recall) for Image ID: ', imgId, cocoEval.computeOks(imgId, catId))
+
+print('\nSummary: ')
+cocoEval.summarize()
 # %%
