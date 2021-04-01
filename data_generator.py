@@ -268,7 +268,7 @@ class DataGenerator(Sequence):
                 # Perform data augmentation randomly
                 image_aug, kpsoi_aug = self.augmenter(image=transformed_img, keypoints=kpsoi)
 
-                # Perform a R/L augmentation randomly
+                # Perform a R/L augmentation randomly, applying R/L flip to the labels as well to maintain the right order 
                 image_aug, kpsoi_aug = flipRL(image=image_aug,keypoints=kpsoi_aug)
 
                 # Filter out out-of-bounds (from rotation/cropping) and invalid (originally occluded/not present) keypoints
