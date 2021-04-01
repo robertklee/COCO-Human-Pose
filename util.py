@@ -63,8 +63,8 @@ def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     resume_json = os.path.join(enclosing_dir, model_jsons[0])
     resume_weights = os.path.join(enclosing_dir, model_saved_weights[resume_epoch])
 
-    print('Found model json:                  {}'.format(resume_json))
-    print('Found model weights for epoch {epoch:03d}: {weight_file_name}'.format(epoch=resume_epoch, weight_file_name=resume_weights))
+    print('Found model json:                  {}\n'.format(resume_json))
+    print('Found model weights for epoch {epoch:3d}: {weight_file_name}\n'.format(epoch=resume_epoch, weight_file_name=resume_weights))
 
     assert os.path.exists(resume_json)
     assert os.path.exists(resume_weights)

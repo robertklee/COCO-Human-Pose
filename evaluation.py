@@ -1,16 +1,17 @@
 import os
 import re
+
 import cv2
-from scipy.ndimage import gaussian_filter, maximum_filter
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
+from scipy.ndimage import gaussian_filter, maximum_filter
 
-from constants import *
 import HeatMap  # https://github.com/LinShanify/HeatMap
-import util
 import hourglass
-
+import util
+from constants import *
+import data_generator
 
 
 class Evaluation():
@@ -88,11 +89,11 @@ class Evaluation():
             y = y_batch[i,]
             m = m_batch[i]
             predicted_heatmaps = predicted_heatmaps_batch[:,i,]
-            self.save_stacked_evaluation_heatmaps(X, y, m, predicted_heatmaps)
+            self.save_stacked_evaluation_heatmaps(X, y, str(m['ann_id']) + '.png', predicted_heatmaps)
 
 
     #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
-    def save_stacked_evaluation_heatmaps(self, X, y, m, predicted_heatmaps):
+    def save_stacked_evaluation_heatmaps(self, X, y, filename, predicted_heatmaps):
         stacked_predict_heatmaps=self.stacked_predict_heatmaps(predicted_heatmaps)
         stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
 
@@ -110,7 +111,6 @@ class Evaluation():
         # Resize and vertically stack heatmap images
         img_v_resize = self._vstack_images(heatmap_imgs)
 
-        filename = str(m['ann_id']) + '.png'
         cv2.imwrite(os.path.join(self.output_sub_dir,filename), img_v_resize)
 
     # Resources for heatmaps to keypoints
@@ -158,29 +158,38 @@ num_hg_blocks : {int} number of hourglass blocks to generate dummy ground truth 
 
 x,y,w,h : {int or float} optional bounding box info, anchored at top left of image
 """
-def load_and_preprocess_img(img_path, num_hg_blocks, x=None, y=None, w=None, h=None):
+def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
     img = Image.open(img_path).convert('RGB')
 
-    if x is None or y is None or w is None or h is None:
-        # If any of the parameters are missing, crop a square area from top left of image
-        smaller_dim = img.size[0] if img.size[0] <= img.size[1] else img.size[1]
-        bbox = [0, 0, smaller_dim, smaller_dim]
-    else:
+    # Required because PIL will read EXIF tags about rotation by default. We want to
+    # preserve the input image rotation so we manually apply the rotation if required.
+    # See https://stackoverflow.com/questions/4228530/pil-thumbnail-is-rotating-my-image/
+    # and the answer I used: https://stackoverflow.com/a/63798032
+    img = ImageOps.exif_transpose(img)
+
+    if bbox is None:
+        w, h = img.size
+
+        if w != h:
+            # if the image is not square
+            # Indexed so upper left corner is (0,0)
+            bbox = data_generator.transform_bbox_square((0, 0, w, h))
+
+    if bbox is not None:
         # If a bounding box is provided, use it
-        bbox = [x, y, w, h]
+        bbox = np.array(bbox, dtype=int)
 
-    bbox = np.array(bbox)
+        # Crop with box of order left, upper, right, lower
+        img = img.crop(box=bbox)
 
-    cropped_img = img.crop(box=bbox)
-    cropped_width, cropped_height = cropped_img.size
-    new_img = cv2.resize(np.array(cropped_img), INPUT_DIM,
+    new_img = cv2.resize(np.array(img), INPUT_DIM,
                         interpolation=cv2.INTER_LINEAR)
 
     # Add a 'batch' axis
     X_batch = np.expand_dims(new_img.astype('float'), axis=0)
 
     # Add dummy heatmap "ground truth", duplicated 'num_hg_blocks' times
-    y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS)) for _ in range(num_hg_blocks)]
+    y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS), dtype='float') for _ in range(num_hg_blocks)]
 
     # Normalize input image
     X_batch /= 255
