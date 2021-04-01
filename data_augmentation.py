@@ -1,18 +1,17 @@
 # %% Import required libraries
 # Import utilities
-from util import validate_enum
-from imgaug.augmenters.meta import OneOf
-import numpy as np # linear algebra
 import random
 
 # import the library and helpers
 import imageio
 import imgaug as ia
+import numpy as np  # linear algebra
 from imgaug import augmenters as iaa
 from imgaug.augmentables.kps import Keypoint, KeypointsOnImage
+from imgaug.augmenters.meta import OneOf
 
-from constants import ImageAugmentationStrength
-from constants import RL_FLIP
+from constants import RL_FLIP, ImageAugmentationStrength
+from util import validate_enum
 
 # Holy resources: https://nbviewer.jupyter.org/github/aleju/imgaug-doc/blob/master/notebooks/B01%20-%20Augment%20Keypoints.ipynb
 # Credit to the above notebook for their tutorial on keypoint augmentation

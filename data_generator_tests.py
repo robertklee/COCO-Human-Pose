@@ -67,7 +67,7 @@ from data_generator import DataGenerator
 representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
 generator = DataGenerator(
     df=representative_set_df,
-    base_dir=DEFAULT_TRAIN_IMG_PATH,
+    base_dir=DEFAULT_VAL_IMG_PATH,
     input_dim=INPUT_DIM,
     output_dim=OUTPUT_DIM,
     num_hg_blocks=DEFAULT_NUM_HG,
