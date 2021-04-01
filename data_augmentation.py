@@ -3,6 +3,7 @@
 from util import validate_enum
 from imgaug.augmenters.meta import OneOf
 import numpy as np # linear algebra
+import random
 
 # import the library and helpers
 import imageio
@@ -11,6 +12,7 @@ from imgaug import augmenters as iaa
 from imgaug.augmentables.kps import Keypoint, KeypointsOnImage
 
 from constants import ImageAugmentationStrength
+from constants import RL_FLIP
 
 # Holy resources: https://nbviewer.jupyter.org/github/aleju/imgaug-doc/blob/master/notebooks/B01%20-%20Augment%20Keypoints.ipynb
 # Credit to the above notebook for their tutorial on keypoint augmentation
@@ -42,7 +44,6 @@ def get_augmenter_pipeline(strength_enum):
     #### Options:
     ImageAugmentationStrength.heavy:
         - Blur with probability 30% with sigma              2.0
-        - Horizontal flip (left to right) with probability  50%
         - Up to 3 of the following:
             - Sharpening                                    0.8 to 1.2, blending factor between (0,1)
             - Hue and saturation change of                  -30 to 30 out of 255
@@ -57,7 +58,6 @@ def get_augmenter_pipeline(strength_enum):
 
     ImageAugmentationStrength.medium:
         - Blur with probability 30% with sigma              1.5
-        - Horizontal flip (left to right) with probability  50%
         - Up to 3 of the following:
             - Sharpening                                    0.85 to 1.15, blending factor between (0,0.5)
             - Hue and saturation change of                  -20 to 20 out of 255
@@ -72,7 +72,6 @@ def get_augmenter_pipeline(strength_enum):
 
     ImageAugmentationStrength.light:
         - Blur with probability 30% with sigma              1
-        - Horizontal flip (left to right) with probability  50%
         - Up to 2 of the following:
             - Sharpening                                    None
             - Hue and saturation change of                  -15 to 15 out of 255
@@ -202,8 +201,6 @@ def get_augmenter_pipeline(strength_enum):
     aug_pipeline = iaa.Sequential([
         # apply Gaussian blur with a sigma between 0 and x to 30% of the images
         iaa.Sometimes(0.3, iaa.GaussianBlur((0, iaaGaussianBlurSigmaMax))),
-        # horizontally flip 50% of the time
-        iaa.Sometimes(0.5, iaa.Fliplr(1.0)),
         iaa.SomeOf((0, iaaMaxNumberImageAppearanceOperations),
             iaaSomeOfImageAppearance
         ),
@@ -223,6 +220,15 @@ def get_augmenter_pipeline(strength_enum):
 
     return aug_pipeline
 
+def flipRL(image, keypoints):
+    if random.random() < RL_FLIP:
+        return image, keypoints
+    flip = iaa.Fliplr(1.0)
+    flipped_img, flipped_kps = flip(image=image, keypoints=keypoints)
+    flat_map = lambda f, xs: [y for ys in xs for y in f(ys)] # https://dev.to/turbaszek/flat-map-in-python-3g98
+    flipped_fixed_kps = [flipped_kps[0]] + flat_map(lambda pair : (pair[1],pair[0]), zip(flipped_kps[1::2],flipped_kps[2::2]))
+    # Leave nose unchanged, flip every pair of eye, ear, etc...
+    return flipped_img, flipped_fixed_kps
 # %% Load sample image
 if __name__ == '__main__':
     image = imageio.imread('./data/Macropus_rufogriseus_rufogriseus_Bruny.jpg')

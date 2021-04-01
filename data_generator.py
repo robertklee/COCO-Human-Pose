@@ -268,6 +268,9 @@ class DataGenerator(Sequence):
                 # Perform data augmentation randomly
                 image_aug, kpsoi_aug = self.augmenter(image=transformed_img, keypoints=kpsoi)
 
+                # Perform a R/L augmentation randomly
+                image_aug, kpsoi_aug = flipRL(image=image_aug,keypoints=kpsoi_aug)
+
                 # Filter out out-of-bounds (from rotation/cropping) and invalid (originally occluded/not present) keypoints
                 augmented_label = self.convert_imgaug_kpsoi_to_coco_kp(kpsoi_aug, valid, image_aug)
 
