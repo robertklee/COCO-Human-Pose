@@ -237,7 +237,143 @@ class Evaluation():
                 image_ids.append(metadata['src_set_image_id'])
                 j+=1
         self.write_to_json_file(list_of_predictions, location)
-        return image_ids
+        return image_ids, list_of_predictions
+
+    # This function evaluates PCK@0.2 == Distance between predicted and true joint < 0.2 * torso diameter
+    # The PCK_THRESHOLD constant can be updated to adjust this threshold
+    # https://github.com/cbsudux/Human-Pose-Estimation-101#percentage-of-correct-key-points---pck
+    def pck_eval(self, generator, save_location, annotation_file):
+        _, list_of_predictions = self.predict_keypoints(generator, save_location)
+        f = open(annotation_file)
+        data = json.load(f)
+
+        # This function depends on the keypoints order listed in constants COCO_KEYPOINT_LABEL_ARR
+        dist_list = []
+        correct_keypoints = {
+            "nose": 0,
+            "left_eye": 0,
+            "right_eye": 0,
+            "left_ear": 0,
+            "right_ear": 0,
+            "left_shoulder": 0,
+            "right_shoulder": 0,
+            "left_elbow": 0,
+            "right_elbow": 0,
+            "left_wrist": 0,
+            "right_wrist": 0,
+            "left_hip": 0,
+            "right_hip": 0,
+            "left_knee": 0,
+            "right_knee": 0,
+            "left_ankle": 0,
+            "right_ankle": 0
+        }
+        for prediction in list_of_predictions:
+            prediction_image_id = prediction['image_id']
+            prediction_keypoints = prediction['keypoints']
+            for i, ann in enumerate(data['annotations']):
+                if data['annotations'][i]['image_id'] == prediction_image_id:
+                    annotation_keypoints = data['annotations'][i]['keypoints']
+                    prediction_keypoints = np.array(prediction_keypoints)
+                    annotation_keypoints = np.array(annotation_keypoints)
+
+                    # Calculate PCK@0.2 threshold for image
+                    # Joint at 11 is left hip, Joint at 12 is right hip. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
+                    left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
+                    right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
+                    torso = np.linalg.norm(left_hip_point-right_hip_point)
+                    threshold = PCK_THRESHOLD*torso
+
+                    for i in range(NUM_COCO_KEYPOINTS):
+                        base = i * NUM_COCO_KP_ATTRBS
+                        prediction_point = np.array(prediction_keypoints[base], prediction_keypoints[base+1])
+                        annotation_point = np.array(annotation_keypoints[base], annotation_keypoints[base+1])
+                        dist = (np.linalg.norm(prediction_point-annotation_point))
+                        dist_list.append(dist)
+
+            # Each image may have more than one annotation we need to check
+            annotations = int(len(dist_list)/NUM_COCO_KEYPOINTS)
+
+            nose_correct = False
+            left_eye_correct = False
+            right_eye_correct = False
+            left_ear_correct = False
+            right_ear_correct = False
+            left_shoulder_correct = False
+            right_shoulder_correct = False
+            left_elbow_correct = False
+            right_elbow_correct = False
+            left_wrist_correct = False
+            right_wrist_correct = False
+            left_hip_correct = False
+            right_hip_correct = False
+            left_knee_correct = False
+            right_knee_correct = False
+            left_ankle_correct = False
+            right_ankle_correct = False
+
+            # Append True to correct joint list if distance is below threshold for any annotation
+            for j in range(annotations):
+                base = j * NUM_COCO_KEYPOINTS
+                nose_correct            = nose_correct              or dist_list[0+base]  <= threshold
+                left_eye_correct        = left_eye_correct          or dist_list[1+base]  <= threshold
+                right_eye_correct       = right_eye_correct         or dist_list[2+base]  <= threshold
+                left_ear_correct        = left_ear_correct          or dist_list[3+base]  <= threshold
+                right_ear_correct       = right_ear_correct         or dist_list[4+base]  <= threshold
+                left_shoulder_correct   = left_shoulder_correct     or dist_list[5+base]  <= threshold
+                right_shoulder_correct  = right_shoulder_correct    or dist_list[6+base]  <= threshold
+                left_elbow_correct      = left_elbow_correct        or dist_list[7+base]  <= threshold
+                right_elbow_correct     = right_elbow_correct       or dist_list[8+base]  <= threshold
+                left_wrist_correct      = left_wrist_correct        or dist_list[9+base]  <= threshold
+                right_wrist_correct     = right_wrist_correct       or dist_list[10+base] <= threshold
+                left_hip_correct        = left_hip_correct          or dist_list[11+base] <= threshold
+                right_hip_correct       = right_hip_correct         or dist_list[12+base] <= threshold
+                left_knee_correct       = left_knee_correct         or dist_list[13+base] <= threshold
+                right_knee_correct      = right_knee_correct        or dist_list[14+base] <= threshold
+                left_ankle_correct      = left_ankle_correct        or dist_list[15+base] <= threshold
+                right_ankle_correct     = right_ankle_correct       or dist_list[16+base] <= threshold
+
+            # Add one to correct keypoint count if any annotation was below threshold for image
+            if nose_correct: correct_keypoints["nose"] += 1
+            if left_eye_correct: correct_keypoints["left_eye"] += 1
+            if right_eye_correct: correct_keypoints["right_eye"] += 1
+            if left_ear_correct: correct_keypoints["left_ear"] += 1
+            if right_ear_correct: correct_keypoints["right_ear"] += 1
+            if left_shoulder_correct: correct_keypoints["left_shoulder"] += 1
+            if right_shoulder_correct: correct_keypoints["right_shoulder"] += 1
+            if left_elbow_correct: correct_keypoints["left_elbow"] += 1
+            if right_elbow_correct: correct_keypoints["right_elbow"] += 1
+            if left_wrist_correct: correct_keypoints["left_wrist"] += 1
+            if right_wrist_correct: correct_keypoints["right_wrist"] += 1
+            if left_hip_correct: correct_keypoints["left_hip"] += 1
+            if right_hip_correct: correct_keypoints["right_hip"] += 1
+            if left_knee_correct: correct_keypoints["left_knee"] += 1
+            if right_knee_correct: correct_keypoints["right_knee"] += 1
+            if left_ankle_correct: correct_keypoints["left_ankle"] += 1
+            if right_ankle_correct: correct_keypoints["right_ankle"] += 1
+            dist_list = []
+
+        samples = len(list_of_predictions)
+        print("Percentage of Correct Key Points (PCK)\n")
+        print("Nose:            {:.2f}".format(correct_keypoints["nose"]/samples))
+        print("Left Eye:        {:.2f}".format(correct_keypoints["left_eye"]/samples))
+        print("Right Eye:       {:.2f}".format(correct_keypoints["right_eye"]/samples))
+        print("Left Ear:        {:.2f}".format(correct_keypoints["left_ear"]/samples))
+        print("Right Ear:       {:.2f}".format(correct_keypoints["right_ear"]/samples))
+        print("Left Shoulder:   {:.2f}".format(correct_keypoints["left_shoulder"]/samples))
+        print("Right Shoulder:  {:.2f}".format(correct_keypoints["right_shoulder"]/samples))
+        print("Left Elbow:      {:.2f}".format(correct_keypoints["left_elbow"]/samples))
+        print("Right Elbow:     {:.2f}".format(correct_keypoints["right_elbow"]/samples))
+        print("Left Wrist:      {:.2f}".format(correct_keypoints["left_wrist"]/samples))
+        print("Right Wrist:     {:.2f}".format(correct_keypoints["right_wrist"]/samples))
+        print("Left Hip:        {:.2f}".format(correct_keypoints["left_hip"]/samples))
+        print("Right Hip:       {:.2f}".format(correct_keypoints["right_hip"]/samples))
+        print("Left Knee:       {:.2f}".format(correct_keypoints["left_knee"]/samples))
+        print("Right Knee:      {:.2f}".format(correct_keypoints["right_knee"]/samples))
+        print("Left Ankle:      {:.2f}".format(correct_keypoints["left_ankle"]/samples))
+        print("Right Ankle:     {:.2f}".format(correct_keypoints["right_ankle"]/samples))
+        f.close()
+
 # ----------------------- End of Class -----------------------
 
 """
