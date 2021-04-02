@@ -285,7 +285,7 @@ class Evaluation():
                     threshold = PCK_THRESHOLD*torso
 
                     for i in range(NUM_COCO_KEYPOINTS):
-                        base = i*3
+                        base = i * NUM_COCO_KP_ATTRBS
                         prediction_point = np.array(prediction_keypoints[base], prediction_keypoints[base+1])
                         annotation_point = np.array(annotation_keypoints[base], annotation_keypoints[base+1])
                         dist = (np.linalg.norm(prediction_point-annotation_point))
@@ -314,7 +314,7 @@ class Evaluation():
 
             # Append True to correct joint list if distance is below threshold for any annotation
             for j in range(annotations):
-                base = j*NUM_COCO_KEYPOINTS
+                base = j * NUM_COCO_KEYPOINTS
                 if dist_list[0+base]<=threshold: nose_correct = True
                 if dist_list[1+base]<=threshold: left_eye_correct = True
                 if dist_list[2+base]<=threshold: right_eye_correct = True
