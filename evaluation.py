@@ -315,23 +315,23 @@ class Evaluation():
             # Append True to correct joint list if distance is below threshold for any annotation
             for j in range(annotations):
                 base = j * NUM_COCO_KEYPOINTS
-                if dist_list[0+base]<=threshold: nose_correct = True
-                if dist_list[1+base]<=threshold: left_eye_correct = True
-                if dist_list[2+base]<=threshold: right_eye_correct = True
-                if dist_list[3+base]<=threshold: left_ear_correct = True
-                if dist_list[4+base]<=threshold: right_ear_correct = True
-                if dist_list[5+base]<=threshold: left_shoulder_correct = True
-                if dist_list[6+base]<=threshold: right_shoulder_correct = True
-                if dist_list[7+base]<=threshold: left_elbow_correct = True
-                if dist_list[8+base]<=threshold: right_elbow_correct = True
-                if dist_list[9+base]<=threshold: left_wrist_correct = True
-                if dist_list[10+base]<=threshold: right_wrist_correct = True
-                if dist_list[11+base]<=threshold: left_hip_correct = True
-                if dist_list[12+base]<=threshold: right_hip_correct = True
-                if dist_list[13+base]<=threshold: left_knee_correct = True
-                if dist_list[14+base]<=threshold: right_knee_correct = True
-                if dist_list[15+base]<=threshold: left_ankle_correct = True
-                if dist_list[16+base]<=threshold: right_ankle_correct = True
+                nose_correct            = nose_correct              or dist_list[0+base]  <= threshold
+                left_eye_correct        = left_eye_correct          or dist_list[1+base]  <= threshold
+                right_eye_correct       = right_eye_correct         or dist_list[2+base]  <= threshold
+                left_ear_correct        = left_ear_correct          or dist_list[3+base]  <= threshold
+                right_ear_correct       = right_ear_correct         or dist_list[4+base]  <= threshold
+                left_shoulder_correct   = left_shoulder_correct     or dist_list[5+base]  <= threshold
+                right_shoulder_correct  = right_shoulder_correct    or dist_list[6+base]  <= threshold
+                left_elbow_correct      = left_elbow_correct        or dist_list[7+base]  <= threshold
+                right_elbow_correct     = right_elbow_correct       or dist_list[8+base]  <= threshold
+                left_wrist_correct      = left_wrist_correct        or dist_list[9+base]  <= threshold
+                right_wrist_correct     = right_wrist_correct       or dist_list[10+base] <= threshold
+                left_hip_correct        = left_hip_correct          or dist_list[11+base] <= threshold
+                right_hip_correct       = right_hip_correct         or dist_list[12+base] <= threshold
+                left_knee_correct       = left_knee_correct         or dist_list[13+base] <= threshold
+                right_knee_correct      = right_knee_correct        or dist_list[14+base] <= threshold
+                left_ankle_correct      = left_ankle_correct        or dist_list[15+base] <= threshold
+                right_ankle_correct     = right_ankle_correct       or dist_list[16+base] <= threshold
 
             # Add one to correct keypoint count if any annotation was below threshold for image
             if nose_correct: correct_keypoints["nose"] += 1
