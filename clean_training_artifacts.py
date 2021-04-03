@@ -5,20 +5,23 @@ import shutil
 import util
 from constants import *
 
-def find_non_trivial_sessions():
-    sessions = os.listdir(DEFAULT_MODEL_BASE_DIR)
+# Find all training runs that contain at least one model checkpoint
+def find_non_trivial_runs():
+    runs = os.listdir(DEFAULT_MODEL_BASE_DIR)
 
-    # Session IDs with at least one saved checkpoint
-    non_trivial_sessions = []
+    # run IDs with at least one saved checkpoint
+    non_trivial_runs = []
 
-    # Find all session IDs with at least one valid checkpoint
-    for session in sessions:
-        path = os.path.join(DEFAULT_MODEL_BASE_DIR, session)
+    # Find all run IDs with at least one valid checkpoint
+    for run in runs:
+        path = os.path.join(DEFAULT_MODEL_BASE_DIR, run)
 
         # Skip anything that isn't a directory
         if not os.path.isdir(path):
             continue
 
+        # All the files within this training run
+        # If this is a training run, it should contain a .csv, .json, and .hdf5
         files = os.listdir(path)
 
         # Contains at least one valid checkpoint
@@ -31,13 +34,14 @@ def find_non_trivial_sessions():
                 break
 
         if contains_checkpoint:
-            non_trivial_sessions.append(session)
+            non_trivial_runs.append(run)
 
-    return non_trivial_sessions
+    return non_trivial_runs
 
-def move_trivial_sessions(base_dir, non_trivial_sessions, verbose=True):
+# Move any runs that do not have at least one checkpoint to a temporary folder for manual verification
+def move_trivial_runs(base_dir, non_trivial_runs, verbose=True):
     # Create temporary folder
-    DESTINATION_SUBDIR = 'trivial-sessions'
+    DESTINATION_SUBDIR = 'trivial-runs'
 
     temp_dir = os.path.join(base_dir, DESTINATION_SUBDIR)
     if not os.path.exists(temp_dir):
@@ -50,14 +54,14 @@ def move_trivial_sessions(base_dir, non_trivial_sessions, verbose=True):
 
     directories.remove(DESTINATION_SUBDIR) # Prevent moving directory into itself
 
-    # Move sessions with no valid checkpoints into a folder for manual verification
+    # Move runs with no valid checkpoints into a folder for manual verification
     for d in directories:
         # Skip anything that isn't a directory
         if not os.path.isdir(d):
             continue
 
-        if d not in non_trivial_sessions:
-            # Empty session
+        if d not in non_trivial_runs:
+            # Thus, it's a trivial (empty) run
 
             src = os.path.join(base_dir, d)
             dest = os.path.join(temp_dir, d)
@@ -68,7 +72,7 @@ def move_trivial_sessions(base_dir, non_trivial_sessions, verbose=True):
             shutil.move(src, dest)
 
 if __name__ == "__main__":
-    non_trivial_sessions = find_non_trivial_sessions()
+    non_trivial_runs = find_non_trivial_runs()
 
-    move_trivial_sessions(DEFAULT_MODEL_BASE_DIR, non_trivial_sessions)
-    move_trivial_sessions(DEFAULT_LOGS_BASE_DIR, non_trivial_sessions)
+    move_trivial_runs(DEFAULT_MODEL_BASE_DIR, non_trivial_runs)
+    move_trivial_runs(DEFAULT_LOGS_BASE_DIR, non_trivial_runs)
