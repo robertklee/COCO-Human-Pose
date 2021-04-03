@@ -62,16 +62,16 @@ else:
     DEFAULT_VAL_IMG_PATH = 'data/coco'
     DEFAULT_PICKLE_PATH = 'Pickles'
 
+# Backcompatability constants.
+COCO_TRAIN_ANNOT_PATH = DEFAULT_TRAIN_ANNOT_PATH
+COCO_VAL_ANNOT_PATH = DEFAULT_VAL_ANNOT_PATH
+
 # Order of keypoints in COCO dataset
 COCO_KEYPOINT_LABEL_ARR = ["nose","left_eye","right_eye","left_ear","right_ear","left_shoulder","right_shoulder","left_elbow","right_elbow","left_wrist","right_wrist","left_hip","right_hip","left_knee","right_knee","left_ankle","right_ankle"]
 
 # Colouring for linking joints together
 COLOUR_MAP = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
           '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-
-# Backcompatability constants.
-COCO_TRAIN_ANNOT_PATH = DEFAULT_TRAIN_ANNOT_PATH
-COCO_VAL_ANNOT_PATH = DEFAULT_VAL_ANNOT_PATH
 
 # Model parameters
 INPUT_DIM = (256,256)
