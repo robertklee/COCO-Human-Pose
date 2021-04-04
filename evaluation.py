@@ -83,9 +83,8 @@ class Evaluation():
     # This function evaluates PCK@0.2 == Distance between predicted and true joint < 0.2 * torso diameter
     # The PCK_THRESHOLD constant can be updated to adjust this threshold
     # https://github.com/cbsudux/Human-Pose-Estimation-101#percentage-of-correct-key-points---pck
-    def pck_eval(self, generator, annotation_file):
-        _, list_of_predictions = self.predict_keypoints(generator)
-        f = open(annotation_file)
+    def pck_eval(self, list_of_predictions):
+        f = open(DEFAULT_VAL_ANNOT_PATH)
         data = json.load(f)
 
         # This function depends on the keypoints order listed in constants COCO_KEYPOINT_LABEL_ARR

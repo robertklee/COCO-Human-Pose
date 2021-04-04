@@ -47,7 +47,8 @@ class EvaluationWrapper():
         self.eval.oks_eval(image_ids, list_of_predictions)
 
     def calculatePCK(self, epochs):
-        self.eval.pck_eval(self.representative_set_gen, DEFAULT_VAL_ANNOT_PATH)
+        _, list_of_predictions = self.eval.predict_keypoints(self.representative_set_gen)
+        self.eval.pck_eval(list_of_predictions)
 
     def plotOKS(self, epochs):
         pass
