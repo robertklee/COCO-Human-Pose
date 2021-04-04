@@ -53,18 +53,14 @@ class Evaluation():
             predicted_heatmaps = predicted_heatmaps_batch[:,i,]
             self._save_stacked_evaluation_heatmaps(X, y, str(m['ann_id']) + '.png', predicted_heatmaps)
 
-    def predict_keypoints(self, generator):
+    def heatmap_to_COCO_format(self, predicted_hm_batch, metadata_batch):
         list_of_predictions = []
         image_ids = []
-        for X_batch, y_stacked, metadatas in generator:
-            j = 0
-            predict_heatmaps= self.predict_heatmaps(X_batch)
-            for X, metadata in zip(X_batch, metadatas):
-                keypoints = self._heatmaps_to_keypoints(predict_heatmaps[self.num_hg_blocks-1, j, :, :, :])
-                metadata = self._undo_bounding_box_transformations(metadata, keypoints)
-                list_of_predictions.append(self._create_oks_obj(metadata))
-                image_ids.append(metadata['src_set_image_id'])
-                j+=1
+        for i, metadata in enumerate(metadata_batch):
+            keypoints = self._heatmaps_to_keypoints(predicted_hm_batch[self.num_hg_blocks-1, i, :, :, :])
+            metadata = self._undo_bounding_box_transformations(metadata, keypoints)
+            list_of_predictions.append(self._create_oks_obj(metadata))
+            image_ids.append(metadata['src_set_image_id'])
         return image_ids, list_of_predictions
 
     def oks_eval(self, image_ids, list_of_predictions):

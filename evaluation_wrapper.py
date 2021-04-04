@@ -43,11 +43,11 @@ class EvaluationWrapper():
         pass
 
     def calculateOKS(self, epochs):
-        image_ids, list_of_predictions = self.eval.predict_keypoints(self.representative_set_gen)
+        image_ids, list_of_predictions = self._full_list_of_predicitons(self.representative_set_gen)
         self.eval.oks_eval(image_ids, list_of_predictions)
 
     def calculatePCK(self, epochs):
-        _, list_of_predictions = self.eval.predict_keypoints(self.representative_set_gen)
+        _, list_of_predictions = self._full_list_of_predicitons(self.val_gen)
         self.eval.pck_eval(list_of_predictions)
 
     def plotOKS(self, epochs):
@@ -55,3 +55,13 @@ class EvaluationWrapper():
 
     def plotPCK(self, epochs):
         pass
+
+    def _full_list_of_predicitons(self, gen):
+        list_of_predictions = []
+        image_ids = []
+        for X_batch, _, metadata_batch in gen:
+            predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
+            imgs, predictions = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch, metadata_batch)
+            list_of_predictions += predictions
+            image_ids += imgs
+        return image_ids, list_of_predictions
