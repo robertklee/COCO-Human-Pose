@@ -125,11 +125,11 @@ from pycocotools.cocoeval import COCOeval
 representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
 # train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
 
-subdir = '2021-03-29-11h-07m_batchsize_16_hg_4_loss_weighted_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_linear_subset_0.50_wmse-5'
+subdir = '2021-04-02-02h-21m_batchsize_16_hg_4_loss_keras_mse_aug_medium_sigma4_learningrate_5.0e-03_opt_adam_gt-4kp_activ_linear'
 eval = Evaluation(
     # ensure model_json and weights files exist in current directory and num_hg_blocks matches model_json
     model_sub_dir = subdir,
-    epoch = 15)
+    epoch = 24)
 print("Created Evaluation instance")
 
 generator = DataGenerator(
@@ -144,15 +144,14 @@ generator = DataGenerator(
             is_eval=True)
 print("Created DataGen instance")
 
-image_ids,_ = eval.predict_keypoints(generator, location='output/predictions.json')
+image_ids, list_of_predictions = eval.predict_keypoints(generator)
 print('Doneee')
 
 
 # %%
 cocoGt=COCO(DEFAULT_VAL_ANNOT_PATH)
 
-resFile = "output/predictions.json"
-cocoDt=cocoGt.loadRes(resFile)
+cocoDt=cocoGt.loadRes(list_of_predictions)
 
 annType = "keypoints"
 catId = 1
@@ -202,6 +201,6 @@ generator = DataGenerator(
             is_eval=True)
 print("Created DataGenerator Instance\n")
 
-eval.pck_eval(generator, 'output/predictions.json', DEFAULT_VAL_ANNOT_PATH)
+eval.pck_eval(generator, DEFAULT_VAL_ANNOT_PATH)
 
 # %%

@@ -35,7 +35,7 @@ class Evaluation():
         self.model = h.model
         print('Loaded model with {} hourglass stacks!'.format(self.num_hg_blocks))
 
-    ### PUBLIC METHODS BELOW ###
+    # ----------------------- PUBLIC METHODS BELOW ----------------------- #
 
     # Returns np array of predicted heatmaps for a given image and model
     def predict_heatmaps(self, X_batch):
@@ -50,12 +50,11 @@ class Evaluation():
             predicted_heatmaps = predicted_heatmaps_batch[:,i,]
             self._save_stacked_evaluation_heatmaps(X, y, str(m['ann_id']) + '.png', predicted_heatmaps)
 
-    def predict_keypoints(self,generator, location):
+    def predict_keypoints(self, generator):
         list_of_predictions = []
         image_ids = []
         for X_batch, y_stacked, metadatas in generator:
             j = 0
-            # X_batch, y_stacked, metadatas = generator[i]
             predict_heatmaps= self.predict_heatmaps(X_batch)
             for X, metadata in zip(X_batch, metadatas):
                 keypoints = self._heatmaps_to_keypoints(predict_heatmaps[self.num_hg_blocks-1, j, :, :, :])
@@ -63,14 +62,13 @@ class Evaluation():
                 list_of_predictions.append(self._create_oks_obj(metadata))
                 image_ids.append(metadata['src_set_image_id'])
                 j+=1
-        self._write_to_json_file(list_of_predictions, location)
         return image_ids, list_of_predictions
 
     # This function evaluates PCK@0.2 == Distance between predicted and true joint < 0.2 * torso diameter
     # The PCK_THRESHOLD constant can be updated to adjust this threshold
     # https://github.com/cbsudux/Human-Pose-Estimation-101#percentage-of-correct-key-points---pck
-    def pck_eval(self, generator, save_location, annotation_file):
-        _, list_of_predictions = self.predict_keypoints(generator, save_location)
+    def pck_eval(self, generator, annotation_file):
+        _, list_of_predictions = self.predict_keypoints(generator)
         f = open(annotation_file)
         data = json.load(f)
 
@@ -201,7 +199,7 @@ class Evaluation():
         print("Right Ankle:     {:.2f}".format(correct_keypoints["right_ankle"]/samples))
         f.close()
 
-    ### PRIVATE METHODS BELOW ###
+    # ----------------------- PRIVATE METHODS BELOW ----------------------- #
 
     # Vertically stack images of different widths
     # https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
@@ -357,16 +355,6 @@ class Evaluation():
         metadata['predicted_labels'] = predicted_labels
         metadata['score'] = float(np.mean(np.array(list_of_scores)))
         return metadata
-
-    def _write_to_json_file(self, list_of_predictions, location):
-        f = open(location, "w")
-        f.write('[')
-        for i in range(len(list_of_predictions)):
-            f.write(json.dumps(list_of_predictions[i]))
-            if(i < len(list_of_predictions) - 1):
-                f.write(',')
-        f.write(']')
-        f.close()
 
     def _create_oks_obj(self, metadata):
         oks_obj = {}
