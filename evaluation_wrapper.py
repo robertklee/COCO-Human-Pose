@@ -46,13 +46,21 @@ class EvaluationWrapper():
     def visalizeKeypoints(self, images='representative_set'):
         pass
 
-    def calculateOKS(self, epochs):
-        image_ids, list_of_predictions = self._full_list_of_predictions(self.representative_set_gen, self.model_sub_dir, self.epoch)
+    def calculateOKS(self, epochs, set):
+        if set == 'representative_set':
+            gen = self.representative_set_gen
+        elif set == 'val_set':
+            gen = self.val_gen
+        image_ids, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch)
         oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
         return oks
 
-    def calculatePCK(self, epochs):
-        _, list_of_predictions = self._full_list_of_predictions(self.representative_set_gen, self.model_sub_dir, self.epoch)
+    def calculatePCK(self, epochs, set):
+        if set == 'representative_set':
+            gen = self.representative_set_gen
+        elif set == 'val_set':
+            gen = self.val_gen
+        _, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch)
         pck = self.eval.pck_eval(list_of_predictions)
         avg = sum(pck.values())
         print(avg/len(pck))
@@ -68,9 +76,14 @@ class EvaluationWrapper():
     def _full_list_of_predictions(self, gen, model_sub_dir, epoch):
         list_of_predictions = []
         image_ids = []
+        i = 1
         for X_batch, _, metadata_batch in gen:
+            print(f'predicting batch: {i}')
             predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
+            print(f'predicted batch: {i}')
             imgs, predictions = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch, metadata_batch)
             list_of_predictions += predictions
             image_ids += imgs
+            print(f"{i}/{len(gen)}")
+            i+=1
         return image_ids, list_of_predictions
