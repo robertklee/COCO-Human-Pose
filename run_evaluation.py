@@ -89,3 +89,6 @@ img = np.array(hm.image)
 plt.clf()
 eval.visualize_keypoints(X, keypoints, name_no_extension)
 eval.visualize_keypoints(np.zeros(INPUT_DIM), keypoints, name_no_extension + '_no-bg')
+eval.visualize_keypoints(X, keypoints, name_no_extension)
+
+# %%

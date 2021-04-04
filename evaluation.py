@@ -52,6 +52,9 @@ class Evaluation():
             predicted_heatmaps = predicted_heatmaps_batch[:,i,]
             self._save_stacked_evaluation_heatmaps(X, y, str(m['ann_id']) + '.png', predicted_heatmaps)
 
+    def visualize_heatmaps(self, X_batch, y_batch, img_name_batch):
+        pass
+
     def heatmap_to_COCO_format(self, predicted_hm_batch, metadata_batch):
         list_of_predictions = []
         image_ids = []
@@ -231,7 +234,7 @@ class Evaluation():
         ground_truth_heatmaps = []
         for i in range(NUM_COCO_KEYPOINTS):
             heatmap = y[:,:,i]
-            hm = HeatMap.HeatMap(X,heatmap)
+            hm = HeatMap.HeatMap(X, heatmap)
             heatmap_array = hm.get_heatmap_array(transparency=0.5)
             ground_truth_heatmaps.append(heatmap_array)
         for i, heatmap in enumerate(ground_truth_heatmaps):
