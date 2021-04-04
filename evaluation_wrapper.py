@@ -47,12 +47,12 @@ class EvaluationWrapper():
         pass
 
     def calculateOKS(self, epochs):
-        image_ids, list_of_predictions = self._full_list_of_predictons(self.representative_set_gen, self.model_sub_dir, self.epoch)
+        image_ids, list_of_predictions = self._full_list_of_predictions(self.representative_set_gen, self.model_sub_dir, self.epoch)
         oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
         return oks
 
     def calculatePCK(self, epochs):
-        _, list_of_predictions = self._full_list_of_predictons(self.representative_set_gen, self.model_sub_dir, self.epoch)
+        _, list_of_predictions = self._full_list_of_predictions(self.representative_set_gen, self.model_sub_dir, self.epoch)
         pck = self.eval.pck_eval(list_of_predictions)
         avg = sum(pck.values())
         print(avg/len(pck))
@@ -65,7 +65,7 @@ class EvaluationWrapper():
         pass
 
     @lru_cache(maxsize=50)
-    def _full_list_of_predictons(self, gen, model_sub_dir, epoch):
+    def _full_list_of_predictions(self, gen, model_sub_dir, epoch):
         list_of_predictions = []
         image_ids = []
         for X_batch, _, metadata_batch in gen:
