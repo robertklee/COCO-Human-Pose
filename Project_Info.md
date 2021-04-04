@@ -6,10 +6,6 @@ Another subset of HPE is hand pose estimation which can be used to translate sig
 
 **Our goal is to estimate a kinematic model for the individual in each picture.**
 
-A kinematic model consists of points on each human joint connected by straight lines, similar to a stick-figure skeleton. 
-The contour model consists of 2D squares and rectangles that represent the body, and the volumetric model represents the body with 3D cylinders.
-Using a basic kinematic model will simplify the problem space and encourage us to focus on tangible results that can be used in real life applications.
-
 👈 Please select **Select a Demo Image** in the sidebar to start.
 
 ❗️ Please make sure to checkout our favourite Kangaroo photo by pressing **Fur-riend**.
