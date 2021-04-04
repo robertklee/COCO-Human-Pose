@@ -69,7 +69,8 @@ COCO_TRAIN_ANNOT_PATH = DEFAULT_TRAIN_ANNOT_PATH
 COCO_VAL_ANNOT_PATH = DEFAULT_VAL_ANNOT_PATH
 
 # Order of keypoints in COCO dataset
-COCO_KEYPOINT_LABEL_ARR = ["nose","left_eye","right_eye","left_ear","right_ear","left_shoulder","right_shoulder","left_elbow","right_elbow","left_wrist","right_wrist","left_hip","right_hip","left_knee","right_knee","left_ankle","right_ankle"]
+COCO_KEYPOINT_LABEL_ARR = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
+                           "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle"]
 
 # This array was copied from https://github.com/microsoft/human-pose-estimation.pytorch/blob/master/lib/dataset/coco.py
 # The original array was 1-indexed, so we subtract 1 from each element
@@ -78,7 +79,7 @@ COCO_SKELETON = np.array([[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 
 
 # Colouring for linking joints together
 COLOUR_MAP = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-          '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+              '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 # Model parameters
 INPUT_DIM = (256,256)
