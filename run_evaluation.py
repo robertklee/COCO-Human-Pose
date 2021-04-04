@@ -147,26 +147,8 @@ print("Created DataGen instance")
 image_ids, list_of_predictions = eval.predict_keypoints(generator)
 print('Doneee')
 
+eval.oks_eval(image_ids, list_of_predictions)
 
-# %%
-cocoGt=COCO(DEFAULT_VAL_ANNOT_PATH)
-
-cocoDt=cocoGt.loadRes(list_of_predictions)
-
-annType = "keypoints"
-catId = 1
-
-cocoEval = COCOeval(cocoGt,cocoDt,annType)
-cocoEval.params.imgIds = image_ids
-cocoEval.params.catIds = [1] # Person category
-cocoEval.evaluate()
-cocoEval.accumulate()
-
-# for imgId in image_ids:
-#     print('\nObject Keypoint Similarity (Average Precision, Average Recall) for Image ID: ', imgId, cocoEval.computeOks(imgId, catId))
-
-print('\nSummary: ')
-cocoEval.summarize()
 # %% Run PCK Evaluation
 import imp
 

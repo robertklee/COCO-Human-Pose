@@ -1,17 +1,20 @@
+import json
 import os
 import re
+
 import cv2
-from scipy.ndimage import gaussian_filter, maximum_filter
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageOps
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
+from scipy.ndimage import gaussian_filter, maximum_filter
 
-from constants import *
-import HeatMap  # https://github.com/LinShanify/HeatMap
-import util
-import hourglass
-import json
 import data_generator
+import HeatMap  # https://github.com/LinShanify/HeatMap
+import hourglass
+import util
+from constants import *
 
 
 class Evaluation():
@@ -63,6 +66,19 @@ class Evaluation():
                 image_ids.append(metadata['src_set_image_id'])
                 j+=1
         return image_ids, list_of_predictions
+
+    def oks_eval(self, image_ids, list_of_predictions):
+        cocoGt=COCO(DEFAULT_VAL_ANNOT_PATH)
+        cocoDt=cocoGt.loadRes(list_of_predictions)
+        annType = "keypoints"
+        catId = 1
+        cocoEval = COCOeval(cocoGt,cocoDt,annType)
+        cocoEval.params.imgIds = image_ids
+        cocoEval.params.catIds = [1] # Person category
+        cocoEval.evaluate()
+        cocoEval.accumulate()
+        print('\nSummary: ')
+        cocoEval.summarize()
 
     # This function evaluates PCK@0.2 == Distance between predicted and true joint < 0.2 * torso diameter
     # The PCK_THRESHOLD constant can be updated to adjust this threshold
