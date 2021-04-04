@@ -56,7 +56,7 @@ if COLAB_TRAINING:
     DEFAULT_VAL_ANNOT_PATH = '/content/datasets/annotations/person_keypoints_val2017.json'
     DEFAULT_TRAIN_IMG_PATH = '/content/datasets/coco'
     DEFAULT_VAL_IMG_PATH = '/content/datasets/coco'
-    DEFAULT_PICKLE_PATH = '/content/gdrive/MyDrive/Colab Data/COCO-Human-Pose/Pickles/'
+    DEFAULT_PICKLE_PATH = '/content/gdrive/MyDrive/Colab Data/COCO-Human-Pose/Pickles'
 else:
     DEFAULT_TRAIN_ANNOT_PATH = 'data/annotations/person_keypoints_train2017.json'
     DEFAULT_VAL_ANNOT_PATH = 'data/annotations/person_keypoints_val2017.json'
