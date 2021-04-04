@@ -79,7 +79,7 @@ X, y = X_batch[0], y_batch[0] # take first example of batch
 predict_heatmaps=eval.predict_heatmaps(X_batch)
 
 # Get predicted keypoints from last hourglass (eval.num_hg_blocks-1)
-keypoints = eval.heatmaps_to_keypoints(predict_heatmaps[eval.num_hg_blocks-1, 0, :, :, :])
+keypoints = eval._heatmaps_to_keypoints(predict_heatmaps[eval.num_hg_blocks-1, 0, :, :, :])
 print(keypoints)
 # Get bounding box image from heatmap
 heatmap = y[:,:,0]
