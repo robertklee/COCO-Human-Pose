@@ -100,6 +100,7 @@ def process_args():
                         default=None,
                         help='Subdirectory containing architecture json and weights')
     argparser.add_argument('--resume-with-new-run',
+                        type=bool,
                         default=False,
                         help='start a new session ID on resume. Default will be true if resume epoch is not the latest weight file.')
     argparser.add_argument('--pickle',
