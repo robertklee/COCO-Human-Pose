@@ -57,13 +57,14 @@ def move_trivial_runs(base_dir, non_trivial_runs, verbose=True):
     # Move runs with no valid checkpoints into a folder for manual verification
     for d in directories:
         # Skip anything that isn't a directory
-        if not os.path.isdir(d):
+        path = os.path.join(base_dir, d)
+        if not os.path.isdir(path):
             continue
 
         if d not in non_trivial_runs:
             # Thus, it's a trivial (empty) run
 
-            src = os.path.join(base_dir, d)
+            src = path
             dest = os.path.join(temp_dir, d)
 
             if verbose:
