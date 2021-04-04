@@ -294,23 +294,23 @@ class Evaluation():
             # Each image may have more than one annotation we need to check
             annotations = int(len(dist_list)/NUM_COCO_KEYPOINTS)
 
-            nose_correct            = False
-            left_eye_correct        = False
-            right_eye_correct       = False
-            left_ear_correct        = False
-            right_ear_correct       = False
-            left_shoulder_correct   = False
-            right_shoulder_correct  = False
-            left_elbow_correct      = False
-            right_elbow_correct     = False
-            left_wrist_correct      = False
-            right_wrist_correct     = False
-            left_hip_correct        = False
-            right_hip_correct       = False
-            left_knee_correct       = False
-            right_knee_correct      = False
-            left_ankle_correct      = False
-            right_ankle_correct     = False
+            nose_correct = False
+            left_eye_correct = False
+            right_eye_correct = False
+            left_ear_correct = False
+            right_ear_correct = False
+            left_shoulder_correct = False
+            right_shoulder_correct = False
+            left_elbow_correct = False
+            right_elbow_correct = False
+            left_wrist_correct = False
+            right_wrist_correct = False
+            left_hip_correct = False
+            right_hip_correct = False
+            left_knee_correct = False
+            right_knee_correct = False
+            left_ankle_correct = False
+            right_ankle_correct = False
 
             # Append True to correct joint list if distance is below threshold for any annotation
             for j in range(annotations):
@@ -334,23 +334,23 @@ class Evaluation():
                 right_ankle_correct     = right_ankle_correct       or dist_list[16+base] <= threshold
 
             # Add one to correct keypoint count if any annotation was below threshold for image
-            if nose_correct:            correct_keypoints["nose"]             += 1
-            if left_eye_correct:        correct_keypoints["left_eye"]         += 1
-            if right_eye_correct:       correct_keypoints["right_eye"]        += 1
-            if left_ear_correct:        correct_keypoints["left_ear"]         += 1
-            if right_ear_correct:       correct_keypoints["right_ear"]        += 1
-            if left_shoulder_correct:   correct_keypoints["left_shoulder"]    += 1
-            if right_shoulder_correct:  correct_keypoints["right_shoulder"]   += 1
-            if left_elbow_correct:      correct_keypoints["left_elbow"]       += 1
-            if right_elbow_correct:     correct_keypoints["right_elbow"]      += 1
-            if left_wrist_correct:      correct_keypoints["left_wrist"]       += 1
-            if right_wrist_correct:     correct_keypoints["right_wrist"]      += 1
-            if left_hip_correct:        correct_keypoints["left_hip"]         += 1
-            if right_hip_correct:       correct_keypoints["right_hip"]        += 1
-            if left_knee_correct:       correct_keypoints["left_knee"]        += 1
-            if right_knee_correct:      correct_keypoints["right_knee"]       += 1
-            if left_ankle_correct:      correct_keypoints["left_ankle"]       += 1
-            if right_ankle_correct:     correct_keypoints["right_ankle"]      += 1
+            if nose_correct: correct_keypoints["nose"] += 1
+            if left_eye_correct: correct_keypoints["left_eye"] += 1
+            if right_eye_correct: correct_keypoints["right_eye"] += 1
+            if left_ear_correct: correct_keypoints["left_ear"] += 1
+            if right_ear_correct: correct_keypoints["right_ear"] += 1
+            if left_shoulder_correct: correct_keypoints["left_shoulder"] += 1
+            if right_shoulder_correct: correct_keypoints["right_shoulder"] += 1
+            if left_elbow_correct: correct_keypoints["left_elbow"] += 1
+            if right_elbow_correct: correct_keypoints["right_elbow"] += 1
+            if left_wrist_correct: correct_keypoints["left_wrist"] += 1
+            if right_wrist_correct: correct_keypoints["right_wrist"] += 1
+            if left_hip_correct: correct_keypoints["left_hip"] += 1
+            if right_hip_correct: correct_keypoints["right_hip"] += 1
+            if left_knee_correct: correct_keypoints["left_knee"] += 1
+            if right_knee_correct: correct_keypoints["right_knee"] += 1
+            if left_ankle_correct: correct_keypoints["left_ankle"] += 1
+            if right_ankle_correct: correct_keypoints["right_ankle"] += 1
             dist_list = []
 
         samples = len(list_of_predictions)
