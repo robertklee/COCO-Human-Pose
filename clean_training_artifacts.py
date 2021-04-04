@@ -68,8 +68,8 @@ def move_trivial_runs(base_dir, non_trivial_runs, verbose=True):
             dest = os.path.join(temp_dir, d)
 
             if verbose:
-                print(f'Moving {src} to:')
-                print(f'\t\t{dest}\n')
+                print(f'{src}')
+                print(f'>>>> {dest}\n')
             shutil.move(src, dest)
 
 if __name__ == "__main__":
