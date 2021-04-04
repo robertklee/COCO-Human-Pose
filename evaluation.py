@@ -6,7 +6,6 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageOps
-from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from scipy.ndimage import gaussian_filter, maximum_filter
 
@@ -63,11 +62,9 @@ class Evaluation():
             image_ids.append(metadata['src_set_image_id'])
         return image_ids, list_of_predictions
 
-    def oks_eval(self, image_ids, list_of_predictions):
-        cocoGt=COCO(DEFAULT_VAL_ANNOT_PATH)
+    def oks_eval(self, image_ids, list_of_predictions, cocoGt):
         cocoDt=cocoGt.loadRes(list_of_predictions)
         annType = "keypoints"
-        catId = 1
         cocoEval = COCOeval(cocoGt,cocoDt,annType)
         cocoEval.params.imgIds = image_ids
         cocoEval.params.catIds = [1] # Person category
@@ -75,6 +72,7 @@ class Evaluation():
         cocoEval.accumulate()
         print('\nSummary: ')
         cocoEval.summarize()
+        return cocoEval.stats
 
     # This function evaluates PCK@0.2 == Distance between predicted and true joint < 0.2 * torso diameter
     # The PCK_THRESHOLD constant can be updated to adjust this threshold
@@ -190,26 +188,27 @@ class Evaluation():
             dist_list = []
 
         samples = len(list_of_predictions)
+        pck = {k: v/samples for k,v in correct_keypoints.items()}
         print("Percentage of Correct Key Points (PCK)\n")
-        print("Nose:            {:.2f}".format(correct_keypoints["nose"]/samples))
-        print("Left Eye:        {:.2f}".format(correct_keypoints["left_eye"]/samples))
-        print("Right Eye:       {:.2f}".format(correct_keypoints["right_eye"]/samples))
-        print("Left Ear:        {:.2f}".format(correct_keypoints["left_ear"]/samples))
-        print("Right Ear:       {:.2f}".format(correct_keypoints["right_ear"]/samples))
-        print("Left Shoulder:   {:.2f}".format(correct_keypoints["left_shoulder"]/samples))
-        print("Right Shoulder:  {:.2f}".format(correct_keypoints["right_shoulder"]/samples))
-        print("Left Elbow:      {:.2f}".format(correct_keypoints["left_elbow"]/samples))
-        print("Right Elbow:     {:.2f}".format(correct_keypoints["right_elbow"]/samples))
-        print("Left Wrist:      {:.2f}".format(correct_keypoints["left_wrist"]/samples))
-        print("Right Wrist:     {:.2f}".format(correct_keypoints["right_wrist"]/samples))
-        print("Left Hip:        {:.2f}".format(correct_keypoints["left_hip"]/samples))
-        print("Right Hip:       {:.2f}".format(correct_keypoints["right_hip"]/samples))
-        print("Left Knee:       {:.2f}".format(correct_keypoints["left_knee"]/samples))
-        print("Right Knee:      {:.2f}".format(correct_keypoints["right_knee"]/samples))
-        print("Left Ankle:      {:.2f}".format(correct_keypoints["left_ankle"]/samples))
-        print("Right Ankle:     {:.2f}".format(correct_keypoints["right_ankle"]/samples))
+        print("Nose:            {:.2f}".format(pck["nose"]))
+        print("Left Eye:        {:.2f}".format(pck["left_eye"]))
+        print("Right Eye:       {:.2f}".format(pck["right_eye"]))
+        print("Left Ear:        {:.2f}".format(pck["left_ear"]))
+        print("Right Ear:       {:.2f}".format(pck["right_ear"]))
+        print("Left Shoulder:   {:.2f}".format(pck["left_shoulder"]))
+        print("Right Shoulder:  {:.2f}".format(pck["right_shoulder"]))
+        print("Left Elbow:      {:.2f}".format(pck["left_elbow"]))
+        print("Right Elbow:     {:.2f}".format(pck["right_elbow"]))
+        print("Left Wrist:      {:.2f}".format(pck["left_wrist"]))
+        print("Right Wrist:     {:.2f}".format(pck["right_wrist"]))
+        print("Left Hip:        {:.2f}".format(pck["left_hip"]))
+        print("Right Hip:       {:.2f}".format(pck["right_hip"]))
+        print("Left Knee:       {:.2f}".format(pck["left_knee"]))
+        print("Right Knee:      {:.2f}".format(pck["right_knee"]))
+        print("Left Ankle:      {:.2f}".format(pck["left_ankle"]))
+        print("Right Ankle:     {:.2f}".format(pck["right_ankle"]))
         f.close()
-
+        return pck
     # ----------------------- PRIVATE METHODS BELOW ----------------------- #
 
     # Vertically stack images of different widths

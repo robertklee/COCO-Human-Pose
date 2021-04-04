@@ -1,6 +1,7 @@
 import os
 
 import pandas as pd
+from pycocotools.coco import COCO
 
 import data_generator
 import evaluation
@@ -34,6 +35,7 @@ class EvaluationWrapper():
                                                     batch_size=DEFAULT_BATCH_SIZE,
                                                     online_fetch=False,
                                                     is_eval=True)
+        self.cocoGt = COCO(DEFAULT_VAL_ANNOT_PATH)
         print("Initialized Evaluation Wrapper!")
 
     def visualizeHeatmaps(self, images='representative_set'):
@@ -44,11 +46,15 @@ class EvaluationWrapper():
 
     def calculateOKS(self, epochs):
         image_ids, list_of_predictions = self._full_list_of_predicitons(self.representative_set_gen)
-        self.eval.oks_eval(image_ids, list_of_predictions)
+        oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
+        return oks
 
     def calculatePCK(self, epochs):
-        _, list_of_predictions = self._full_list_of_predicitons(self.val_gen)
-        self.eval.pck_eval(list_of_predictions)
+        _, list_of_predictions = self._full_list_of_predicitons(self.representative_set_gen)
+        pck = self.eval.pck_eval(list_of_predictions)
+        avg = sum(pck.values())
+        print(avg/len(pck))
+        return pck
 
     def plotOKS(self, epochs):
         pass
