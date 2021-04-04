@@ -1,3 +1,4 @@
+from functools import lru_cache
 import os
 
 import pandas as pd
@@ -12,6 +13,7 @@ from constants import *
 class EvaluationWrapper():
 
     def __init__(self, model_sub_dir):
+        self.model_sub_dir = model_sub_dir
         self.epoch = 24 # TODO: write method to determine default epoch
         self.eval = evaluation.Evaluation(model_sub_dir=model_sub_dir, epoch=self.epoch)
         representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
@@ -45,12 +47,12 @@ class EvaluationWrapper():
         pass
 
     def calculateOKS(self, epochs):
-        image_ids, list_of_predictions = self._full_list_of_predicitons(self.representative_set_gen)
+        image_ids, list_of_predictions = self._full_list_of_predicitons(self.representative_set_gen, self.model_sub_dir, self.epoch)
         oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
         return oks
 
     def calculatePCK(self, epochs):
-        _, list_of_predictions = self._full_list_of_predicitons(self.representative_set_gen)
+        _, list_of_predictions = self._full_list_of_predicitons(self.representative_set_gen, self.model_sub_dir, self.epoch)
         pck = self.eval.pck_eval(list_of_predictions)
         avg = sum(pck.values())
         print(avg/len(pck))
@@ -62,7 +64,8 @@ class EvaluationWrapper():
     def plotPCK(self, epochs):
         pass
 
-    def _full_list_of_predicitons(self, gen):
+    @lru_cache(maxsize=50)
+    def _full_list_of_predicitons(self, gen, model_sub_dir, epoch):
         list_of_predictions = []
         image_ids = []
         for X_batch, _, metadata_batch in gen:
