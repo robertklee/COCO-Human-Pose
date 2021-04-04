@@ -383,9 +383,11 @@ Runs the model for any general file. This aims to extend the DataGenerator outpu
 img_path : {string-typed} path to image
     Note this image must be square, and centered around the person you wish to retrieve predictions for.
 
-num_hg_blocks : {int} number of hourglass blocks to generate dummy ground truth data for
+num_hg_blocks : {int}
+    number of hourglass blocks to generate dummy ground truth data
 
-x,y,w,h : {int or float} optional bounding box info, anchored at top left of image
+bbox : {tuple of element type int or float}
+    optional bounding box info, anchored at top left of image, of elements (x,y,w,h)
 """
 def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
     img = Image.open(img_path).convert('RGB')

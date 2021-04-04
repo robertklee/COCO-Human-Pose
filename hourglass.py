@@ -72,6 +72,7 @@ class HourglassNet(object):
         print(f'Activation function selected:         {self.activation_str}')
         print(f'Learning rate selected:               {self.learningrate}')
         print(f'Filtering out annotations <=          {self.kp_filtering_gt:d}')
+        print()
 
         self.loss = get_loss_from_string(self.loss_str)
         self._compile_model()

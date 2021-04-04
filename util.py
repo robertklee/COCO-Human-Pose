@@ -4,6 +4,9 @@ import unicodedata
 
 from constants import *
 
+MODEL_ARCHITECTURE_JSON_REGEX = f'^{HPE_HOURGLASS_STACKS_PREFIX}.*\.json$'
+MODEL_CHECKPOINT_REGEX = f'^{HPE_EPOCH_PREFIX}([\d]+).*\.hdf5$'
+
 def str_to_enum(EnumClass, str):
     try:
         enum_ = EnumClass[str]
@@ -28,7 +31,7 @@ def is_highest_epoch_file(model_base_dir, model_subdir, epoch_):
     files = os.listdir(enclosing_dir)
 
     for f in files:
-        match = re.match(f'^{HPE_EPOCH_PREFIX}([\d]+).*\.hdf5$', f)
+        match = re.match(MODEL_CHECKPOINT_REGEX, f)
 
         if match:
             epoch = int(match.group(1))
@@ -43,10 +46,10 @@ def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
 
     files = os.listdir(enclosing_dir)
 
-    model_jsons         = [f for f in files if re.match(f'^{HPE_HOURGLASS_STACKS_PREFIX}.*\.json$', f)]
+    model_jsons         = [f for f in files if re.match(MODEL_ARCHITECTURE_JSON_REGEX, f)]
     model_saved_weights = {}
     for f in files:
-        match = re.match(f'^{HPE_EPOCH_PREFIX}([\d]+).*\.hdf5$', f)
+        match = re.match(MODEL_CHECKPOINT_REGEX, f)
 
         if match:
             epoch = int(match.group(1))
@@ -58,7 +61,7 @@ def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     if resume_epoch is None or resume_epoch <= 0:
         resume_epoch = max(k for k, _ in model_saved_weights.items())
 
-        print(f'No epoch number provided. Automatically using largest epoch number {resume_epoch}.')
+        print(f'No epoch number provided. Automatically using largest epoch number {resume_epoch:3d}.')
 
     resume_json = os.path.join(enclosing_dir, model_jsons[0])
     resume_weights = os.path.join(enclosing_dir, model_saved_weights[resume_epoch])
