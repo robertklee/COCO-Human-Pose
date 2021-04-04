@@ -128,23 +128,23 @@ class Evaluation():
             # Each image may have more than one annotation we need to check
             annotations = int(len(dist_list)/NUM_COCO_KEYPOINTS)
 
-            nose_correct = False
-            left_eye_correct = False
-            right_eye_correct = False
-            left_ear_correct = False
-            right_ear_correct = False
-            left_shoulder_correct = False
-            right_shoulder_correct = False
-            left_elbow_correct = False
-            right_elbow_correct = False
-            left_wrist_correct = False
-            right_wrist_correct = False
-            left_hip_correct = False
-            right_hip_correct = False
-            left_knee_correct = False
-            right_knee_correct = False
-            left_ankle_correct = False
-            right_ankle_correct = False
+            nose_correct            = False
+            left_eye_correct        = False
+            right_eye_correct       = False
+            left_ear_correct        = False
+            right_ear_correct       = False
+            left_shoulder_correct   = False
+            right_shoulder_correct  = False
+            left_elbow_correct      = False
+            right_elbow_correct     = False
+            left_wrist_correct      = False
+            right_wrist_correct     = False
+            left_hip_correct        = False
+            right_hip_correct       = False
+            left_knee_correct       = False
+            right_knee_correct      = False
+            left_ankle_correct      = False
+            right_ankle_correct     = False
 
             # Append True to correct joint list if distance is below threshold for any annotation
             for j in range(annotations):
@@ -168,23 +168,23 @@ class Evaluation():
                 right_ankle_correct     = right_ankle_correct       or dist_list[16+base] <= threshold
 
             # Add one to correct keypoint count if any annotation was below threshold for image
-            if nose_correct: correct_keypoints["nose"] += 1
-            if left_eye_correct: correct_keypoints["left_eye"] += 1
-            if right_eye_correct: correct_keypoints["right_eye"] += 1
-            if left_ear_correct: correct_keypoints["left_ear"] += 1
-            if right_ear_correct: correct_keypoints["right_ear"] += 1
-            if left_shoulder_correct: correct_keypoints["left_shoulder"] += 1
-            if right_shoulder_correct: correct_keypoints["right_shoulder"] += 1
-            if left_elbow_correct: correct_keypoints["left_elbow"] += 1
-            if right_elbow_correct: correct_keypoints["right_elbow"] += 1
-            if left_wrist_correct: correct_keypoints["left_wrist"] += 1
-            if right_wrist_correct: correct_keypoints["right_wrist"] += 1
-            if left_hip_correct: correct_keypoints["left_hip"] += 1
-            if right_hip_correct: correct_keypoints["right_hip"] += 1
-            if left_knee_correct: correct_keypoints["left_knee"] += 1
-            if right_knee_correct: correct_keypoints["right_knee"] += 1
-            if left_ankle_correct: correct_keypoints["left_ankle"] += 1
-            if right_ankle_correct: correct_keypoints["right_ankle"] += 1
+            if nose_correct:            correct_keypoints["nose"]            += 1
+            if left_eye_correct:        correct_keypoints["left_eye"]        += 1
+            if right_eye_correct:       correct_keypoints["right_eye"]       += 1
+            if left_ear_correct:        correct_keypoints["left_ear"]        += 1
+            if right_ear_correct:       correct_keypoints["right_ear"]       += 1
+            if left_shoulder_correct:   correct_keypoints["left_shoulder"]   += 1
+            if right_shoulder_correct:  correct_keypoints["right_shoulder"]  += 1
+            if left_elbow_correct:      correct_keypoints["left_elbow"]      += 1
+            if right_elbow_correct:     correct_keypoints["right_elbow"]     += 1
+            if left_wrist_correct:      correct_keypoints["left_wrist"]      += 1
+            if right_wrist_correct:     correct_keypoints["right_wrist"]     += 1
+            if left_hip_correct:        correct_keypoints["left_hip"]        += 1
+            if right_hip_correct:       correct_keypoints["right_hip"]       += 1
+            if left_knee_correct:       correct_keypoints["left_knee"]       += 1
+            if right_knee_correct:      correct_keypoints["right_knee"]      += 1
+            if left_ankle_correct:      correct_keypoints["left_ankle"]      += 1
+            if right_ankle_correct:     correct_keypoints["right_ankle"]     += 1
             dist_list = []
 
         samples = len(list_of_predictions)
@@ -253,6 +253,55 @@ class Evaluation():
             else:
                 stacked_hourglass_heatmaps = np.vstack((stacked_hourglass_heatmaps, stacked_predict_heatmaps))
         return stacked_hourglass_heatmaps
+
+
+    """
+    Visualize the set of keypoints on the model image.
+
+    Note, it is assumed that the images are the transformed size for now
+
+    ## Parameters
+
+    keypoints : {list of (x,y,score)}
+    """
+    def visualize_keypoints(self, X_batch, keypoints, filename):
+        # TODO batch functionality
+
+        # Plot predicted keypoints on bounding box image
+        x_left = []
+        y_left = []
+        x_right = []
+        y_right = []
+        valid = np.zeros(NUM_COCO_KEYPOINTS)
+
+        for i in range(NUM_COCO_KEYPOINTS):
+            if keypoints[i,0] != 0 and keypoints[i,1] != 0:
+                valid[i] = 1
+
+                if i % 2 == 0:
+                    x_right.append(keypoints[i,0])
+                    y_right.append(keypoints[i,1])
+                else:
+                    x_left.append(keypoints[i,0])
+                    y_left.append(keypoints[i,1])
+
+        color_index = 0
+        for i in range(len(COCO_SKELETON)):
+            # joint a to joint b
+            a = COCO_SKELETON[i, 0]
+            b = COCO_SKELETON[i, 1]
+
+            # if both are valid keypoints
+            if valid[a] and valid[b]:
+                # linewidth = 5, linestyle = "--",
+                plt.plot([keypoints[a,0],keypoints[b,0]], [keypoints[a,1], keypoints[b,1]], color = COLOUR_MAP[color_index % 10])
+
+                color_index += 1
+
+        plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
+        plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
+        plt.imshow(X_batch)
+        plt.savefig(os.path.join(DEFAULT_OUTPUT_BASE_DIR, f'{filename}_saved_scatter.png'), bbox_inches='tight', transparent=False, dpi=300)
 
     #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
     def _save_stacked_evaluation_heatmaps(self, X, y, filename, predicted_heatmaps):

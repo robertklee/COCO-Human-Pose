@@ -17,13 +17,12 @@ import evaluation
 import HeatMap
 imp.reload(evaluation)
 imp.reload(HeatMap)
-# %%
 
 representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
-subdir = '2021-03-22-20h-23m_batchsize_12_hg_8_loss_weighted_mse_aug_medium_resume_2021-03-25-20h-02m'
+subdir = '2021-04-01-22h-18m_batchsize_16_hg_4_loss_keras_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_sigmoid_subset_0.50'
 eval = evaluation.Evaluation(
     model_sub_dir=subdir,
-    epoch=43)
+    epoch=30)
 
 # %% Save stacked evaluation heatmaps
 import data_generator
@@ -69,9 +68,9 @@ X_batch, y_stacked = generator[168] # choose one image for evaluation
 name_no_extension = "tmp"
 
 ## Uncomment below for arbitrary images
-# img_name = 'IMG_3274.jpg'
-# name_no_extension = img_name.split('.')[0]
-# X_batch, y_stacked = evaluation.load_and_preprocess_img(os.path.join('data', img_name), eval.num_hg_blocks)
+img_name = 'IMG_8175.jpg'
+name_no_extension = img_name.split('.')[0]
+X_batch, y_stacked = evaluation.load_and_preprocess_img(os.path.join('data', img_name), eval.num_hg_blocks)
 y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 
@@ -88,12 +87,5 @@ img = np.array(hm.image)
 
 # Clear plot image
 plt.clf()
-# Plot predicted keypoints on bounding box image
-x = []
-y = []
-for i in range(NUM_COCO_KEYPOINTS):
-    if(keypoints[i,0] != 0 and keypoints[i,1] != 0):
-      x.append(keypoints[i,0])
-      y.append(keypoints[i,1])
-plt.scatter(x,y)
-plt.imshow(img)
+eval.visualize_keypoints(X, keypoints, name_no_extension)
+eval.visualize_keypoints(np.zeros(INPUT_DIM), keypoints, name_no_extension + '_no-bg')
