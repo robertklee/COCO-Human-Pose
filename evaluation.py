@@ -154,7 +154,7 @@ class Evaluation():
 
     ### Returns np array of predicted keypoints from one image's heatmaps
     def heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
-        keypoints = []
+        keypoints = np.zeros((NUM_COCO_KEYPOINTS, NUM_COCO_KP_ATTRBS))
         for i in range(NUM_COCO_KEYPOINTS):
             hmap = heatmaps[:,:,i]
             # Resize heatmap from Output DIM to Input DIM
@@ -168,12 +168,18 @@ class Evaluation():
             # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
             # and get its coordinates and confidence
             y, x = np.where(peaks == peaks.max())
+
             if int(x[0]) > 0 and int(y[0]) > 0:
-                keypoints.append((int(x[0]), int(y[0]), peaks[y[0], x[0]]))
+                x_new = int(x[0])
+                y_new = int(y[0])
+                conf_new = peaks[y_new, x_new]
             else:
-                keypoints.append((0, 0, 0))
-        # Turn keypoints into np array
-        keypoints = np.array(keypoints)
+                x_new, y_new, conf_new = 0, 0, 0
+
+            keypoints[i, 0] = x_new
+            keypoints[i, 1] = y_new
+            keypoints[i, 2] = conf_new
+
         return keypoints
 
     def heatmap_to_COCO_format(self, predicted_hm_batch, metadata_batch):
@@ -441,13 +447,14 @@ class Evaluation():
         Example:  [1,2,0,1,4,666,32...]
     """
     def _undo_bounding_box_transformations(self, metadata, untransformed_predictions):
-        untransformed_predictions = np.array(untransformed_predictions).flatten()
+        untransformed_predictions = untransformed_predictions.flatten()
 
         predicted_labels = np.zeros(NUM_COCO_KEYPOINTS * NUM_COCO_KP_ATTRBS)
         list_of_scores = np.zeros(NUM_COCO_KEYPOINTS)
 
         for i in range(NUM_COCO_KEYPOINTS):
-            base = i * 3
+            base = i * NUM_COCO_KP_ATTRBS
+
             x = untransformed_predictions[base]
             y = untransformed_predictions[base + 1]
             conf = untransformed_predictions[base + 2]
