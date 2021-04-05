@@ -31,7 +31,7 @@ class Evaluation():
             os.makedirs(self.output_sub_dir)
 
         self.model_json, self.weights, _ = util.find_resume_json_weights_str(model_base_dir, model_sub_dir, epoch)
-        self.num_hg_blocks = int(re.match(r'.*stacks_([\d]+)_.*',self.model_json).group(1))
+        self.num_hg_blocks = int(re.match(r'.*stacks_([\d]+).*$',self.model_json).group(1))
         h = hourglass.HourglassNet(NUM_COCO_KEYPOINTS,self.num_hg_blocks,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
         h._load_model(self.model_json, self.weights)
         self.model = h.model
@@ -47,11 +47,7 @@ class Evaluation():
     def visualize_batch(self, X_batch, y_batch, m_batch):
         predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
 
-        img_id_batch = []
-        for i in range(m_batch):
-            m = m_batch[i]
-            name = m['ann_id']
-            img_id_batch.append(name)
+        img_id_batch = [m['ann_id'] for m in m_batch]
 
         self.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
 
@@ -374,7 +370,7 @@ class Evaluation():
 
     ### Returns np array of predicted keypoints from one image's heatmaps
     def _heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
-        keypoints = list()
+        keypoints = []
         for i in range(NUM_COCO_KEYPOINTS):
             hmap = heatmaps[:,:,i]
             # Resize heatmap from Output DIM to Input DIM
