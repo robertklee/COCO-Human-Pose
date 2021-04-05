@@ -72,6 +72,9 @@ class Evaluation():
         A list of heatmap predictions from the model from all hourglass layers
     """
     def visualize_heatmaps(self, X_batch, y_batch, img_id_batch, predicted_heatmaps_batch):
+        # Clear existing plots
+        plt.clf()
+
         for i in range(len(X_batch)):
             X = X_batch[i,]
             y = y_batch[i,]
@@ -104,6 +107,9 @@ class Evaluation():
         If true, connects joints together (if possible) to construct a COCO-format skeleton
     """
     def visualize_keypoints(self, X_batch, keypoints_batch, img_id_batch, show_skeleton=True):
+        # Clear existing plots
+        plt.clf()
+
         for i in range(len(X_batch)):
             X = X_batch[i]
             keypoints = keypoints_batch[i]
