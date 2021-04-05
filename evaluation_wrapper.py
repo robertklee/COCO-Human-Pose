@@ -78,9 +78,7 @@ class EvaluationWrapper():
         image_ids = []
         i = 1
         for X_batch, _, metadata_batch in gen:
-            print(f'predicting batch: {i}')
             predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
-            print(f'predicted batch: {i}')
             imgs, predictions = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch, metadata_batch)
             list_of_predictions += predictions
             image_ids += imgs
