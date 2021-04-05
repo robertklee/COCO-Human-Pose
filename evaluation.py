@@ -138,7 +138,7 @@ class Evaluation():
 
             plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
             plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
-            plt.imshow(X_batch)
+            plt.imshow(X)
             plt.savefig(os.path.join(self.output_sub_dir, name), bbox_inches='tight', transparent=False, dpi=300)
             plt.close()
 
