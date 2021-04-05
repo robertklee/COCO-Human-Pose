@@ -77,8 +77,9 @@ X, y = X_batch[0], y_batch[0] # take first example of batch
 # Get predicted heatmaps for image
 predict_heatmaps=eval.predict_heatmaps(X_batch)
 
-# Get predicted keypoints from last hourglass (eval.num_hg_blocks-1)
-keypoints = eval._heatmaps_to_keypoints(predict_heatmaps[eval.num_hg_blocks-1, 0, :, :, :])
+# Get predicted keypoints from last hourglass (last element of list)
+# Dimensions are (hourglass_layer, batch, x, y, keypoint)
+keypoints = eval._heatmaps_to_keypoints(predict_heatmaps[-1, 0, :, :, :])
 print(keypoints)
 # Get bounding box image from heatmap
 heatmap = y[:,:,0]
@@ -87,7 +88,6 @@ img = np.array(hm.image)
 
 # Clear plot image
 plt.clf()
-eval.visualize_keypoints(X, keypoints, name_no_extension)
 eval.visualize_keypoints(np.zeros(INPUT_DIM), keypoints, name_no_extension + '_no-bg')
 eval.visualize_keypoints(X, keypoints, name_no_extension)
 
