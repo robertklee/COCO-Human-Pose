@@ -409,7 +409,7 @@ class Evaluation():
     """
     def _undo_x(self, metadata, untransformed_x):
       predicted_x = round(untransformed_x * metadata['cropped_width'] / metadata['input_dim'][0] + metadata['anchor_x'])
-      return int(predicted_x)
+      return round(predicted_x)
 
     """
         Parameters
@@ -422,7 +422,7 @@ class Evaluation():
     """
     def _undo_y(self, metadata, untransformed_y):
       predicted_y = round(untransformed_y * metadata['cropped_height'] / metadata['input_dim'][1] + metadata['anchor_y'])
-      return int(predicted_y)
+      return round(predicted_y)
 
     """
         Parameters
