@@ -111,5 +111,9 @@ BBOX_MIN_SIZE = 900 # Filter out images smaller than 30x30, TODO tweak
 HM_TO_KP_THRESHOLD = 0.2
 PCK_THRESHOLD = 0.2
 
+# Output save names
+OUTPUT_STACKED_HEATMAP = 'heatmaps'
+OUTPUT_SKELETON = 'skeleton'
+
 # Data aug flip R/L probability
 RL_FLIP = 0.5
