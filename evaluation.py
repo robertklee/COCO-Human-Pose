@@ -43,13 +43,16 @@ class Evaluation():
     def predict_heatmaps(self, X_batch):
         return np.array(self.model.predict(X_batch)) # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
 
-    # TO BE DEPRECATED
+    """
+    This method has been deprecated in favour of the `visualizeHeatmaps` method in `evaluation_wrapper`
+    """
     def visualize_batch(self, X_batch, y_batch, m_batch):
-        predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
+        raise DeprecationWarning('visualize_batch has been deprecated in favour of the `visualizeHeatmaps` method in `evaluation_wrapper`')
+        # predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
 
-        img_id_batch = [m['ann_id'] for m in m_batch]
+        # img_id_batch = [m['ann_id'] for m in m_batch]
 
-        self.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
+        # self.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
 
     """
     Visualize the set of stacked heatmap predictions.
@@ -96,6 +99,9 @@ class Evaluation():
 
     img_id_batch : {list of strings}
         A list of image names. These should not contain the extension, epoch, or type. (Purely image ID)
+
+    show_skeleton : {bool}
+        If true, connects joints together (if possible) to construct a COCO-format skeleton
     """
     def visualize_keypoints(self, X_batch, keypoints_batch, img_id_batch, show_skeleton=True):
         for i in range(len(X_batch)):
