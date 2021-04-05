@@ -436,23 +436,31 @@ class Evaluation():
     """
     def _undo_bounding_box_transformations(self, metadata, untransformed_predictions):
         untransformed_predictions = np.array(untransformed_predictions).flatten()
-        predicted_labels = []
-        list_of_scores = []
-        for i in range(len(untransformed_predictions)):
-            if i % 3 == 0: # is an x-coord
-                predicted_labels.append(self._undo_x(metadata, untransformed_predictions[i]))
-            elif i % 3 == 1: # is a y-coord
-                predicted_labels.append(self._undo_y(metadata, untransformed_predictions[i]))
-            elif i % 3 == 2: # is a confidence score
-                if(untransformed_predictions[i] == 0): # this keypoint is not predicted
-                    predicted_labels[i-1] = 0 # Set y value to 0
-                    predicted_labels[i-2] = 0 # Set x value to 0
-                    predicted_labels.append(0) # set visibility to 0
-                else:
-                    predicted_labels.append(1) # set visibility to 1
-                    list_of_scores.append(untransformed_predictions[i])
+
+        predicted_labels = np.zeros(NUM_COCO_KEYPOINTS * NUM_COCO_KP_ATTRBS)
+        list_of_scores = np.zeros(NUM_COCO_KEYPOINTS)
+
+        for i in range(NUM_COCO_KEYPOINTS):
+            base = i * 3
+            x = untransformed_predictions[base]
+            y = untransformed_predictions[base + 1]
+            conf = untransformed_predictions[base + 2]
+
+            if conf == 0:
+                # this keypoint is not predicted
+                x_new, y_new, vis_new = 0, 0, 0
+            else:
+                x_new = self._undo_x(metadata, x)
+                y_new = self._undo_y(metadata, y)
+                vis_new = 1
+                list_of_scores[i] = conf
+
+            predicted_labels[base] = x_new
+            predicted_labels[base + 1] = y_new
+            predicted_labels[base + 2] = vis_new
+
         metadata['predicted_labels'] = predicted_labels
-        metadata['score'] = float(np.mean(np.array(list_of_scores)))
+        metadata['score'] = float(np.mean(list_of_scores))
         return metadata
 
     def _create_oks_obj(self, metadata):
