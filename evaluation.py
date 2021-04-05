@@ -152,7 +152,7 @@ class Evaluation():
         list_of_predictions = []
         image_ids = []
         for i, metadata in enumerate(metadata_batch):
-            keypoints = self._heatmaps_to_keypoints(predicted_hm_batch[self.num_hg_blocks-1, i, :, :, :])
+            keypoints = self.heatmaps_to_keypoints(predicted_hm_batch[self.num_hg_blocks-1, i, :, :, :])
             metadata = self._undo_bounding_box_transformations(metadata, keypoints)
             list_of_predictions.append(self._create_oks_obj(metadata))
             image_ids.append(metadata['src_set_image_id'])
@@ -375,7 +375,7 @@ class Evaluation():
     # https://github.com/david8862/tf-keras-stacked-hourglass-keypoint-detection/blob/56707252501c73b2bf2aac8fff3e22760fd47dca/hourglass/postprocess.py#L17
 
     ### Returns np array of predicted keypoints from one image's heatmaps
-    def _heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
+    def heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
         keypoints = []
         for i in range(NUM_COCO_KEYPOINTS):
             hmap = heatmaps[:,:,i]

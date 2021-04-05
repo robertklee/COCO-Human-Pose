@@ -67,7 +67,7 @@ class EvaluationWrapper():
                 self.eval.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
 
             if visualize_scatter or visualize_skeleton:
-                keypoints = self.eval._heatmaps_to_keypoints(predicted_heatmaps_batch[-1, 0, :, :, :])
+                keypoints = self.eval.heatmaps_to_keypoints(predicted_heatmaps_batch[-1, 0, :, :, :])
 
     def calculateOKS(self, epochs, genEnum):
         gen = self._get_generator(genEnum)
