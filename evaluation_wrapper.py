@@ -40,25 +40,25 @@ class EvaluationWrapper():
         self.cocoGt = COCO(DEFAULT_VAL_ANNOT_PATH)
         print("Initialized Evaluation Wrapper!")
 
-    def visualizeHeatmaps(self, images='representative_set'):
+    def visualizeHeatmaps(self, images=Generator.representative_set_gen):
         pass
 
-    def visalizeKeypoints(self, images='representative_set'):
+    def visalizeKeypoints(self, images=Generator.representative_set_gen):
         pass
 
     def calculateOKS(self, epochs, set):
-        if set == 'representative_set':
+        if set == Generator.representative_set_gen:
             gen = self.representative_set_gen
-        elif set == 'val_set':
+        elif set == Generator.val_gen:
             gen = self.val_gen
         image_ids, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch)
         oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
         return oks
 
     def calculatePCK(self, epochs, set):
-        if set == 'representative_set':
+        if set == Generator.representative_set_gen:
             gen = self.representative_set_gen
-        elif set == 'val_set':
+        elif set == Generator.val_gen:
             gen = self.val_gen
         _, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch)
         pck = self.eval.pck_eval(list_of_predictions)
