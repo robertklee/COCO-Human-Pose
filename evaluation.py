@@ -43,17 +43,108 @@ class Evaluation():
     def predict_heatmaps(self, X_batch):
         return np.array(self.model.predict(X_batch)) # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
 
+    # TO BE DEPRECATED
     def visualize_batch(self, X_batch, y_batch, m_batch):
         predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
+
+        img_id_batch = []
+        for i in range(m_batch):
+            m = m_batch[i]
+            name = m['ann_id']
+            img_id_batch.append(name)
+
+        self.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
+
+    """
+    Visualize the set of stacked heatmap predictions.
+
+    ## Parameters
+
+    X_batch : {list of ndarrays}
+        A list of images which were used as input to the model
+
+    y_batch : {list of ndarrays}
+        A list of ground truth heatmaps from a single hourglass layer
+
+    img_id_batch : {list of strings}
+        A list of image names. These should not contain the extension, epoch, or type. (Purely image ID)
+
+    predicted_heatmaps_batch : {list of ndarrays}
+        A list of heatmap predictions from the model from all hourglass layers
+    """
+    def visualize_heatmaps(self, X_batch, y_batch, img_id_batch, predicted_heatmaps_batch):
         for i in range(len(X_batch)):
             X = X_batch[i,]
             y = y_batch[i,]
-            m = m_batch[i]
-            predicted_heatmaps = predicted_heatmaps_batch[:,i,]
-            self._save_stacked_evaluation_heatmaps(X, y, str(m['ann_id']) + '.png', predicted_heatmaps)
+            img_id = img_id_batch[i]
+            name = f'{OUTPUT_STACKED_HEATMAP}_{img_id}_{self.epoch}.png'
 
-    def visualize_heatmaps(self, X_batch, y_batch, img_name_batch):
-        pass
+            predicted_heatmaps = predicted_heatmaps_batch[:,i,]
+            self._save_stacked_evaluation_heatmaps(X, y, name, predicted_heatmaps)
+
+    """
+    Visualize the set of keypoints on the model image.
+
+    Note, it is assumed that the images have the same dimension domain as the keypoints.
+    (i.e., they keypoint (x,y) should point to the corresponding pixel on the image.)
+
+    ## Parameters
+
+    X_batch : {list of ndarrays}
+        A list of images, with the same dimensionality as the keypoints. This means
+        if the keypoints are relative to a (256 x 256) image, each element of X_batch must be the same
+        dimension.
+
+    keypoints_batch : {list of lists}
+        Each element consists of a list of keypoints, with each keypoint having the components of (x,y,score).
+
+    img_id_batch : {list of strings}
+        A list of image names. These should not contain the extension, epoch, or type. (Purely image ID)
+    """
+    def visualize_keypoints(self, X_batch, keypoints_batch, img_id_batch, show_skeleton=True):
+        for i in range(len(X_batch)):
+            X = X_batch[i]
+            keypoints = keypoints_batch[i]
+            img_id = img_id_batch[i]
+            name = f'{OUTPUT_SKELETON}_{img_id}_{self.epoch}.png'
+
+            # Plot predicted keypoints on bounding box image
+            x_left = []
+            y_left = []
+            x_right = []
+            y_right = []
+            valid = np.zeros(NUM_COCO_KEYPOINTS)
+
+            for i in range(NUM_COCO_KEYPOINTS):
+                if keypoints[i,0] != 0 and keypoints[i,1] != 0:
+                    valid[i] = 1
+
+                    if i % 2 == 0:
+                        x_right.append(keypoints[i,0])
+                        y_right.append(keypoints[i,1])
+                    else:
+                        x_left.append(keypoints[i,0])
+                        y_left.append(keypoints[i,1])
+
+            if show_skeleton:
+                color_index = 0
+                for i in range(len(COCO_SKELETON)):
+                    # joint a to joint b
+                    a = COCO_SKELETON[i, 0]
+                    b = COCO_SKELETON[i, 1]
+
+                    # if both are valid keypoints
+                    if valid[a] and valid[b]:
+                        # linewidth = 5, linestyle = "--",
+                        plt.plot([keypoints[a,0],keypoints[b,0]], [keypoints[a,1], keypoints[b,1]], color = COLOUR_MAP[color_index % 10])
+
+                        color_index += 1
+
+            plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
+            plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
+            plt.imshow(X_batch)
+            plt.savefig(os.path.join(self.output_sub_dir, name), bbox_inches='tight', transparent=False, dpi=300)
+            plt.close()
 
     def heatmap_to_COCO_format(self, predicted_hm_batch, metadata_batch):
         list_of_predictions = []
@@ -256,55 +347,6 @@ class Evaluation():
                 stacked_hourglass_heatmaps = np.vstack((stacked_hourglass_heatmaps, stacked_predict_heatmaps))
         return stacked_hourglass_heatmaps
 
-
-    """
-    Visualize the set of keypoints on the model image.
-
-    Note, it is assumed that the images are the transformed size for now
-
-    ## Parameters
-
-    keypoints : {list of (x,y,score)}
-    """
-    def visualize_keypoints(self, X_batch, keypoints, filename):
-        # TODO batch functionality
-
-        # Plot predicted keypoints on bounding box image
-        x_left = []
-        y_left = []
-        x_right = []
-        y_right = []
-        valid = np.zeros(NUM_COCO_KEYPOINTS)
-
-        for i in range(NUM_COCO_KEYPOINTS):
-            if keypoints[i,0] != 0 and keypoints[i,1] != 0:
-                valid[i] = 1
-
-                if i % 2 == 0:
-                    x_right.append(keypoints[i,0])
-                    y_right.append(keypoints[i,1])
-                else:
-                    x_left.append(keypoints[i,0])
-                    y_left.append(keypoints[i,1])
-
-        color_index = 0
-        for i in range(len(COCO_SKELETON)):
-            # joint a to joint b
-            a = COCO_SKELETON[i, 0]
-            b = COCO_SKELETON[i, 1]
-
-            # if both are valid keypoints
-            if valid[a] and valid[b]:
-                # linewidth = 5, linestyle = "--",
-                plt.plot([keypoints[a,0],keypoints[b,0]], [keypoints[a,1], keypoints[b,1]], color = COLOUR_MAP[color_index % 10])
-
-                color_index += 1
-
-        plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
-        plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
-        plt.imshow(X_batch)
-        plt.savefig(os.path.join(DEFAULT_OUTPUT_BASE_DIR, f'{filename}_saved_scatter.png'), bbox_inches='tight', transparent=False, dpi=300)
-
     #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
     def _save_stacked_evaluation_heatmaps(self, X, y, filename, predicted_heatmaps):
         stacked_predict_heatmaps=self._stacked_predict_heatmaps(predicted_heatmaps)
@@ -324,7 +366,7 @@ class Evaluation():
         # Resize and vertically stack heatmap images
         img_v_resize = self._vstack_images(heatmap_imgs)
 
-        cv2.imwrite(os.path.join(self.output_sub_dir,filename), img_v_resize)
+        cv2.imwrite(os.path.join(self.output_sub_dir, filename), img_v_resize)
 
     # Resources for heatmaps to keypoints
     # https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/eddf0ae15715a88d7859847cfff5f5092b260ae1/src/eval/heatmap_process.py#L5
