@@ -9,7 +9,7 @@ import os
 # %matplotlib inline
 
 h = HourglassNet(NUM_COCO_KEYPOINTS,DEFAULT_NUM_HG,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
-_, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
+train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAULT_VAL_ANNOT_PATH,0.1)
 
 # %% Declare evaluation class instance
 import pandas as pd
@@ -18,11 +18,12 @@ import HeatMap
 imp.reload(evaluation)
 imp.reload(HeatMap)
 
+# %%
 representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
-subdir = '2021-04-01-22h-18m_batchsize_16_hg_4_loss_keras_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_sigmoid_subset_0.50'
+subdir = '2021-04-01-21h-59m_batchsize_16_hg_4_loss_weighted_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_sigmoid_subset_0.50_lrfix'
 eval = evaluation.Evaluation(
     model_sub_dir=subdir,
-    epoch=30)
+    epoch=26)
 
 # %% Save stacked evaluation heatmaps
 import data_generator
