@@ -455,7 +455,7 @@ class Evaluation():
                 vis_new = 1
                 list_of_scores[i] = conf
 
-            predicted_labels[base] = x_new
+            predicted_labels[base]     = x_new
             predicted_labels[base + 1] = y_new
             predicted_labels[base + 2] = vis_new
 
