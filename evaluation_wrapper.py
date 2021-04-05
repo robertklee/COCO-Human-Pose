@@ -8,14 +8,20 @@ import data_generator
 import evaluation
 import hourglass
 from constants import *
+import util
 
 
 class EvaluationWrapper():
 
-    def __init__(self, model_sub_dir):
+    def __init__(self, model_sub_dir, epoch=None, model_base_dir=DEFAULT_MODEL_BASE_DIR):
         self.model_sub_dir = model_sub_dir
-        self.epoch = 24 # TODO: write method to determine default epoch
-        self.eval = evaluation.Evaluation(model_sub_dir=model_sub_dir, epoch=self.epoch)
+
+        if epoch is None:
+            self.epoch = util.get_highest_epoch_file(model_base_dir=model_base_dir, model_subdir=model_sub_dir)
+        else:
+            self.epoch = epoch
+
+        self.eval = evaluation.Evaluation(model_base_dir=model_base_dir, model_sub_dir=model_sub_dir, epoch=self.epoch)
         representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
         self.representative_set_gen = data_generator.DataGenerator( df=representative_set_df,
                                                                     base_dir=DEFAULT_VAL_IMG_PATH,
@@ -46,20 +52,14 @@ class EvaluationWrapper():
     def visalizeKeypoints(self, images=Generator.representative_set_gen):
         pass
 
-    def calculateOKS(self, epochs, set):
-        if set == Generator.representative_set_gen:
-            gen = self.representative_set_gen
-        elif set == Generator.val_gen:
-            gen = self.val_gen
+    def calculateOKS(self, epochs, genEnum):
+        gen = self._get_generator(genEnum)
         image_ids, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch)
         oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
         return oks
 
-    def calculatePCK(self, epochs, set):
-        if set == Generator.representative_set_gen:
-            gen = self.representative_set_gen
-        elif set == Generator.val_gen:
-            gen = self.val_gen
+    def calculatePCK(self, epochs, genEnum):
+        gen = self._get_generator(genEnum)
         _, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch)
         pck = self.eval.pck_eval(list_of_predictions)
         avg = sum(pck.values())
@@ -85,3 +85,11 @@ class EvaluationWrapper():
             print(f"{i}/{len(gen)}")
             i+=1
         return image_ids, list_of_predictions
+
+    def _get_generator(self, genEnum):
+        if genEnum == Generator.representative_set_gen:
+            gen = self.representative_set_gen
+        elif genEnum == Generator.val_gen:
+            gen = self.val_gen
+
+        return gen
