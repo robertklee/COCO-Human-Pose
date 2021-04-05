@@ -115,5 +115,10 @@ PCK_THRESHOLD = 0.2
 OUTPUT_STACKED_HEATMAP = 'heatmaps'
 OUTPUT_SKELETON = 'skeleton'
 
+class Generator(Enum):
+    train_gen = 0
+    val_gen = 1
+    representative_set_gen = 2
+
 # Data aug flip R/L probability
 RL_FLIP = 0.5
