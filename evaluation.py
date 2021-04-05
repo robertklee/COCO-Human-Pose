@@ -154,6 +154,17 @@ class Evaluation():
             plt.savefig(os.path.join(self.output_sub_dir, name), bbox_inches='tight', transparent=False, dpi=300)
             plt.close()
 
+    def heatmaps_to_keypoints_batch(self, heatmaps_batch, threshold=HM_TO_KP_THRESHOLD):
+        keypoints_batch = []
+        for i in range(len(heatmaps_batch)):
+            # Get predicted keypoints from last hourglass (last element of list)
+            # Dimensions are (hourglass_layer, batch, x, y, keypoint)
+            keypoints = self.heatmaps_to_keypoints(heatmaps_batch[-1, i, :, :, :])
+
+            keypoints_batch.append(keypoints)
+
+        return np.array(keypoints_batch)
+
     # Resources for heatmaps to keypoints
     # https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/eddf0ae15715a88d7859847cfff5f5092b260ae1/src/eval/heatmap_process.py#L5
     # https://github.com/david8862/tf-keras-stacked-hourglass-keypoint-detection/blob/56707252501c73b2bf2aac8fff3e22760fd47dca/hourglass/postprocess.py#L17
