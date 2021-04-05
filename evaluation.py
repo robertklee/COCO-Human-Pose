@@ -148,6 +148,34 @@ class Evaluation():
             plt.savefig(os.path.join(self.output_sub_dir, name), bbox_inches='tight', transparent=False, dpi=300)
             plt.close()
 
+    # Resources for heatmaps to keypoints
+    # https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/eddf0ae15715a88d7859847cfff5f5092b260ae1/src/eval/heatmap_process.py#L5
+    # https://github.com/david8862/tf-keras-stacked-hourglass-keypoint-detection/blob/56707252501c73b2bf2aac8fff3e22760fd47dca/hourglass/postprocess.py#L17
+
+    ### Returns np array of predicted keypoints from one image's heatmaps
+    def heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
+        keypoints = []
+        for i in range(NUM_COCO_KEYPOINTS):
+            hmap = heatmaps[:,:,i]
+            # Resize heatmap from Output DIM to Input DIM
+            resized_hmap = cv2.resize(hmap, INPUT_DIM, interpolation = cv2.INTER_LINEAR)
+            # Do a heatmap blur with gaussian_filter
+            resized_hmap = gaussian_filter(resized_hmap, REVERSE_HEATMAP_SIGMA)
+
+            # Get peak point (brightest area) in heatmap with 3x3 max filter
+            peaks = self._non_max_supression(resized_hmap, threshold, windowSize=3)
+
+            # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
+            # and get its coordinates and confidence
+            y, x = np.where(peaks == peaks.max())
+            if int(x[0]) > 0 and int(y[0]) > 0:
+                keypoints.append((int(x[0]), int(y[0]), peaks[y[0], x[0]]))
+            else:
+                keypoints.append((0, 0, 0))
+        # Turn keypoints into np array
+        keypoints = np.array(keypoints)
+        return keypoints
+
     def heatmap_to_COCO_format(self, predicted_hm_batch, metadata_batch):
         list_of_predictions = []
         image_ids = []
@@ -369,34 +397,6 @@ class Evaluation():
         img_v_resize = self._vstack_images(heatmap_imgs)
 
         cv2.imwrite(os.path.join(self.output_sub_dir, filename), img_v_resize)
-
-    # Resources for heatmaps to keypoints
-    # https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/eddf0ae15715a88d7859847cfff5f5092b260ae1/src/eval/heatmap_process.py#L5
-    # https://github.com/david8862/tf-keras-stacked-hourglass-keypoint-detection/blob/56707252501c73b2bf2aac8fff3e22760fd47dca/hourglass/postprocess.py#L17
-
-    ### Returns np array of predicted keypoints from one image's heatmaps
-    def heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
-        keypoints = []
-        for i in range(NUM_COCO_KEYPOINTS):
-            hmap = heatmaps[:,:,i]
-            # Resize heatmap from Output DIM to Input DIM
-            resized_hmap = cv2.resize(hmap, INPUT_DIM, interpolation = cv2.INTER_LINEAR)
-            # Do a heatmap blur with gaussian_filter
-            resized_hmap = gaussian_filter(resized_hmap, REVERSE_HEATMAP_SIGMA)
-
-            # Get peak point (brightest area) in heatmap with 3x3 max filter
-            peaks = self._non_max_supression(resized_hmap, threshold, windowSize=3)
-
-            # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
-            # and get its coordinates and confidence
-            y, x = np.where(peaks == peaks.max())
-            if int(x[0]) > 0 and int(y[0]) > 0:
-                keypoints.append((int(x[0]), int(y[0]), peaks[y[0], x[0]]))
-            else:
-                keypoints.append((0, 0, 0))
-        # Turn keypoints into np array
-        keypoints = np.array(keypoints)
-        return keypoints
 
     def _non_max_supression(self, plain, threshold, windowSize=3):
         # Clear values less than threshold
