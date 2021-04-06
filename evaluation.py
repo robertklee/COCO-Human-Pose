@@ -189,7 +189,9 @@ class Evaluation():
 
         samples = len(list_of_predictions)
         pck = {k: v/samples for k,v in correct_keypoints.items()}
+        pck['avg_pck'] = sum(pck.values())/len(pck)
         print("Percentage of Correct Key Points (PCK)\n")
+        print("Average PCK:     {:.2f}".format(pck['avg_pck']))
         print("Nose:            {:.2f}".format(pck["nose"]))
         print("Left Eye:        {:.2f}".format(pck["left_eye"]))
         print("Right Eye:       {:.2f}".format(pck["right_eye"]))
