@@ -78,7 +78,8 @@ class EvaluationWrapper():
 
                 if visualize_skeleton:
                     # Plot only skeleton
-                    self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, [img_id + '_no_bg' for img_id in img_id_batch])
+                    img_id_batch_bg = [f'{img_id}_no_bg' for img_id in img_id_batch]
+                    self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, img_id_batch_bg)
 
                 # Plot skeleton with image
                 self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
