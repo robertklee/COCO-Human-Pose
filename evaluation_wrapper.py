@@ -113,7 +113,12 @@ class EvaluationWrapper():
             list_of_predictions += predictions
             image_ids += imgs
 
-            util.print_progress_bar(f"Batch {i}/{len(gen)}", 1.0*i/gen_length)
+            util.print_progress_bar(1.0*i/gen_length, label=f"Batch {i}/{gen_length}")
+
+        # Flush any leftover progress bar to 100%
+        util.print_progress_bar(1, label=f"Batch {gen_length}/{gen_length}")
+        print()
+
         return image_ids, list_of_predictions
 
     def _get_generator(self, genEnum):
