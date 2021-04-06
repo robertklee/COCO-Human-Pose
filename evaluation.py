@@ -39,9 +39,19 @@ class Evaluation():
 
     # ----------------------- PUBLIC METHODS BELOW ----------------------- #
 
-    # Returns np array of predicted heatmaps for a given image and model
+    """
+    Returns np array of predicted heatmaps for a given image and model
+
+    ## Parameters
+
+    X_batch : {list of ndarrays}
+        A list of images which were used as input to the model
+
+    ## Returns:
+    output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
+    """
     def predict_heatmaps(self, X_batch):
-        return np.array(self.model.predict(X_batch)) # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
+        return np.array(self.model.predict(X_batch))
 
     """
     This method has been deprecated in favour of the `visualizeHeatmaps` method in `evaluation_wrapper`
