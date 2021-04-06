@@ -4,6 +4,7 @@ from functools import lru_cache
 import pandas as pd
 from pycocotools.coco import COCO
 
+import data_augmentation
 import data_generator
 import evaluation
 import hourglass
@@ -51,11 +52,11 @@ class EvaluationWrapper():
     def visualizeHeatmaps(self, genEnum=Generator.representative_set_gen):
         self.visualize(genEnum=genEnum, visualize_heatmaps=True, visualize_scatter=False, visualize_skeleton=False)
 
-    def visualizeKeypoints(self, genEnum=Generator.representative_set_gen, visualize_skeleton=True):
-        self.visualize(genEnum=genEnum, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=visualize_skeleton)
+    def visualizeKeypoints(self, genEnum=Generator.representative_set_gen, visualize_skeleton=True, average_flip_prediction=True):
+        self.visualize(genEnum=genEnum, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=visualize_skeleton, average_flip_prediction=average_flip_prediction)
 
     # Heatmaps is by default False because it is extremely processor intensive to calculate
-    def visualize(self, genEnum=Generator.representative_set_gen, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True):
+    def visualize(self, genEnum=Generator.representative_set_gen, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
         gen = self._get_generator(genEnum)
 
         gen_length = len(gen)
@@ -90,9 +91,18 @@ class EvaluationWrapper():
         util.print_progress_bar(1, label=f"Batch {gen_length}/{gen_length}")
         print()
 
-    def calculateOKS(self, epochs, genEnum):
+    def calculateOKS(self, epochs, genEnum, average_flip_prediction=False):
         gen = self._get_generator(genEnum)
         image_ids, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch)
+
+        if average_flip_prediction:
+            image_ids_flipped, list_of_predictions_flipped = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch, horiz_flip=True)
+            assert image_ids == image_ids_flipped
+
+            # Average flipped predictions
+            for i in range(len(list_of_predictions)):
+                list_of_predictions[i]['keypoints'] = np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_flipped[i]['keypoints'] ]), axis=0 )
+
         oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
         print(oks)
         return oks
@@ -110,7 +120,7 @@ class EvaluationWrapper():
         pass
 
     @lru_cache(maxsize=50)
-    def _full_list_of_predictions(self, gen, model_sub_dir, epoch):
+    def _full_list_of_predictions(self, gen, model_sub_dir, epoch, horiz_flip=False):
         list_of_predictions = []
         image_ids = []
 
@@ -118,10 +128,21 @@ class EvaluationWrapper():
         for i in range(gen_length):
             X_batch, _, metadata_batch = gen[i]
 
+            # X_batch has dimensions (batch, x, y, channels)
+            # Horizontally flip and get predictions
+            if horiz_flip:
+                for i in range(X_batch.shape[0]):
+                    # We need to pass it a keypoints list that we throw away
+                    Xi_flipped, _ = data_augmentation.flipRL(X_batch[i], keypoints=np.zeros((1,1,2)), probability=1)
+
+                    X_batch[i,:,:,:] = Xi_flipped
+
             predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
             imgs, predictions = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch, metadata_batch)
             list_of_predictions += predictions
             image_ids += imgs
+
+            # TODO add flip and average prediction
 
             util.print_progress_bar(1.0*i/gen_length, label=f"Batch {i}/{gen_length}")
 
