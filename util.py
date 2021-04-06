@@ -119,11 +119,14 @@ if __name__ == "__main__":
     for i in range(21):
         print_progress_bar(i/20.0, label="test")
         sleep(0.25)
+    print()
 
     for i in range(21):
         print_progress_bar(i/20.0)
         sleep(0.25)
+    print()
 
     for i in range(21):
         print_progress_bar(i/20.0, label='')
         sleep(0.25)
+    print()
