@@ -26,9 +26,16 @@ def validate_enum(EnumClass, str):
     return True
 
 def is_highest_epoch_file(model_base_dir, model_subdir, epoch_):
+    highest_epoch = get_highest_epoch_file(model_base_dir, model_subdir)
+
+    return epoch_ >= highest_epoch
+
+def get_highest_epoch_file(model_base_dir, model_subdir):
     enclosing_dir = os.path.join(model_base_dir, model_subdir)
 
     files = os.listdir(enclosing_dir)
+
+    highest_epoch = -1
 
     for f in files:
         match = re.match(MODEL_CHECKPOINT_REGEX, f)
@@ -36,10 +43,10 @@ def is_highest_epoch_file(model_base_dir, model_subdir, epoch_):
         if match:
             epoch = int(match.group(1))
 
-            if epoch > epoch_:
-                return False
+            if epoch > highest_epoch:
+                highest_epoch = epoch
 
-    return True
+    return highest_epoch
 
 def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     enclosing_dir = os.path.join(model_base_dir, model_subdir)

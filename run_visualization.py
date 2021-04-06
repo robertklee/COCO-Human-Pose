@@ -13,7 +13,7 @@ imp.reload(data_generator)
 from constants import *
 
 representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
-subdir = '2021-03-22-20h-23m_batchsize_12_hg_8_loss_weighted_mse_aug_medium_resume_2021-03-25-20h-02m'
+subdir = '2021-03-31-08h-54m_batchsize_16_hg_4_loss_weighted_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_sigmoid_subset_0.50_wmse-1-5'
 
 generator = data_generator.DataGenerator(
             df=representative_set_df,
@@ -27,7 +27,7 @@ generator = data_generator.DataGenerator(
 
 # %% Run visualization on epoch range and save images to disk
 
-epochs_to_visualize = range(34,45)
+epochs_to_visualize = [27, 28] #range(34,45)
 print("\n\nEval start:   {}\n".format(time.ctime()))
 for epoch in epochs_to_visualize:
     eval = evaluation.Evaluation(
