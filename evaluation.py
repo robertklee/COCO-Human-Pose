@@ -211,6 +211,11 @@ class Evaluation():
 
     def oks_eval(self, image_ids, list_of_predictions, cocoGt):
         cocoDt=cocoGt.loadRes(list_of_predictions)
+
+        # Convert keypoint predictions to int type
+        for i in range(len(list_of_predictions)):
+            list_of_predictions[i]["keypoints"] = list_of_predictions[i]["keypoints"].astype('int')
+
         annType = "keypoints"
         cocoEval = COCOeval(cocoGt,cocoDt,annType)
         cocoEval.params.imgIds = image_ids
