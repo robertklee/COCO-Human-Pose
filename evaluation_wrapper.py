@@ -58,7 +58,10 @@ class EvaluationWrapper():
     def visualize(self, genEnum=Generator.representative_set_gen, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True):
         gen = self._get_generator(genEnum)
 
-        for X_batch, y_stacked, m_batch in gen:
+        gen_length = len(gen)
+        for i in range(gen_length):
+            X_batch, y_stacked, m_batch = gen[i]
+
             y_batch = y_stacked[0] # take first hourglass section
 
             img_id_batch = [m['ann_id'] for m in m_batch] # image IDs are the annotation IDs
@@ -75,10 +78,16 @@ class EvaluationWrapper():
 
                 if visualize_skeleton:
                     # Plot only skeleton
-                    self.eval.visualize_keypoints(np.zeros(INPUT_DIM), keypoints_batch, [img_id + '_no_bg' for img_id in img_id_batch])
+                    self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, [img_id + '_no_bg' for img_id in img_id_batch])
 
                 # Plot skeleton with image
                 self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
+
+            util.print_progress_bar(1.0*i/gen_length, label=f"Batch {i}/{gen_length}")
+
+        # Flush any leftover progress bar to 100%
+        util.print_progress_bar(1, label=f"Batch {gen_length}/{gen_length}")
+        print()
 
     def calculateOKS(self, epochs, genEnum):
         gen = self._get_generator(genEnum)
