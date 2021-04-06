@@ -267,6 +267,11 @@ if __name__ == '__main__':
 
     for i in range(7):
         image_aug, kpsoi_aug = seq(image=image, keypoints=kpsoi)
+
+        ## Test flipping function
+        # image_aug, kpsoi_aug = flipRL(image=image, keypoints=kpsoi)
+        # kpsoi_aug = KeypointsOnImage(kpsoi_aug, shape=image.shape)
+
         images_aug.append(image_aug)
         kpsois_aug.append(kpsoi_aug)
         # We _could_ use kpsois_aug.clip_out_of_image() to remove all keypoints outside of bounds,
