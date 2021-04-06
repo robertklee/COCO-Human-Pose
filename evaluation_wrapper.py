@@ -82,14 +82,13 @@ class EvaluationWrapper():
         gen = self._get_generator(genEnum)
         image_ids, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch)
         oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
+        print(oks)
         return oks
 
     def calculatePCK(self, epochs, genEnum):
         gen = self._get_generator(genEnum)
         _, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch)
         pck = self.eval.pck_eval(list_of_predictions)
-        avg = sum(pck.values())
-        print(avg/len(pck))
         return pck
 
     def plotOKS(self, epochs):
