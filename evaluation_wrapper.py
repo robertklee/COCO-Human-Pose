@@ -1,5 +1,5 @@
-from functools import lru_cache
 import os
+from functools import lru_cache
 
 import pandas as pd
 from pycocotools.coco import COCO
@@ -7,8 +7,8 @@ from pycocotools.coco import COCO
 import data_generator
 import evaluation
 import hourglass
-from constants import *
 import util
+from constants import *
 
 
 class EvaluationWrapper():
@@ -103,14 +103,17 @@ class EvaluationWrapper():
     def _full_list_of_predictions(self, gen, model_sub_dir, epoch):
         list_of_predictions = []
         image_ids = []
-        i = 1
-        for X_batch, _, metadata_batch in gen:
+
+        gen_length = len(gen)
+        for i in range(gen_length):
+            X_batch, _, metadata_batch = gen[i]
+
             predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
             imgs, predictions = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch, metadata_batch)
             list_of_predictions += predictions
             image_ids += imgs
-            print(f"{i}/{len(gen)}")
-            i+=1
+
+            util.print_progress_bar(f"Batch {i}/{len(gen)}", 1.0*i/gen_length)
         return image_ids, list_of_predictions
 
     def _get_generator(self, genEnum):
