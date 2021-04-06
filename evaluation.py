@@ -156,6 +156,8 @@ class Evaluation():
 
     def heatmaps_to_keypoints_batch(self, heatmaps_batch, threshold=HM_TO_KP_THRESHOLD):
         keypoints_batch = []
+
+        # dimensions are (num_hg_blocks, batch, x, y, keypoint)
         for i in range(heatmaps_batch.shape[1]):
             # Get predicted keypoints from last hourglass (last element of list)
             # Dimensions are (hourglass_layer, batch, x, y, keypoint)
