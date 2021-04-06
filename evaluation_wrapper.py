@@ -18,6 +18,8 @@ class EvaluationWrapper():
 
         if epoch is None:
             self.epoch = util.get_highest_epoch_file(model_base_dir=model_base_dir, model_subdir=model_sub_dir)
+
+            print(f'Automatically using largest epoch {self.epoch:3d}...\n')
         else:
             self.epoch = epoch
 
