@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import unicodedata
 
 from constants import *
@@ -96,3 +97,11 @@ def slugify(value, allow_unicode=False):
         value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
     value = re.sub(r'[^\w\s-]', '', value.lower())
     return re.sub(r'[-\s]+', '-', value).strip('-_')
+
+# https://stackoverflow.com/questions/3002085/python-to-print-out-status-bar-and-percentage
+def print_progress_bar(label, percent):
+    width = 20 # This width is fixed.
+    sys.stdout.write('\r')
+    # the exact output you're looking for:
+    sys.stdout.write("%s: [%-20s] %d%%" % (label, '='*int(percent*width), int(percent*100)))
+    sys.stdout.flush()
