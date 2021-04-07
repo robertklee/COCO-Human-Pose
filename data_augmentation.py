@@ -219,8 +219,8 @@ def get_augmenter_pipeline(strength_enum):
 
     return aug_pipeline
 
-def flipRL(image, keypoints):
-    if random.random() < RL_FLIP:
+def flipRL(image, keypoints, probability=RL_FLIP):
+    if random.random() > probability:
         return image, keypoints
     flip = iaa.Fliplr(1.0)
     flipped_img, flipped_kps = flip(image=image, keypoints=keypoints)
@@ -228,6 +228,7 @@ def flipRL(image, keypoints):
     flipped_fixed_kps = [flipped_kps[0]] + flat_map(lambda pair : (pair[1],pair[0]), zip(flipped_kps[1::2],flipped_kps[2::2]))
     # Leave nose unchanged, flip every pair of eye, ear, etc...
     return flipped_img, flipped_fixed_kps
+
 # %% Load sample image
 if __name__ == '__main__':
     image = imageio.imread('./data/Macropus_rufogriseus_rufogriseus_Bruny.jpg')
@@ -266,6 +267,11 @@ if __name__ == '__main__':
 
     for i in range(7):
         image_aug, kpsoi_aug = seq(image=image, keypoints=kpsoi)
+
+        ## Test flipping function
+        # image_aug, kpsoi_aug = flipRL(image=image, keypoints=kpsoi)
+        # kpsoi_aug = KeypointsOnImage(kpsoi_aug, shape=image.shape)
+
         images_aug.append(image_aug)
         kpsois_aug.append(kpsoi_aug)
         # We _could_ use kpsois_aug.clip_out_of_image() to remove all keypoints outside of bounds,
