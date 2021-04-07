@@ -27,10 +27,12 @@ class Evaluation():
             self.output_sub_dir = os.path.join(output_base_dir, match.group(1), str(self.epoch))
         else:
             self.output_sub_dir = os.path.join(output_base_dir, self.model_sub_dir, str(self.epoch))
+
+        self.model_json, self.weights, _ = util.find_resume_json_weights_str(model_base_dir, model_sub_dir, epoch)
+
         if not os.path.exists(self.output_sub_dir):
             os.makedirs(self.output_sub_dir)
 
-        self.model_json, self.weights, _ = util.find_resume_json_weights_str(model_base_dir, model_sub_dir, epoch)
         self.num_hg_blocks = int(re.match(r'.*stacks_([\d]+).*$',self.model_json).group(1))
         h = hourglass.HourglassNet(NUM_COCO_KEYPOINTS,self.num_hg_blocks,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
         h._load_model(self.model_json, self.weights)
@@ -39,9 +41,19 @@ class Evaluation():
 
     # ----------------------- PUBLIC METHODS BELOW ----------------------- #
 
-    # Returns np array of predicted heatmaps for a given image and model
+    """
+    Returns np array of predicted heatmaps for a given image and model
+
+    ## Parameters
+
+    X_batch : {list of ndarrays}
+        A list of images which were used as input to the model
+
+    ## Returns:
+    output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
+    """
     def predict_heatmaps(self, X_batch):
-        return np.array(self.model.predict(X_batch)) # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
+        return np.array(self.model.predict(X_batch))
 
     """
     This method has been deprecated in favour of the `visualizeHeatmaps` method in `evaluation_wrapper`
@@ -156,7 +168,9 @@ class Evaluation():
 
     def heatmaps_to_keypoints_batch(self, heatmaps_batch, threshold=HM_TO_KP_THRESHOLD):
         keypoints_batch = []
-        for i in range(len(heatmaps_batch)):
+
+        # dimensions are (num_hg_blocks, batch, x, y, keypoint)
+        for i in range(heatmaps_batch.shape[1]):
             # Get predicted keypoints from last hourglass (last element of list)
             # Dimensions are (hourglass_layer, batch, x, y, keypoint)
             keypoints = self.heatmaps_to_keypoints(heatmaps_batch[-1, i, :, :, :])
@@ -211,6 +225,11 @@ class Evaluation():
 
     def oks_eval(self, image_ids, list_of_predictions, cocoGt):
         cocoDt=cocoGt.loadRes(list_of_predictions)
+
+        # Convert keypoint predictions to int type
+        for i in range(len(list_of_predictions)):
+            list_of_predictions[i]["keypoints"] = list_of_predictions[i]["keypoints"].astype('int')
+
         annType = "keypoints"
         cocoEval = COCOeval(cocoGt,cocoDt,annType)
         cocoEval.params.imgIds = image_ids
