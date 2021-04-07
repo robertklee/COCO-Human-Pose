@@ -14,16 +14,8 @@ from constants import *
 class EvaluationWrapper():
 
     def __init__(self, model_sub_dir, epoch=None, model_base_dir=DEFAULT_MODEL_BASE_DIR):
-        self.model_sub_dir = model_sub_dir
+        self.update_model(model_sub_dir, epoch=None, model_base_dir=DEFAULT_MODEL_BASE_DIR)
 
-        if epoch is None:
-            self.epoch = util.get_highest_epoch_file(model_base_dir=model_base_dir, model_subdir=model_sub_dir)
-
-            print(f'Automatically using largest epoch {self.epoch:3d}...\n')
-        else:
-            self.epoch = epoch
-
-        self.eval = evaluation.Evaluation(model_base_dir=model_base_dir, model_sub_dir=model_sub_dir, epoch=self.epoch)
         representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
         self.representative_set_gen = data_generator.DataGenerator( df=representative_set_df,
                                                                     base_dir=DEFAULT_VAL_IMG_PATH,
@@ -47,6 +39,18 @@ class EvaluationWrapper():
                                                     is_eval=True)
         self.cocoGt = COCO(DEFAULT_VAL_ANNOT_PATH)
         print("Initialized Evaluation Wrapper!")
+
+    def update_model(self, model_sub_dir, epoch=None, model_base_dir=DEFAULT_MODEL_BASE_DIR):
+        self.model_sub_dir = model_sub_dir
+
+        if epoch is None:
+            self.epoch = util.get_highest_epoch_file(model_base_dir=model_base_dir, model_subdir=model_sub_dir)
+
+            print(f'Automatically using largest epoch {self.epoch:3d}...\n')
+        else:
+            self.epoch = epoch
+
+        self.eval = evaluation.Evaluation(model_base_dir=model_base_dir, model_sub_dir=model_sub_dir, epoch=self.epoch)
 
     def visualizeHeatmaps(self, genEnum=Generator.representative_set_gen):
         self.visualize(genEnum=genEnum, visualize_heatmaps=True, visualize_scatter=False, visualize_skeleton=False)
