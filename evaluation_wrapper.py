@@ -148,6 +148,8 @@ class EvaluationWrapper():
             for i in range(len(list_of_predictions)):
                 # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
                 for j in range(NUM_COCO_KEYPOINTS):
+                    # This code is required so if one version detects the keypoint (x,y,1),
+                    # and the other doesn't (0,0,0), we don't average them to be (x/2, y/2, 0.5)
                     base = j * NUM_COCO_KP_ATTRBS
 
                     n = 0
