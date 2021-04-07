@@ -84,15 +84,21 @@ def run_app_temp(img, f, demo):
 
     
 def run_app(img, f, demo):
-    if demo == True:
-        rescale_f = cv2.imread(img)
-        rescale_f = cv2.cvtColor(rescale_f,cv2.COLOR_BGR2RGB)
-        rescale_f = cv2.resize(rescale_f, dsize=(256,256))
-        left_column, right_column = st.beta_columns(2)
-        left_column.image(rescale_f, caption = "Selected Input")
-    else:
-        left_column, right_column = st.beta_columns(2)
-        left_column.image(f, caption = "Selected Input")
+
+    # if demo == True:
+    #     rescale_f = cv2.imread(img)
+    #     rescale_f = cv2.cvtColor(rescale_f,cv2.COLOR_BGR2RGB)
+    #     rescale_f = cv2.resize(rescale_f, dsize=(256,256))
+    #     left_column, right_column = st.beta_columns(2)
+    #     left_column.image(rescale_f, caption = "Selected Input")
+    # else:
+    #     left_column, right_column = st.beta_columns(2)
+    #     left_column.image(f, caption = "Selected Input")
+
+    left_column, right_column = st.beta_columns(2)
+    xb, yb = evaluation.load_and_preprocess_img(img,4)
+    left_column.image(xb[0], caption = "Selected Input")
+
 
     @st.cache(allow_output_mutation=True, hash_funcs=HASH_FUNCS)
     def load(subdir):
