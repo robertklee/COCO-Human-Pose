@@ -115,15 +115,37 @@ class EvaluationWrapper():
         print()
 
         if average_flip_prediction:
-            print('Predicting over all batches, horizontally flipping input and transforming output back...')
+            print('Predicting over all batches using a horizontally flipped input, with prediction coordinates transformed back...')
             image_ids_2, list_of_predictions_2 = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch, predict_using_flip=True)
             print()
 
             assert image_ids == image_ids_2, "Expected the image IDs should be in the same order"
-
+            eps = 1e-3
             for i in range(len(list_of_predictions)):
                 # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
-                list_of_predictions[i]['keypoints'] = np.round(np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'] ]), axis=0 ))
+                for j in range(NUM_COCO_KEYPOINTS):
+                    base = j * NUM_COCO_KP_ATTRBS
+
+                    n = 0
+                    x_sum = 0
+                    y_sum = 0
+
+                    if list_of_predictions[i]['keypoints'][base+2] == 1:
+                        x_sum += list_of_predictions[i]['keypoints'][base]
+                        y_sum += list_of_predictions[i]['keypoints'][base + 1]
+                        n += 1
+
+                    if list_of_predictions_2[i]['keypoints'][base+2] == 1:
+                        x_sum += list_of_predictions_2[i]['keypoints'][base]
+                        y_sum += list_of_predictions_2[i]['keypoints'][base + 1]
+                        n += 1
+
+                    if n > 0:
+                        list_of_predictions[i]['keypoints'][base] = round(x_sum / n)
+                        list_of_predictions[i]['keypoints'][base + 1] = round(y_sum / n)
+                        list_of_predictions[i]['keypoints'][base + 2] = 1
+
+                    # list_of_predictions[i]['keypoints'] = np.round(np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'] ]), axis=0 ))
 
         return image_ids, list_of_predictions
 
