@@ -15,4 +15,4 @@ Another subset of HPE is hand pose estimation which can be used to translate sig
 ☞ CENTER the human
 ☞ HAVE FUN
 
-📞 Our team members are here to answer questions. Please refer to **Contact Information** under **Meet the Team**. 
+📞 Our team members are here to answer questions. Please refer to **Contact Information** under **Meet the Team**.
