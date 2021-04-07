@@ -1,28 +1,34 @@
+import imp
+
 import streamlit as st
 from streamlit.elements.vega_lite import _CHANNELS
+
 import hourglass
-import imp
+
 imp.reload(hourglass)
-from hourglass import HourglassNet
-from constants import *
-import matplotlib.pyplot as plt
+import io
 import os
-import pandas as pd
-import numpy as np
-import urllib.request
 import ssl
-from util import *
-import evaluation
-import data_generator
-from PIL import  Image
+import tempfile
+import urllib.request
+
+import cv2
 import matplotlib
 import matplotlib.pyplot as plt
-from HeatMap import HeatMap
-from tensorflow import keras
+import numpy as np
+import pandas as pd
 import tensorflow as tf
-import tempfile
-import io
-import cv2
+from PIL import Image
+from tensorflow import keras
+
+import data_generator
+import evaluation
+from constants import *
+import evaluation_wrapper
+from HeatMap import HeatMap
+from hourglass import HourglassNet
+from util import *
+from PIL import Image
 
 HASH_FUNCS = {
     tf.Session : id
@@ -52,6 +58,29 @@ def get_file_content_as_string(path):
     url = 'https://raw.githubusercontent.com/robertklee/COCO-Human-Pose/master/' + path
     response = urllib.request.urlopen(url)
     return response.read().decode("utf-8")
+
+def run_app_temp(img, f, demo):
+    if demo == True:
+        rescale_f = cv2.imread(img)
+        rescale_f = cv2.cvtColor(rescale_f,cv2.COLOR_BGR2RGB)
+        rescale_f = cv2.resize(rescale_f, dsize=(256,256))
+        left_column, right_column = st.beta_columns(2)
+        left_column.image(rescale_f, caption = "Selected Input")
+    else:
+        left_column, right_column = st.beta_columns(2)
+        left_column.image(f, caption = "Selected Input")
+
+    @st.cache(allow_output_mutation=True, hash_funcs=HASH_FUNCS)
+    def load_model(subdir):
+        config = tf.ConfigProto(allow_soft_placement=True)
+        session = tf.Session(config=config)
+
+        with session.as_default():
+            eval = evaluation_wrapper.EvaluationWrapper(modle_sub_dir = subdir, epoch=26)
+            eval.visualizeKeypoints(img)
+
+
+        
 
     
 def run_app(img, f, demo):
@@ -114,9 +143,13 @@ def run_app(img, f, demo):
                 y.append(keypoints[i,1])
         plt.scatter(x,y)
         plt.imshow(img_output)
-        plt.savefig('output.png')
-        right_column.image('output.png',  caption = "Predicted Keypoints")
-        st.image('output.png', caption = 'FINAL: Predicted Pose')
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+        plt.close('all')
+        buf.seek(0)
+        right_column.image(buf,  caption = "Predicted Keypoints")
+        st.image(buf, caption = 'FINAL: Predicted Pose')
+        buf.close()
        
     
 def demo():
