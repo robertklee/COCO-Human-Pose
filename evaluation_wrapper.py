@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 
+import keras
 import pandas as pd
 from pycocotools.coco import COCO
 
@@ -41,6 +42,9 @@ class EvaluationWrapper():
         print("Initialized Evaluation Wrapper!")
 
     def update_model(self, model_sub_dir, epoch=None, model_base_dir=DEFAULT_MODEL_BASE_DIR):
+        # Clear backend session to prevent running out of memory
+        keras.backend.clear_session()
+
         self.model_sub_dir = model_sub_dir
 
         if epoch is None:
