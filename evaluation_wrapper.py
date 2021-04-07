@@ -1,3 +1,4 @@
+import csv
 import os
 from functools import lru_cache
 
@@ -118,14 +119,28 @@ class EvaluationWrapper():
         gen = self._get_generator(genEnum)
         image_ids, list_of_predictions = self._full_list_of_predictions_wrapper(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)
         oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
-        print(oks)
-        return oks
+        self._append_to_results_file('oks.csv', oks, oks.keys())
+
 
     def calculatePCK(self, epochs, genEnum, average_flip_prediction=False):
+        # one epoch provided
+        # or no epoch provided
+        # or range of epochs provided
         gen = self._get_generator(genEnum)
         _, list_of_predictions = self._full_list_of_predictions_wrapper(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)
         pck = self.eval.pck_eval(list_of_predictions)
-        return pck
+        self._append_to_results_file('pck.csv', pck, pck.keys())
+
+    def _append_to_results_file(self, file_name, row_dict, header):
+        row_dict['epoch'] = self.epoch
+        row_dict['model'] = self.model_sub_dir
+        file_path = os.path.join(DEFAULT_OUTPUT_BASE_DIR, self.model_sub_dir, file_name)
+        results_exist = os.path.isfile(file_path)
+        with open(file_path, 'a') as f:
+            dict_writer = csv.DictWriter(f, delimiter=',', fieldnames=header)
+            if not results_exist:
+                dict_writer.writeheader()
+            dict_writer.writerow(row_dict)
 
     def plotOKS(self, epochs):
         pass
