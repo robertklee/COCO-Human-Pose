@@ -92,14 +92,14 @@ class EvaluationWrapper():
 
     def calculateOKS(self, epochs, genEnum, average_flip_prediction=False):
         gen = self._get_generator(genEnum)
-        image_ids, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)
+        image_ids, list_of_predictions = self._full_list_of_predictions_wrapper(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)
         oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
         print(oks)
         return oks
 
     def calculatePCK(self, epochs, genEnum, average_flip_prediction=False):
         gen = self._get_generator(genEnum)
-        _, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)
+        _, list_of_predictions = self._full_list_of_predictions_wrapper(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)
         pck = self.eval.pck_eval(list_of_predictions)
         return pck
 
@@ -109,8 +109,26 @@ class EvaluationWrapper():
     def plotPCK(self, epochs):
         pass
 
+    def _full_list_of_predictions_wrapper(self, gen, model_sub_dir, epoch, average_flip_prediction=False):
+        print('Predicting over all batches...')
+        image_ids, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch, predict_using_flip=False)
+        print()
+
+        if average_flip_prediction:
+            print('Predicting over all batches, horizontally flipping input and transforming output back...')
+            image_ids_2, list_of_predictions_2 = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch, predict_using_flip=True)
+            print()
+
+            assert image_ids == image_ids_2, "Expected the image IDs should be in the same order"
+
+            for i in range(len(list_of_predictions)):
+                # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
+                list_of_predictions[i]['keypoints'] = np.round(np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'] ]), axis=0 ))
+
+        return image_ids, list_of_predictions
+
     @lru_cache(maxsize=50)
-    def _full_list_of_predictions(self, gen, model_sub_dir, epoch, average_flip_prediction=False):
+    def _full_list_of_predictions(self, gen, model_sub_dir, epoch, predict_using_flip=False):
         list_of_predictions = []
         image_ids = []
 
@@ -118,13 +136,10 @@ class EvaluationWrapper():
         for i in range(gen_length):
             X_batch, _, metadata_batch = gen[i]
 
-            predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
-            imgs, predictions = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch, metadata_batch)
-
             # X_batch has dimensions (batch, x, y, channels)
             # Run both original and flipped image through and average the predictions
             # Typically increases accuracy by a few percent
-            if average_flip_prediction:
+            if predict_using_flip:
                 # Copy by reference NOTE X_batch is modified __in place__
                 # Horizontal flip each image in batch
                 X_batch_flipped = X_batch[:,:,::-1,:]
@@ -137,16 +152,11 @@ class EvaluationWrapper():
                 reverse_LR_indices = [0] + [2*x-y for x in range(1,9) for y in range(2)]
 
                 # reverse horizontal flip AND reverse left/right heatmaps
-                predicted_heatmaps_batch_flipped = predicted_heatmaps_batch_flipped[:,:,:,::-1,reverse_LR_indices]
+                predicted_heatmaps_batch = predicted_heatmaps_batch_flipped[:,:,:,::-1,reverse_LR_indices]
+            else:
+                predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
 
-                imgs_2, predictions_2 = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch_flipped, metadata_batch)
-
-                assert imgs == imgs_2, "Image order should be unchanged"
-
-                for batch in range(len(predictions)):
-                    # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
-                    predictions[batch]['keypoints'] = np.mean( np.array([ predictions[batch]['keypoints'], predictions_2[batch]['keypoints'] ]), axis=0 )
-
+            imgs, predictions = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch, metadata_batch)
             list_of_predictions += predictions
             image_ids += imgs
 
