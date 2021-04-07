@@ -41,6 +41,22 @@ class EvaluationWrapper():
         self.cocoGt = COCO(DEFAULT_VAL_ANNOT_PATH)
         print("Initialized Evaluation Wrapper!")
 
+
+    """
+    K.clear_session() is useful when you're creating multiple models in succession,
+    such as during hyperparameter search or cross-validation. Each model you train
+    adds nodes (potentially numbering in the thousands) to the graph. TensorFlow
+    executes the entire graph whenever you (or Keras) call tf.Session.run() or
+    tf.Tensor.eval(), so your models will become slower and slower to train, and you
+    may also run out of memory. Clearing the session removes all the nodes left over
+    from previous models, freeing memory and preventing slowdown.
+
+    See https://stackoverflow.com/questions/50895110/what-do-i-need-k-clear-session-and-del-model-for-keras-with-tensorflow-gpu
+    """
+    def __del__(self):
+        # Clear backend session to prevent running out of memory
+        keras.backend.clear_session()
+
     def update_model(self, model_sub_dir, epoch=None, model_base_dir=DEFAULT_MODEL_BASE_DIR):
         # Clear backend session to prevent running out of memory
         keras.backend.clear_session()
