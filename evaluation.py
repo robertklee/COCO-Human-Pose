@@ -219,7 +219,20 @@ class Evaluation():
         cocoEval.accumulate()
         print('\nSummary: ')
         cocoEval.summarize()
-        return cocoEval.stats
+        stats = cocoEval.stats
+        oks = {
+            'Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ]': stats[0],
+            'Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ]': stats[1],
+            'Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ]': stats[2],
+            'Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ]': stats[3],
+            'Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ]': stats[4],
+            'Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ]': stats[5],
+            'Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ]': stats[6],
+            'Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ]': stats[7],
+            'Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ]': stats[8],
+            'Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ]': stats[9]
+        }
+        return oks
 
     # This function evaluates PCK@0.2 == Distance between predicted and true joint < 0.2 * torso diameter
     # The PCK_THRESHOLD constant can be updated to adjust this threshold
@@ -336,9 +349,9 @@ class Evaluation():
 
         samples = len(list_of_predictions)
         pck = {k: v/samples for k,v in correct_keypoints.items()}
-        pck['avg_pck'] = sum(pck.values())/len(pck)
+        pck['avg'] = sum(pck.values())/len(pck)
         print("Percentage of Correct Key Points (PCK)\n")
-        print("Average PCK:     {:.2f}".format(pck['avg_pck']))
+        print("Average PCK:     {:.2f}".format(pck['avg']))
         print("Nose:            {:.2f}".format(pck["nose"]))
         print("Left Eye:        {:.2f}".format(pck["left_eye"]))
         print("Right Eye:       {:.2f}".format(pck["right_eye"]))
