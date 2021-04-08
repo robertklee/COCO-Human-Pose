@@ -111,4 +111,5 @@ class HeatMap:
         # NOTE that the read image size is too large because of plt's default size.
         heatmap_array = np.array(im)
         buf.close()
+        im.close()
         return heatmap_array
