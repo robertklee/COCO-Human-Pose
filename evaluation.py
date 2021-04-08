@@ -49,16 +49,19 @@ class Evaluation():
     X_batch : {list of ndarrays}
         A list of images which were used as input to the model
 
+    predict_using_flip : {bool}
+        Perform prediction using a flipped version of the input. NOTE the output will be transformed
+        back into the original image coordinate space. Treat this output as you would a normal prediction.
+
     ## Returns:
     output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
     """
     def predict_heatmaps(self, X_batch, predict_using_flip=False):
         def _predict(X_batch):
+            # Instead of calling model.predict or model.predict_on_batch, we call model by itself.
+            # See https://stackoverflow.com/questions/66271988/warningtensorflow11-out-of-the-last-11-calls-to-triggered-tf-function-retracin
+            # This should fix our memory leak in keras
             return np.array(self.model(X_batch))
-
-        # Instead of calling model.predict or model.predict_on_batch, we call model by itself.
-        # See https://stackoverflow.com/questions/66271988/warningtensorflow11-out-of-the-last-11-calls-to-triggered-tf-function-retracin
-        # This should fix our memory leak in keras
 
         # X_batch has dimensions (batch, x, y, channels)
         # Run both original and flipped image through and average the predictions
