@@ -53,11 +53,13 @@ eval.visualizeKeypoints(constants.Generator.representative_set_gen)
 
 elapsed = time.time() - start
 print("Total keypoint time: {}".format(str(timedelta(seconds=elapsed))))
-# %%
+# %% Run on arbitrary images
 img_name = 'IMG_3320.JPG'
 name_no_extension = img_name.split('.')[0]
+user_img_dir = 'user_img'
 
-img_path = os.path.join(constants.DEFAULT_DATA_BASE_DIR, img_name)
+img_path = os.path.join(constants.DEFAULT_DATA_BASE_DIR, user_img_dir, img_name)
 
 eval.predict_on_image(img_path, name_no_extension)
+eval.predict_on_image(img_path, name_no_extension + '_flip', average_flip_prediction=True)
 # %%
