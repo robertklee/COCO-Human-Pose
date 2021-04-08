@@ -1,4 +1,5 @@
 import csv
+import imghdr
 import os
 from functools import lru_cache
 
@@ -73,21 +74,39 @@ class EvaluationWrapper():
 
         self.eval = evaluation.Evaluation(model_base_dir=model_base_dir, model_sub_dir=model_sub_dir, epoch=self.epoch)
 
-    def predict_on_image(self, img_path, img_id, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
-        # Number of hg blocks doesn't matter
-        X_batch, y_stacked = evaluation.load_and_preprocess_img(img_path, 1)
-        y_batch = y_stacked[0] # take first hourglass section
-        img_id_batch = [img_id]
+    def predict_on_path(self, path, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
+        image_paths = []
+        # https://www.w3resource.com/python-exercises/python-basic-exercise-85.php
+        if os.path.isdir(path):
+            files = os.listdir(path)
 
-        self._predict_and_visualize(
-            X_batch,
-            y_batch,
-            img_id_batch,
-            visualize_heatmaps=visualize_heatmaps,
-            visualize_scatter=visualize_scatter,
-            visualize_skeleton=visualize_skeleton,
-            average_flip_prediction=average_flip_prediction
-        )
+            for file in files:
+                filepath = os.path.join(path, file)
+                if imghdr.what(filepath) is not None:
+                    image_paths.append(filepath)
+        elif os.path.isfile(path):
+            image_paths += path
+        else:
+            # It is a special file (socket, FIFO, device file)
+            raise ValueError('Invalid path provided')
+
+        for image_path in image_paths:
+            # Number of hg blocks doesn't matter
+            X_batch, y_stacked = evaluation.load_and_preprocess_img(image_path, 1)
+            y_batch = y_stacked[0] # take first hourglass section
+            # https://stackoverflow.com/questions/678236/how-to-get-the-filename-without-the-extension-from-a-path-in-python
+            img_id = os.path.splitext(os.path.basename(image_path))[0]
+            img_id_batch = [img_id]
+
+            self._predict_and_visualize(
+                X_batch,
+                y_batch,
+                img_id_batch,
+                visualize_heatmaps=visualize_heatmaps,
+                visualize_scatter=visualize_scatter,
+                visualize_skeleton=visualize_skeleton,
+                average_flip_prediction=average_flip_prediction
+            )
 
     def visualizeHeatmaps(self, genEnum=Generator.representative_set_gen):
         self.visualize(genEnum=genEnum, visualize_heatmaps=True, visualize_scatter=False, visualize_skeleton=False)
@@ -171,7 +190,10 @@ class EvaluationWrapper():
 
                 keypoints_batch_2 = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch_2)
 
+                img_id_batch = [f'{img_id}_avg_lr' for img_id in img_id_batch]
+
                 for i in range(keypoints_batch.shape[0]):
+                    # Average predictions from normal and flipped input
                     keypoints_batch[i] = self._average_LR_flip_predictions(keypoints_batch[i], keypoints_batch_2[i], coco_format=False)
 
             if visualize_skeleton:
