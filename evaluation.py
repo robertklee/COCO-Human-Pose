@@ -53,7 +53,10 @@ class Evaluation():
     output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
     """
     def predict_heatmaps(self, X_batch):
-        return np.array(self.model.predict_on_batch(X_batch))
+        # Instead of calling model.predict or model.predict_on_batch, we call model by itself.
+        # See https://stackoverflow.com/questions/66271988/warningtensorflow11-out-of-the-last-11-calls-to-triggered-tf-function-retracin
+        # This should fix our memory leak in keras
+        return np.array(self.model(X_batch))
 
     """
     This method has been deprecated in favour of the `visualizeHeatmaps` method in `evaluation_wrapper`
