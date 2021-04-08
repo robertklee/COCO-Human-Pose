@@ -167,10 +167,12 @@ class EvaluationWrapper():
 
             if average_flip_prediction:
                 # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
-                keypoints_batch_2 = self.eval.predict_heatmaps(X_batch=X_batch, predict_using_flip=True)
+                predicted_heatmaps_batch_2 = self.eval.predict_heatmaps(X_batch=X_batch, predict_using_flip=True)
 
-                for i in range(predicted_heatmaps_batch.shape[0]):
-                    keypoints_batch[i] = self._average_LR_flip_predictions(keypoints_batch[i], keypoints_batch_2[i])
+                keypoints_batch_2 = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch_2)
+
+                for i in range(keypoints_batch.shape[0]):
+                    keypoints_batch[i] = self._average_LR_flip_predictions(keypoints_batch[i], keypoints_batch_2[i], coco_format=False)
 
             if visualize_skeleton:
                 # Plot only skeleton
@@ -180,9 +182,14 @@ class EvaluationWrapper():
             # Plot skeleton with image
             self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
 
-    def _average_LR_flip_predictions(self, prediction_1, prediction_2):
+    def _average_LR_flip_predictions(self, prediction_1, prediction_2, coco_format=True):
         # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
-        output_prediction = prediction_1
+        original_shape = prediction_1.shape
+
+        prediction_1_flat = prediction_1.flatten()
+        prediction_2_flat = prediction_2.flatten()
+
+        output_prediction = prediction_1_flat
 
         for j in range(NUM_COCO_KEYPOINTS):
             # This code is required so if one version detects the keypoint (x,y,1),
@@ -192,27 +199,33 @@ class EvaluationWrapper():
             n = 0
             x_sum = 0
             y_sum = 0
+            vc_sum = 0 # Could be visibility or confidence
 
             # Verify visibility flag
-            if prediction_1[base+2] == 1:
-                x_sum += prediction_1[base]
-                y_sum += prediction_1[base + 1]
+            if prediction_1_flat[base+2] >= HM_TO_KP_THRESHOLD:
+                x_sum += prediction_1_flat[base]
+                y_sum += prediction_1_flat[base + 1]
+                vc_sum += prediction_1_flat[base + 2]
                 n += 1
 
-            if prediction_2[base+2] == 1:
-                x_sum += prediction_2[base]
-                y_sum += prediction_2[base + 1]
+            if prediction_2_flat[base+2] >= HM_TO_KP_THRESHOLD:
+                x_sum += prediction_2_flat[base]
+                y_sum += prediction_2_flat[base + 1]
+                vc_sum += prediction_2_flat[base + 2]
                 n += 1
 
             # Verify that no division by 0 will occur
             if n > 0:
                 output_prediction[base]     = round(x_sum / n)
                 output_prediction[base + 1] = round(y_sum / n)
-                output_prediction[base + 2] = 1
+                output_prediction[base + 2] = 1 if coco_format else round(vc_sum / n)
 
             ## There is probably some numpy method to do this. The following line doesn't work because it doesn't account for the vis flag being 0,
             ## which causes the x,y to be (0,0)
             # list_of_predictions[i]['keypoints'] = np.round(np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'] ]), axis=0 ))
+
+        if not coco_format:
+            output_prediction = np.reshape(output_prediction, original_shape)
 
         return output_prediction
 
@@ -230,7 +243,7 @@ class EvaluationWrapper():
 
             for i in range(len(list_of_predictions)):
                 # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
-                averaged_predictions = self._average_LR_flip_predictions(list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'])
+                averaged_predictions = self._average_LR_flip_predictions(list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'], coco_format=True)
 
                 list_of_predictions[i]['keypoints'] = averaged_predictions
 
@@ -258,7 +271,7 @@ class EvaluationWrapper():
     A list of predictions in COCO format and corresponding image IDs
     """
     @lru_cache(maxsize=50)
-    def _full_list_of_predictions(self, gen, model_sub_dir, epoch, predict_using_flip=False):
+    def _full_list_of_predictions(self, gen, model_sub_dir, epoch, predict_using_flip):
         list_of_predictions = []
         image_ids = []
 
