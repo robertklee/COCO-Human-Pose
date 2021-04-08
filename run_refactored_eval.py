@@ -1,4 +1,5 @@
 # %% Create Eval Instance
+import os
 import time
 from datetime import datetime, timedelta
 
@@ -52,4 +53,11 @@ eval.visualizeKeypoints(constants.Generator.representative_set_gen)
 
 elapsed = time.time() - start
 print("Total keypoint time: {}".format(str(timedelta(seconds=elapsed))))
+# %%
+img_name = 'IMG_3320.JPG'
+name_no_extension = img_name.split('.')[0]
+
+img_path = os.path.join(constants.DEFAULT_DATA_BASE_DIR, img_name)
+
+eval.predict_on_image(img_path, name_no_extension)
 # %%
