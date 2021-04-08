@@ -73,6 +73,34 @@ class EvaluationWrapper():
 
         self.eval = evaluation.Evaluation(model_base_dir=model_base_dir, model_sub_dir=model_sub_dir, epoch=self.epoch)
 
+    def predict_on_image(self, img_path, img_id, visualize_skeleton=True):
+        # Number of hg blocks doesn't matter
+        X_batch, y_stacked = evaluation.load_and_preprocess_img(img_path, 1)
+
+        img_id_batch = [img_id]
+
+        # y_batch = y_stacked[0] # take first hourglass section
+        # X, y = X_batch[0], y_batch[0] # take first example of batch
+
+        # Get predicted heatmaps for image
+        predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
+
+        # Get predicted keypoints from last hourglass (last element of list)
+        # Dimensions are (hourglass_layer, batch, x, y, keypoint)
+        keypoints_batch = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
+
+        # Get predicted keypoints from last hourglass (last element of list)
+        # Dimensions are (hourglass_layer, batch, x, y, keypoint)
+        keypoints_batch = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
+
+        if visualize_skeleton:
+            # Plot only skeleton
+            img_id_batch_bg = [f'{img_id}_no_bg' for img_id in img_id_batch]
+            self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, img_id_batch_bg, show_skeleton=visualize_skeleton)
+
+        # Plot skeleton with image
+        self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
+
     def visualizeHeatmaps(self, genEnum=Generator.representative_set_gen):
         self.visualize(genEnum=genEnum, visualize_heatmaps=True, visualize_scatter=False, visualize_skeleton=False)
 
@@ -104,7 +132,7 @@ class EvaluationWrapper():
                 if visualize_skeleton:
                     # Plot only skeleton
                     img_id_batch_bg = [f'{img_id}_no_bg' for img_id in img_id_batch]
-                    self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, img_id_batch_bg)
+                    self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, img_id_batch_bg, show_skeleton=visualize_skeleton)
 
                 # Plot skeleton with image
                 self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
