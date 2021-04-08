@@ -8,6 +8,7 @@ COLAB_TRAINING = False
 # Model Defaults
 DEFAULT_NUM_HG = 4 # NOTE in their final design, 8 were used
 DEFAULT_EPOCHS = 70
+DEFAULT_DATA_BASE_DIR = 'data'
 DEFAULT_MODEL_BASE_DIR = 'models'
 DEFAULT_LOGS_BASE_DIR = 'logs'
 DEFAULT_OUTPUT_BASE_DIR = 'output'
