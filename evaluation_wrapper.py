@@ -215,6 +215,27 @@ class EvaluationWrapper():
 
         return image_ids, list_of_predictions
 
+    """
+    Generates a list of predictions across an entire generator.
+
+    ## Parameters:
+
+    gen : {iterable}
+        Provides X_batch, y_stacked, and metadata_batch data
+
+    model_subdir : {string}
+        Not used, but required for caching purposes
+
+    epoch : {string or int}
+        Not used, but required for caching purposes
+
+    predict_using_flip : {bool}
+        Generate predictions by using a flipped version of the data
+
+    ## Returns:
+
+    A list of predictions in COCO format and corresponding image IDs
+    """
     @lru_cache(maxsize=50)
     def _full_list_of_predictions(self, gen, model_sub_dir, epoch, predict_using_flip=False):
         list_of_predictions = []
