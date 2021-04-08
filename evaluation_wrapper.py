@@ -85,7 +85,7 @@ class EvaluationWrapper():
                 if imghdr.what(filepath) is not None:
                     image_paths.append(filepath)
         elif os.path.isfile(path):
-            image_paths += path
+            image_paths.append(path)
         else:
             # It is a special file (socket, FIFO, device file)
             raise ValueError('Invalid path provided')
