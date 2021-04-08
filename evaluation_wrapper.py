@@ -267,5 +267,7 @@ class EvaluationWrapper():
             gen = self.representative_set_gen
         elif genEnum == Generator.val_gen:
             gen = self.val_gen
+        else:
+            gen = None
 
         return gen
