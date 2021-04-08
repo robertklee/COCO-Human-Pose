@@ -49,6 +49,21 @@ def get_highest_epoch_file(model_base_dir, model_subdir):
 
     return highest_epoch
 
+def get_all_epochs(model_base_dir, model_subdir):
+    enclosing_dir = os.path.join(model_base_dir, model_subdir)
+
+    files = os.listdir(enclosing_dir)
+
+    model_saved_weights = {}
+    for f in files:
+        match = re.match(MODEL_CHECKPOINT_REGEX, f)
+
+        if match:
+            epoch = int(match.group(1))
+            model_saved_weights[epoch] = f
+
+    return model_saved_weights
+
 def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     enclosing_dir = os.path.join(model_base_dir, model_subdir)
 
