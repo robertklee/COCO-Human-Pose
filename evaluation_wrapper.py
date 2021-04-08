@@ -173,6 +173,42 @@ class EvaluationWrapper():
             # Plot skeleton with image
             self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
 
+    def _average_LR_flip_predictions(self, prediction1, prediction2):
+        # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
+        output_prediction = prediction1
+
+        for j in range(NUM_COCO_KEYPOINTS):
+            # This code is required so if one version detects the keypoint (x,y,1),
+            # and the other doesn't (0,0,0), we don't average them to be (x/2, y/2, 0.5)
+            base = j * NUM_COCO_KP_ATTRBS
+
+            n = 0
+            x_sum = 0
+            y_sum = 0
+
+            # Verify visibility flag
+            if prediction1[base+2] == 1:
+                x_sum += prediction1[base]
+                y_sum += prediction1[base + 1]
+                n += 1
+
+            if prediction2[base+2] == 1:
+                x_sum += prediction2[base]
+                y_sum += prediction2[base + 1]
+                n += 1
+
+            # Verify that no division by 0 will occur
+            if n > 0:
+                output_prediction[base]     = round(x_sum / n)
+                output_prediction[base + 1] = round(y_sum / n)
+                output_prediction[base + 2] = 1
+
+            ## There is probably some numpy method to do this. The following line doesn't work because it doesn't account for the vis flag being 0,
+            ## which causes the x,y to be (0,0)
+            # list_of_predictions[i]['keypoints'] = np.round(np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'] ]), axis=0 ))
+
+        return output_prediction
+
     def _full_list_of_predictions_wrapper(self, gen, model_sub_dir, epoch, average_flip_prediction=False):
         print('Predicting over all batches...')
         image_ids, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch, predict_using_flip=False)
@@ -187,31 +223,9 @@ class EvaluationWrapper():
             eps = 1e-3
             for i in range(len(list_of_predictions)):
                 # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
-                for j in range(NUM_COCO_KEYPOINTS):
-                    # This code is required so if one version detects the keypoint (x,y,1),
-                    # and the other doesn't (0,0,0), we don't average them to be (x/2, y/2, 0.5)
-                    base = j * NUM_COCO_KP_ATTRBS
+                averaged_predictions = self._average_LR_flip_predictions(list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'])
 
-                    n = 0
-                    x_sum = 0
-                    y_sum = 0
-
-                    if list_of_predictions[i]['keypoints'][base+2] == 1:
-                        x_sum += list_of_predictions[i]['keypoints'][base]
-                        y_sum += list_of_predictions[i]['keypoints'][base + 1]
-                        n += 1
-
-                    if list_of_predictions_2[i]['keypoints'][base+2] == 1:
-                        x_sum += list_of_predictions_2[i]['keypoints'][base]
-                        y_sum += list_of_predictions_2[i]['keypoints'][base + 1]
-                        n += 1
-
-                    if n > 0:
-                        list_of_predictions[i]['keypoints'][base] = round(x_sum / n)
-                        list_of_predictions[i]['keypoints'][base + 1] = round(y_sum / n)
-                        list_of_predictions[i]['keypoints'][base + 2] = 1
-
-                    # list_of_predictions[i]['keypoints'] = np.round(np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'] ]), axis=0 ))
+                list_of_predictions[i]['keypoints'] = averaged_predictions
 
         return image_ids, list_of_predictions
 
