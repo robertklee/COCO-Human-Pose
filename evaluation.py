@@ -155,7 +155,9 @@ class Evaluation():
             X = X_batch[i]
             keypoints = keypoints_batch[i]
             img_id = img_id_batch[i]
-            name = f'{OUTPUT_SKELETON}_{img_id}_{self.epoch}.png'
+            name = f'{img_id}_{self.epoch}.png'
+            if show_skeleton:
+                name = f'{OUTPUT_SKELETON}_{name}'
 
             # Plot predicted keypoints on bounding box image
             x_left = []
