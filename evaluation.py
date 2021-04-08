@@ -53,7 +53,7 @@ class Evaluation():
     output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
     """
     def predict_heatmaps(self, X_batch):
-        return np.array(self.model.predict(X_batch))
+        return np.array(self.model.predict_on_batch(X_batch))
 
     """
     This method has been deprecated in favour of the `visualizeHeatmaps` method in `evaluation_wrapper`
