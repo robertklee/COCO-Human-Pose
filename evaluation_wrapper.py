@@ -17,7 +17,7 @@ from constants import *
 class EvaluationWrapper():
 
     def __init__(self, model_sub_dir, epoch=None, model_base_dir=DEFAULT_MODEL_BASE_DIR):
-        self.update_model(model_sub_dir, epoch=epoch, model_base_dir=DEFAULT_MODEL_BASE_DIR)
+        self.update_model(model_sub_dir, epoch=epoch, model_base_dir=model_base_dir)
 
         representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
         self.representative_set_gen = data_generator.DataGenerator( df=representative_set_df,
