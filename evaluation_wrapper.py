@@ -246,24 +246,9 @@ class EvaluationWrapper():
             X_batch, _, metadata_batch = gen[i]
 
             # X_batch has dimensions (batch, x, y, channels)
-            # Run both original and flipped image through and average the predictions
+            # If predict_using_flip, run both original and flipped image through and average the predictions
             # Typically increases accuracy by a few percent
-            if predict_using_flip:
-                # Copy by reference NOTE X_batch is modified __in place__
-                # Horizontal flip each image in batch
-                X_batch_flipped = X_batch[:,:,::-1,:]
-
-                # Feed flipped image into model
-                # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
-                predicted_heatmaps_batch_flipped = self.eval.predict_heatmaps(X_batch_flipped)
-
-                # indices to flip order of Left and Right heatmaps [0, 2, 1, 4, 3, 6, 5, 8, 7, etc]
-                reverse_LR_indices = [0] + [2*x-y for x in range(1,9) for y in range(2)]
-
-                # reverse horizontal flip AND reverse left/right heatmaps
-                predicted_heatmaps_batch = predicted_heatmaps_batch_flipped[:,:,:,::-1,reverse_LR_indices]
-            else:
-                predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
+            predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch=X_batch, predict_using_flip=predict_using_flip)
 
             imgs, predictions = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch, metadata_batch)
             list_of_predictions += predictions
