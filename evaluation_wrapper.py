@@ -165,6 +165,13 @@ class EvaluationWrapper():
             # Dimensions are (hourglass_layer, batch, x, y, keypoint)
             keypoints_batch = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
 
+            if average_flip_prediction:
+                # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
+                keypoints_batch_2 = self.eval.predict_heatmaps(X_batch=X_batch, predict_using_flip=True)
+
+                for i in range(predicted_heatmaps_batch.shape[0]):
+                    keypoints_batch[i] = self._average_LR_flip_predictions(keypoints_batch[i], keypoints_batch_2[i])
+
             if visualize_skeleton:
                 # Plot only skeleton
                 img_id_batch_bg = [f'{img_id}_no_bg' for img_id in img_id_batch]
