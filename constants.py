@@ -8,6 +8,7 @@ COLAB_TRAINING = False
 # Model Defaults
 DEFAULT_NUM_HG = 4 # NOTE in their final design, 8 were used
 DEFAULT_EPOCHS = 70
+DEFAULT_DATA_BASE_DIR = 'data'
 DEFAULT_MODEL_BASE_DIR = 'models'
 DEFAULT_LOGS_BASE_DIR = 'logs'
 DEFAULT_OUTPUT_BASE_DIR = 'output'
@@ -114,6 +115,7 @@ PCK_THRESHOLD = 0.2
 # Output save names
 OUTPUT_STACKED_HEATMAP = 'heatmaps'
 OUTPUT_SKELETON = 'skeleton'
+OUTPUT_USER_IMG = 'user_img'
 
 class Generator(Enum):
     train_gen = 0
