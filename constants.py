@@ -115,6 +115,7 @@ PCK_THRESHOLD = 0.2
 # Output save names
 OUTPUT_STACKED_HEATMAP = 'heatmaps'
 OUTPUT_SKELETON = 'skeleton'
+OUTPUT_USER_IMG = 'user_img'
 
 class Generator(Enum):
     train_gen = 0
