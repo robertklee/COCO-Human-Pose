@@ -1,4 +1,5 @@
 import csv
+import imghdr
 import os
 from functools import lru_cache
 
@@ -16,7 +17,7 @@ from constants import *
 class EvaluationWrapper():
 
     def __init__(self, model_sub_dir, epoch=None, model_base_dir=DEFAULT_MODEL_BASE_DIR):
-        self.update_model(model_sub_dir, epoch=None, model_base_dir=DEFAULT_MODEL_BASE_DIR)
+        self.update_model(model_sub_dir, epoch=epoch, model_base_dir=model_base_dir)
 
         representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
         self.representative_set_gen = data_generator.DataGenerator( df=representative_set_df,
@@ -73,6 +74,40 @@ class EvaluationWrapper():
 
         self.eval = evaluation.Evaluation(model_base_dir=model_base_dir, model_sub_dir=model_sub_dir, epoch=self.epoch)
 
+    def predict_on_path(self, path, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
+        image_paths = []
+        # https://www.w3resource.com/python-exercises/python-basic-exercise-85.php
+        if os.path.isdir(path):
+            files = os.listdir(path)
+
+            for file in files:
+                filepath = os.path.join(path, file)
+                if imghdr.what(filepath) is not None:
+                    image_paths.append(filepath)
+        elif os.path.isfile(path):
+            image_paths.append(path)
+        else:
+            # It is a special file (socket, FIFO, device file)
+            raise ValueError('Invalid path provided')
+
+        for image_path in image_paths:
+            # Number of hg blocks doesn't matter
+            X_batch, y_stacked = evaluation.load_and_preprocess_img(image_path, 1)
+            y_batch = y_stacked[0] # take first hourglass section
+            # https://stackoverflow.com/questions/678236/how-to-get-the-filename-without-the-extension-from-a-path-in-python
+            img_id = os.path.splitext(os.path.basename(image_path))[0]
+            img_id_batch = [img_id]
+
+            self._predict_and_visualize(
+                X_batch,
+                y_batch,
+                img_id_batch,
+                visualize_heatmaps=visualize_heatmaps,
+                visualize_scatter=visualize_scatter,
+                visualize_skeleton=visualize_skeleton,
+                average_flip_prediction=average_flip_prediction
+            )
+
     def visualizeHeatmaps(self, genEnum=Generator.representative_set_gen):
         self.visualize(genEnum=genEnum, visualize_heatmaps=True, visualize_scatter=False, visualize_skeleton=False)
 
@@ -86,28 +121,18 @@ class EvaluationWrapper():
         gen_length = len(gen)
         for i in range(gen_length):
             X_batch, y_stacked, m_batch = gen[i]
-
             y_batch = y_stacked[0] # take first hourglass section
-
             img_id_batch = [m['ann_id'] for m in m_batch] # image IDs are the annotation IDs
 
-            predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
-
-            if visualize_heatmaps:
-                self.eval.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
-
-            if visualize_scatter or visualize_skeleton:
-                # Get predicted keypoints from last hourglass (last element of list)
-                # Dimensions are (hourglass_layer, batch, x, y, keypoint)
-                keypoints_batch = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
-
-                if visualize_skeleton:
-                    # Plot only skeleton
-                    img_id_batch_bg = [f'{img_id}_no_bg' for img_id in img_id_batch]
-                    self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, img_id_batch_bg)
-
-                # Plot skeleton with image
-                self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
+            self._predict_and_visualize(
+                X_batch,
+                y_batch,
+                img_id_batch,
+                visualize_heatmaps=visualize_heatmaps,
+                visualize_scatter=visualize_scatter,
+                visualize_skeleton=visualize_skeleton,
+                average_flip_prediction=average_flip_prediction
+            )
 
             util.print_progress_bar(1.0*i/gen_length, label=f"Batch {i}/{gen_length}")
 
@@ -146,50 +171,127 @@ class EvaluationWrapper():
     def plotPCK(self, epochs):
         pass
 
+    def _predict_and_visualize(self, X_batch, y_batch, img_id_batch, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
+        predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
+
+        if visualize_heatmaps:
+            self.eval.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
+
+        if visualize_scatter or visualize_skeleton:
+            # Get predicted keypoints from last hourglass (last element of list)
+            # Dimensions are (hourglass_layer, batch, x, y, keypoint)
+            keypoints_batch = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
+
+            if average_flip_prediction:
+                # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
+                predicted_heatmaps_batch_2 = self.eval.predict_heatmaps(X_batch=X_batch, predict_using_flip=True)
+
+                keypoints_batch_2 = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch_2)
+
+                img_id_batch = [f'{img_id}_avg_lr' for img_id in img_id_batch]
+
+                for i in range(keypoints_batch.shape[0]):
+                    # Average predictions from normal and flipped input
+                    keypoints_batch[i] = self._average_LR_flip_predictions(keypoints_batch[i], keypoints_batch_2[i], coco_format=False)
+
+            if visualize_skeleton:
+                # Plot only skeleton
+                img_id_batch_bg = [f'{img_id}_no_bg' for img_id in img_id_batch]
+                self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, img_id_batch_bg, show_skeleton=visualize_skeleton)
+
+            # Plot skeleton with image
+            self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
+
+    def _average_LR_flip_predictions(self, prediction_1, prediction_2, coco_format=True):
+        # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
+        original_shape = prediction_1.shape
+
+        prediction_1_flat = prediction_1.flatten()
+        prediction_2_flat = prediction_2.flatten()
+
+        output_prediction = prediction_1_flat
+
+        for j in range(NUM_COCO_KEYPOINTS):
+            # This code is required so if one version detects the keypoint (x,y,1),
+            # and the other doesn't (0,0,0), we don't average them to be (x/2, y/2, 0.5)
+            base = j * NUM_COCO_KP_ATTRBS
+
+            n = 0
+            x_sum = 0
+            y_sum = 0
+            vc_sum = 0 # Could be visibility or confidence
+
+            # Verify visibility flag
+            if prediction_1_flat[base+2] >= HM_TO_KP_THRESHOLD:
+                x_sum += prediction_1_flat[base]
+                y_sum += prediction_1_flat[base + 1]
+                vc_sum += prediction_1_flat[base + 2]
+                n += 1
+
+            if prediction_2_flat[base+2] >= HM_TO_KP_THRESHOLD:
+                x_sum += prediction_2_flat[base]
+                y_sum += prediction_2_flat[base + 1]
+                vc_sum += prediction_2_flat[base + 2]
+                n += 1
+
+            # Verify that no division by 0 will occur
+            if n > 0:
+                output_prediction[base]     = round(x_sum / n)
+                output_prediction[base + 1] = round(y_sum / n)
+                output_prediction[base + 2] = 1 if coco_format else round(vc_sum / n)
+
+            ## There is probably some numpy method to do this. The following line doesn't work because it doesn't account for the vis flag being 0,
+            ## which causes the x,y to be (0,0)
+            # list_of_predictions[i]['keypoints'] = np.round(np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'] ]), axis=0 ))
+
+        if not coco_format:
+            output_prediction = np.reshape(output_prediction, original_shape)
+
+        return output_prediction
+
     def _full_list_of_predictions_wrapper(self, gen, model_sub_dir, epoch, average_flip_prediction=False):
         print('Predicting over all batches...')
-        image_ids, list_of_predictions = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch, predict_using_flip=False)
+        image_ids, list_of_predictions = self._full_list_of_predictions(gen, model_sub_dir, epoch, predict_using_flip=False)
         print()
 
         if average_flip_prediction:
             print('Predicting over all batches using a horizontally flipped input, with prediction coordinates transformed back...')
-            image_ids_2, list_of_predictions_2 = self._full_list_of_predictions(gen, self.model_sub_dir, self.epoch, predict_using_flip=True)
+            image_ids_2, list_of_predictions_2 = self._full_list_of_predictions(gen, model_sub_dir, epoch, predict_using_flip=True)
             print()
 
             assert image_ids == image_ids_2, "Expected the image IDs should be in the same order"
-            eps = 1e-3
+
             for i in range(len(list_of_predictions)):
                 # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
-                for j in range(NUM_COCO_KEYPOINTS):
-                    # This code is required so if one version detects the keypoint (x,y,1),
-                    # and the other doesn't (0,0,0), we don't average them to be (x/2, y/2, 0.5)
-                    base = j * NUM_COCO_KP_ATTRBS
+                averaged_predictions = self._average_LR_flip_predictions(list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'], coco_format=True)
 
-                    n = 0
-                    x_sum = 0
-                    y_sum = 0
-
-                    if list_of_predictions[i]['keypoints'][base+2] == 1:
-                        x_sum += list_of_predictions[i]['keypoints'][base]
-                        y_sum += list_of_predictions[i]['keypoints'][base + 1]
-                        n += 1
-
-                    if list_of_predictions_2[i]['keypoints'][base+2] == 1:
-                        x_sum += list_of_predictions_2[i]['keypoints'][base]
-                        y_sum += list_of_predictions_2[i]['keypoints'][base + 1]
-                        n += 1
-
-                    if n > 0:
-                        list_of_predictions[i]['keypoints'][base] = round(x_sum / n)
-                        list_of_predictions[i]['keypoints'][base + 1] = round(y_sum / n)
-                        list_of_predictions[i]['keypoints'][base + 2] = 1
-
-                    # list_of_predictions[i]['keypoints'] = np.round(np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'] ]), axis=0 ))
+                list_of_predictions[i]['keypoints'] = averaged_predictions
 
         return image_ids, list_of_predictions
 
+    """
+    Generates a list of predictions across an entire generator.
+
+    ## Parameters:
+
+    gen : {iterable}
+        Provides X_batch, y_stacked, and metadata_batch data
+
+    model_subdir : {string}
+        Not used, but required for caching purposes
+
+    epoch : {string or int}
+        Not used, but required for caching purposes
+
+    predict_using_flip : {bool}
+        Generate predictions by using a flipped version of the data
+
+    ## Returns:
+
+    A list of predictions in COCO format and corresponding image IDs
+    """
     @lru_cache(maxsize=50)
-    def _full_list_of_predictions(self, gen, model_sub_dir, epoch, predict_using_flip=False):
+    def _full_list_of_predictions(self, gen, model_sub_dir, epoch, predict_using_flip):
         list_of_predictions = []
         image_ids = []
 
@@ -198,24 +300,9 @@ class EvaluationWrapper():
             X_batch, _, metadata_batch = gen[i]
 
             # X_batch has dimensions (batch, x, y, channels)
-            # Run both original and flipped image through and average the predictions
+            # If predict_using_flip, run both original and flipped image through and average the predictions
             # Typically increases accuracy by a few percent
-            if predict_using_flip:
-                # Copy by reference NOTE X_batch is modified __in place__
-                # Horizontal flip each image in batch
-                X_batch_flipped = X_batch[:,:,::-1,:]
-
-                # Feed flipped image into model
-                # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
-                predicted_heatmaps_batch_flipped = self.eval.predict_heatmaps(X_batch_flipped)
-
-                # indices to flip order of Left and Right heatmaps [0, 2, 1, 4, 3, 6, 5, 8, 7, etc]
-                reverse_LR_indices = [0] + [2*x-y for x in range(1,9) for y in range(2)]
-
-                # reverse horizontal flip AND reverse left/right heatmaps
-                predicted_heatmaps_batch = predicted_heatmaps_batch_flipped[:,:,:,::-1,reverse_LR_indices]
-            else:
-                predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
+            predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch=X_batch, predict_using_flip=predict_using_flip)
 
             imgs, predictions = self.eval.heatmap_to_COCO_format(predicted_heatmaps_batch, metadata_batch)
             list_of_predictions += predictions
@@ -234,5 +321,7 @@ class EvaluationWrapper():
             gen = self.representative_set_gen
         elif genEnum == Generator.val_gen:
             gen = self.val_gen
+        else:
+            gen = None
 
         return gen
