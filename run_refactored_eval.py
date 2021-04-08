@@ -60,6 +60,6 @@ user_img_dir = 'user_img'
 
 img_path = os.path.join(constants.DEFAULT_DATA_BASE_DIR, user_img_dir, img_name)
 
-eval.predict_on_image(img_path, name_no_extension, average_flip_prediction=False)
-eval.predict_on_image(img_path, name_no_extension + '_flip', average_flip_prediction=True)
+eval.predict_on_path(img_path, average_flip_prediction=False)
+eval.predict_on_path(img_path, average_flip_prediction=True)
 # %%
