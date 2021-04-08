@@ -50,6 +50,8 @@ st.title('Welcome to Posers')
 st.write(" ------ ")
 ssl._create_default_https_context = ssl._create_unverified_context
 
+IMAGE_DISPLAY_SIZE = (330, 330)
+
 
 representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
 subdir = '2021-04-01-21h-59m_batchsize_16_hg_4_loss_weighted_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_sigmoid_subset_0-2.50_lrfix'
@@ -83,21 +85,13 @@ def run_app_temp(img, f, demo):
         
 
     
-def run_app(img, f, demo):
-
-    # if demo == True:
-    #     rescale_f = cv2.imread(img)
-    #     rescale_f = cv2.cvtColor(rescale_f,cv2.COLOR_BGR2RGB)
-    #     rescale_f = cv2.resize(rescale_f, dsize=(256,256))
-    #     left_column, right_column = st.beta_columns(2)
-    #     left_column.image(rescale_f, caption = "Selected Input")
-    # else:
-    #     left_column, right_column = st.beta_columns(2)
-    #     left_column.image(f, caption = "Selected Input")
+def run_app(img):
 
     left_column, right_column = st.beta_columns(2)
     xb, yb = evaluation.load_and_preprocess_img(img,4)
-    left_column.image(xb[0], caption = "Selected Input")
+    display_image = cv2.resize(np.array(xb[0]), IMAGE_DISPLAY_SIZE,
+                        interpolation=cv2.INTER_LINEAR)
+    left_column.image(display_image, caption = "Selected Input")
 
 
     @st.cache(allow_output_mutation=True, hash_funcs=HASH_FUNCS)
@@ -194,14 +188,14 @@ def main():
             directory = '/Users/wanze/Desktop/SENG_474_Project/COCO-Human-Pose/data/demo_photo'
             photos = [f for f in os.listdir(directory) if(f.endswith('.jpg') or f.endswith('.png')) ]
             pic = os.path.join(directory, photos[options-1])
-            run_app(pic, pic, True)
+            run_app(pic)
 
         st.sidebar.write("OR")
         fun = st.sidebar.button('Fur-riend')
         if fun:
            st.sidebar.write('Please enjoy our favourite Kangaroo!') 
            directory = '/Users/wanze/Desktop/SENG_474_Project/COCO-Human-Pose/data/Macropus_rufogriseus_rufogriseus_Bruny.jpg'
-           run_app(directory, directory, True)
+           run_app(directory)
         #    left_column, right_column = st.beta_columns(2)
         #    kangaroo = cv2.imread(directory)
         #    kangaroo = cv2.cvtColor(kangaroo,cv2.COLOR_BGR2RGB)
@@ -222,7 +216,7 @@ def main():
         if f is not None:
             tfile = tempfile.NamedTemporaryFile(delete=True)
             tfile.write(f.read())
-            run_app(tfile, f, False)
+            run_app(tfile)
 
 
     elif app_mode == "Meet the Team":
