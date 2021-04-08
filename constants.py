@@ -120,5 +120,9 @@ class Generator(Enum):
     val_gen = 1
     representative_set_gen = 2
 
+class Metrics(Enum):
+    pck = 0
+    oks = 1
+
 # Data aug flip R/L probability
 RL_FLIP = 0.5

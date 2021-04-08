@@ -115,21 +115,19 @@ class EvaluationWrapper():
         util.print_progress_bar(1, label=f"Batch {gen_length}/{gen_length}")
         print()
 
-    def calculateOKS(self, epochs, genEnum, average_flip_prediction=False):
+    def calculateMetric(self, metric, epochs, genEnum, average_flip_prediction=False):
         gen = self._get_generator(genEnum)
-        image_ids, list_of_predictions = self._full_list_of_predictions_wrapper(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)
-        oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
-        self._append_to_results_file('oks.csv', oks, oks.keys())
-
-
-    def calculatePCK(self, epochs, genEnum, average_flip_prediction=False):
-        # one epoch provided
-        # or no epoch provided
-        # or range of epochs provided
-        gen = self._get_generator(genEnum)
-        _, list_of_predictions = self._full_list_of_predictions_wrapper(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)
-        pck = self.eval.pck_eval(list_of_predictions)
-        self._append_to_results_file('pck.csv', pck, pck.keys())
+        for i, epoch in enumerate(epochs):
+            util.print_progress_bar(1.0*i/len(epochs), label=f"Epoch {epoch}/{epochs[-1]}")
+            if self.epoch != epoch:
+                self.update_model(self.model_sub_dir, epoch=epoch, model_base_dir=DEFAULT_MODEL_BASE_DIR)
+            image_ids, list_of_predictions = self._full_list_of_predictions_wrapper(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)
+            if metric == Metrics.pck:
+                pck = self.eval.pck_eval(list_of_predictions)
+                self._append_to_results_file('pck.csv', pck, pck.keys())
+            elif metric == Metrics.oks:
+                oks = self.eval.oks_eval(image_ids, list_of_predictions, self.cocoGt)
+                self._append_to_results_file('oks.csv', oks, oks.keys())
 
     def _append_to_results_file(self, file_name, row_dict, header):
         row_dict['epoch'] = self.epoch
