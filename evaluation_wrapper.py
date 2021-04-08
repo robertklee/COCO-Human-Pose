@@ -73,33 +73,21 @@ class EvaluationWrapper():
 
         self.eval = evaluation.Evaluation(model_base_dir=model_base_dir, model_sub_dir=model_sub_dir, epoch=self.epoch)
 
-    def predict_on_image(self, img_path, img_id, visualize_skeleton=True):
+    def predict_on_image(self, img_path, img_id, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
         # Number of hg blocks doesn't matter
         X_batch, y_stacked = evaluation.load_and_preprocess_img(img_path, 1)
-
+        y_batch = y_stacked[0] # take first hourglass section
         img_id_batch = [img_id]
 
-        # y_batch = y_stacked[0] # take first hourglass section
-        # X, y = X_batch[0], y_batch[0] # take first example of batch
-
-        # Get predicted heatmaps for image
-        predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
-
-        # Get predicted keypoints from last hourglass (last element of list)
-        # Dimensions are (hourglass_layer, batch, x, y, keypoint)
-        keypoints_batch = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
-
-        # Get predicted keypoints from last hourglass (last element of list)
-        # Dimensions are (hourglass_layer, batch, x, y, keypoint)
-        keypoints_batch = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
-
-        if visualize_skeleton:
-            # Plot only skeleton
-            img_id_batch_bg = [f'{img_id}_no_bg' for img_id in img_id_batch]
-            self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, img_id_batch_bg, show_skeleton=visualize_skeleton)
-
-        # Plot skeleton with image
-        self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
+        self._predict_and_visualize(
+            X_batch,
+            y_batch,
+            img_id_batch,
+            visualize_heatmaps=visualize_heatmaps,
+            visualize_scatter=visualize_scatter,
+            visualize_skeleton=visualize_skeleton,
+            average_flip_prediction=average_flip_prediction
+        )
 
     def visualizeHeatmaps(self, genEnum=Generator.representative_set_gen):
         self.visualize(genEnum=genEnum, visualize_heatmaps=True, visualize_scatter=False, visualize_skeleton=False)
@@ -114,28 +102,18 @@ class EvaluationWrapper():
         gen_length = len(gen)
         for i in range(gen_length):
             X_batch, y_stacked, m_batch = gen[i]
-
             y_batch = y_stacked[0] # take first hourglass section
-
             img_id_batch = [m['ann_id'] for m in m_batch] # image IDs are the annotation IDs
 
-            predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
-
-            if visualize_heatmaps:
-                self.eval.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
-
-            if visualize_scatter or visualize_skeleton:
-                # Get predicted keypoints from last hourglass (last element of list)
-                # Dimensions are (hourglass_layer, batch, x, y, keypoint)
-                keypoints_batch = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
-
-                if visualize_skeleton:
-                    # Plot only skeleton
-                    img_id_batch_bg = [f'{img_id}_no_bg' for img_id in img_id_batch]
-                    self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, img_id_batch_bg, show_skeleton=visualize_skeleton)
-
-                # Plot skeleton with image
-                self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
+            self._predict_and_visualize(
+                X_batch,
+                y_batch,
+                img_id_batch,
+                visualize_heatmaps=visualize_heatmaps,
+                visualize_scatter=visualize_scatter,
+                visualize_skeleton=visualize_skeleton,
+                average_flip_prediction=average_flip_prediction
+            )
 
             util.print_progress_bar(1.0*i/gen_length, label=f"Batch {i}/{gen_length}")
 
@@ -175,6 +153,25 @@ class EvaluationWrapper():
 
     def plotPCK(self, epochs):
         pass
+
+    def _predict_and_visualize(self, X_batch, y_batch, img_id_batch, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
+        predicted_heatmaps_batch = self.eval.predict_heatmaps(X_batch)
+
+        if visualize_heatmaps:
+            self.eval.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
+
+        if visualize_scatter or visualize_skeleton:
+            # Get predicted keypoints from last hourglass (last element of list)
+            # Dimensions are (hourglass_layer, batch, x, y, keypoint)
+            keypoints_batch = self.eval.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
+
+            if visualize_skeleton:
+                # Plot only skeleton
+                img_id_batch_bg = [f'{img_id}_no_bg' for img_id in img_id_batch]
+                self.eval.visualize_keypoints(np.zeros(X_batch.shape), keypoints_batch, img_id_batch_bg, show_skeleton=visualize_skeleton)
+
+            # Plot skeleton with image
+            self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
 
     def _full_list_of_predictions_wrapper(self, gen, model_sub_dir, epoch, average_flip_prediction=False):
         print('Predicting over all batches...')
