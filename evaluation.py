@@ -61,7 +61,7 @@ class Evaluation():
             # Instead of calling model.predict or model.predict_on_batch, we call model by itself.
             # See https://stackoverflow.com/questions/66271988/warningtensorflow11-out-of-the-last-11-calls-to-triggered-tf-function-retracin
             # This should fix our memory leak in keras
-            return np.array(self.model(X_batch))
+            return np.array(self.model.predict_on_batch(X_batch))
 
         # X_batch has dimensions (batch, x, y, channels)
         # Run both original and flipped image through and average the predictions
