@@ -11,7 +11,7 @@ pandas
 Pillow
 numpy==1.17.0
 requests
-skimage
+scikit-image
 imageio
 scipy
 
