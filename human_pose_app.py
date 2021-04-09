@@ -23,12 +23,11 @@ from tensorflow import keras
 
 import data_generator
 import evaluation
-from constants import *
 import evaluation_wrapper
+from constants import *
 from HeatMap import HeatMap
 from hourglass import HourglassNet
 from util import *
-from PIL import Image
 
 HASH_FUNCS = {
     tf.Session : id
@@ -82,9 +81,9 @@ def run_app_temp(img, f, demo):
             eval.visualizeKeypoints(img)
 
 
-        
 
-    
+
+
 def run_app(img):
 
     left_column, right_column = st.beta_columns(2)
@@ -112,21 +111,21 @@ def run_app(img):
                     input_dim=INPUT_DIM,
                     output_dim=OUTPUT_DIM,
                     num_hg_blocks=eval.num_hg_blocks,
-                    shuffle=False,  
+                    shuffle=False,
                     batch_size=len(representative_set_df),
                     online_fetch=False)
             print("Created DataGen Instances")
         return h, val_df, generator, eval, session
 
     h, val_df, generator, eval, session = load(subdir)
-   
+
     X_batch, y_stacked = evaluation.load_and_preprocess_img(img, eval.num_hg_blocks)
     y_batch = y_stacked[0] # take first hourglass section
     X, y = X_batch[0], y_batch[0] # take first example of batch
 
     with session.as_default():
         predict_heatmaps=eval.predict_heatmaps(X_batch)
-        keypoints = eval.heatmaps_to_keypoints(predict_heatmaps[eval.num_hg_blocks-1, 0, :, :, :]) 
+        keypoints = eval.heatmaps_to_keypoints(predict_heatmaps[eval.num_hg_blocks-1, 0, :, :, :])
 
 
     with session.as_default():
@@ -150,27 +149,27 @@ def run_app(img):
         right_column.image(buf,  caption = "Predicted Keypoints")
         st.image(buf, caption = 'FINAL: Predicted Pose')
         buf.close()
-       
-    
+
+
 def demo():
     left_column, middle_column, right_column = st.beta_columns(3)
 
     left_column.image('demo_image.jpg', caption = "Demo Image")
-    
+
     middle_column.image('heatmap_result_1.png', caption = "Predicted Heatmap")
 
     right_column.subheader("Explaination")
-    right_column.write("We predict human poses based on key joints.") 
+    right_column.write("We predict human poses based on key joints.")
 
-    
+
 def main():
 
     st.sidebar.write('Please upload SINGLE-pereson images. For best results, please also CENTER the person in the image.')
     st.sidebar.write(" ------ ")
     st.sidebar.title("Explore the Following")
-    
+
     app_mode = st.sidebar.selectbox("Please select from the following",["Show Project Info", "Select a Demo Image", "Upload an Image","Meet the Team"])
-    
+
     if app_mode == "Show Project Info":
         st.sidebar.write(" ------ ")
         st.sidebar.success("Project information showing on the right!")
@@ -193,7 +192,7 @@ def main():
         st.sidebar.write("OR")
         fun = st.sidebar.button('Fur-riend')
         if fun:
-           st.sidebar.write('Please enjoy our favourite Kangaroo!') 
+           st.sidebar.write('Please enjoy our favourite Kangaroo!')
            directory = '/Users/wanze/Desktop/SENG_474_Project/COCO-Human-Pose/data/Macropus_rufogriseus_rufogriseus_Bruny.jpg'
            run_app(directory)
         #    left_column, right_column = st.beta_columns(2)
@@ -223,7 +222,7 @@ def main():
         st.sidebar.write(" ------ ")
         st.subheader("We Are the Posers")
         first_column, second_column, third_column, forth_column, fifth_column, sixth_column= st.beta_columns(6)
-        
+
         third_column.image('Wanze.JPG',  caption="Wanze")
         second_column.image('IMG_8175.jpeg', use_column_width = True, caption = "Robert")
         first_column.image(' Julian.jpeg', use_column_width = True, caption = "Julian")
@@ -238,7 +237,7 @@ def main():
         forth_column_predict.image('Nicole_output.png', use_column_width = True, caption = "Nicole Pose")
         fifth_column_predict.image('Rafay_output.png', use_column_width = True, caption = "Rafay Pose")
         sixth_column_predict.image('Corey_output.png', use_column_width = True, caption = "Corey Pose")
-       
+
 
         st.sidebar.write('Please feel free to connect with us on Linkedin!')
         st.sidebar.success('Hope you had a great time :)')
@@ -250,7 +249,7 @@ def main():
         expandar_linkedin.write('Nicole: https://www.linkedin.com/in/nicole-peverley-64181316a/')
         expandar_linkedin.write('Rafay: https://www.linkedin.com/in/rafay-chaudhy')
         expandar_linkedin.write('Corey: https://www.linkedin.com/in/corey-koelewyn-5b45061ab')
-    
+
 
 
 main()
