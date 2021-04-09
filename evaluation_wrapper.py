@@ -5,6 +5,7 @@ from functools import lru_cache
 import keras
 import pandas as pd
 from pycocotools.coco import COCO
+import matplotlib.pyplot as plt
 
 import data_generator
 import evaluation
@@ -140,11 +141,38 @@ class EvaluationWrapper():
                 dict_writer.writeheader()
             dict_writer.writerow(row_dict)
 
-    def plotOKS(self, epochs):
-        pass
+    def plotOKS(self, model_sub_dir):
+        file_path = os.path.join(DEFAULT_OUTPUT_BASE_DIR, model_sub_dir, 'oks.csv')
+        df = pd.read_csv(file_path)
+        df.plot(
+            x='epoch',
+            y=[
+                'Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ]',
+                'Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ]',
+                'Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ]',
+                'Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ]'],
+            kind='line',
+            title=f'OKS vs. Epoch on Test Set for {model_sub_dir}',
+            xlabel='Epoch',
+            ylabel='OKS',
+            figsize=(15,10),
+            grid=True)
+        plt.show()
 
-    def plotPCK(self, epochs):
-        pass
+    def plotPCK(self, model_sub_dir):
+        file_path = os.path.join(DEFAULT_OUTPUT_BASE_DIR, model_sub_dir, 'pck.csv')
+        df = pd.read_csv(file_path)
+        df.plot(
+            x='epoch',
+            y=['avg'] + COCO_KEYPOINT_LABEL_ARR,
+            kind='line',
+            title=f'PCK vs Epoch on Test Set for {model_sub_dir}',
+            xlabel='Epoch',
+            ylabel='PCK',
+            figsize=(15,10),
+            grid=True
+        )
+        plt.show()
 
     def _full_list_of_predictions_wrapper(self, gen, model_sub_dir, epoch, average_flip_prediction=False):
         print('Predicting over all batches...')
