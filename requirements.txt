@@ -11,7 +11,8 @@ pandas
 Pillow
 numpy==1.17.0
 requests
-pycocotools
 skimage
 imageio
 scipy
+
+pycocotools==2.0.2
