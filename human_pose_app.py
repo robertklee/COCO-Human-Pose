@@ -50,7 +50,8 @@ st.write(" ------ ")
 ssl._create_default_https_context = ssl._create_unverified_context
 
 IMAGE_DISPLAY_SIZE = (330, 330)
-
+IMAGE_DIR = 'demo_photo'
+TEAM_DIR = 'team'
 
 representative_set_df = pd.read_pickle(os.path.join(DEFAULT_PICKLE_PATH, 'representative_set.pkl'))
 subdir = '2021-04-01-21h-59m_batchsize_16_hg_4_loss_weighted_mse_aug_light_sigma4_learningrate_5.0e-03_opt_rmsProp_gt-4kp_activ_sigmoid_subset_0-2.50_lrfix'
@@ -164,11 +165,11 @@ def demo():
 
 def main():
 
-    st.sidebar.write('Please upload SINGLE-pereson images. For best results, please also CENTER the person in the image.')
+    st.sidebar.write('Please upload SINGLE-person images. For best results, please also CENTER the person in the image.')
     st.sidebar.write(" ------ ")
     st.sidebar.title("Explore the Following")
 
-    app_mode = st.sidebar.selectbox("Please select from the following",["Show Project Info", "Select a Demo Image", "Upload an Image","Meet the Team"])
+    app_mode = st.sidebar.selectbox("Please select from the following", ["Show Project Info", "Select a Demo Image", "Upload an Image","Meet the Team"])
 
     if app_mode == "Show Project Info":
         st.sidebar.write(" ------ ")
@@ -183,8 +184,8 @@ def main():
         pressed = st.sidebar.button('Magic Time')
         if pressed:
             st.empty()
-            st.sidebar.write('Please wait for the magic to happen! It might take up to a few minuates')
-            directory = '/Users/wanze/Desktop/SENG_474_Project/COCO-Human-Pose/data/demo_photo'
+            st.sidebar.write('Please wait for the magic to happen! It might take up to a few minutes')
+            directory = 'data/demo_photo'
             photos = [f for f in os.listdir(directory) if(f.endswith('.jpg') or f.endswith('.png')) ]
             pic = os.path.join(directory, photos[options-1])
             run_app(pic)
@@ -223,20 +224,20 @@ def main():
         st.subheader("We Are the Posers")
         first_column, second_column, third_column, forth_column, fifth_column, sixth_column= st.beta_columns(6)
 
-        third_column.image('Wanze.JPG',  caption="Wanze")
-        second_column.image('IMG_8175.jpeg', use_column_width = True, caption = "Robert")
-        first_column.image(' Julian.jpeg', use_column_width = True, caption = "Julian")
-        forth_column.image('IMG_1156-2.jpeg', use_column_width=True, caption = "Nicole")
-        fifth_column.image('Rafay.png', use_column_width = True, caption = 'Rafay')
-        sixth_column.image('Corey.jpg', use_column_width = True, caption = "Corey")
+        third_column.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/wanze.jpg', use_column_width = True, caption="Wanze")
+        second_column.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/robert.png', use_column_width = True, caption = "Robert")
+        first_column.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/julian.jpg', use_column_width = True, caption = "Julian")
+        forth_column.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/nicole.jpg', use_column_width=True, caption = "Nicole")
+        fifth_column.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/rafay.png', use_column_width = True, caption = 'Rafay')
+        sixth_column.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/corey.jpg', use_column_width = True, caption = "Corey")
 
         first_column_predict, second_column_predict, third_column_predict,forth_column_predict, fifth_column_predict, sixth_column_predict = st.beta_columns(6)
-        first_column_predict.image('Julian_output.png', use_column_width = True, caption = "Julian Pose")
-        second_column_predict.image('Robert_output.png', use_column_width = True, caption = "Robert Pose")
-        third_column_predict.image('Wanze_output.png', use_column_width = True, caption = "Wanze Pose")
-        forth_column_predict.image('Nicole_output.png', use_column_width = True, caption = "Nicole Pose")
-        fifth_column_predict.image('Rafay_output.png', use_column_width = True, caption = "Rafay Pose")
-        sixth_column_predict.image('Corey_output.png', use_column_width = True, caption = "Corey Pose")
+        third_column_predict.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/wanze_output.png', use_column_width = True, caption = "Wanze Pose")
+        second_column_predict.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/robert_output.png', use_column_width = True, caption = "Robert Pose")
+        first_column_predict.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/julian_output.png', use_column_width = True, caption = "Julian Pose")
+        forth_column_predict.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/nicole_output.png', use_column_width = True, caption = "Nicole Pose")
+        fifth_column_predict.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/rafay_output.png', use_column_width = True, caption = "Rafay Pose")
+        sixth_column_predict.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/corey_output.png', use_column_width = True, caption = "Corey Pose")
 
 
         st.sidebar.write('Please feel free to connect with us on Linkedin!')
@@ -249,7 +250,6 @@ def main():
         expandar_linkedin.write('Nicole: https://www.linkedin.com/in/nicole-peverley-64181316a/')
         expandar_linkedin.write('Rafay: https://www.linkedin.com/in/rafay-chaudhy')
         expandar_linkedin.write('Corey: https://www.linkedin.com/in/corey-koelewyn-5b45061ab')
-
 
 
 main()
