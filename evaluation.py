@@ -49,11 +49,40 @@ class Evaluation():
     X_batch : {list of ndarrays}
         A list of images which were used as input to the model
 
+    predict_using_flip : {bool}
+        Perform prediction using a flipped version of the input. NOTE the output will be transformed
+        back into the original image coordinate space. Treat this output as you would a normal prediction.
+
     ## Returns:
     output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
     """
-    def predict_heatmaps(self, X_batch):
-        return np.array(self.model.predict(X_batch))
+    def predict_heatmaps(self, X_batch, predict_using_flip=False):
+        def _predict(X_batch):
+            # Instead of calling model.predict or model.predict_on_batch, we call model by itself.
+            # See https://stackoverflow.com/questions/66271988/warningtensorflow11-out-of-the-last-11-calls-to-triggered-tf-function-retracin
+            # This should fix our memory leak in keras
+            return np.array(self.model.predict_on_batch(X_batch))
+
+        # X_batch has dimensions (batch, x, y, channels)
+        # Run both original and flipped image through and average the predictions
+        # Typically increases accuracy by a few percent
+        if predict_using_flip:
+            # Horizontal flip each image in batch
+            X_batch_flipped = X_batch[:,:,::-1,:]
+
+            # Feed flipped image into model
+            # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
+            predicted_heatmaps_batch_flipped = _predict(X_batch_flipped)
+
+            # indices to flip order of Left and Right heatmaps [0, 2, 1, 4, 3, 6, 5, 8, 7, etc]
+            reverse_LR_indices = [0] + [2*x-y for x in range(1,9) for y in range(2)]
+
+            # reverse horizontal flip AND reverse left/right heatmaps
+            predicted_heatmaps_batch = predicted_heatmaps_batch_flipped[:,:,:,::-1,reverse_LR_indices]
+        else:
+            predicted_heatmaps_batch = _predict(X_batch)
+
+        return predicted_heatmaps_batch
 
     """
     This method has been deprecated in favour of the `visualizeHeatmaps` method in `evaluation_wrapper`
@@ -126,7 +155,9 @@ class Evaluation():
             X = X_batch[i]
             keypoints = keypoints_batch[i]
             img_id = img_id_batch[i]
-            name = f'{OUTPUT_SKELETON}_{img_id}_{self.epoch}.png'
+            name = f'{img_id}_{self.epoch}.png'
+            if show_skeleton:
+                name = f'{OUTPUT_SKELETON}_{name}'
 
             # Plot predicted keypoints on bounding box image
             x_left = []

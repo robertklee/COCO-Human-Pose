@@ -243,6 +243,7 @@ class DataGenerator(Sequence):
                 img, ann['bbox'])
             transformed_label = self.transform_label(
                 ann['keypoints'], cropped_width, cropped_height, anchor_x, anchor_y)
+
             if self.is_eval:
                 metadata = {}
                 metadata["src_set_image_id"] = ann['src_set_image_id']
