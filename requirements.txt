@@ -11,4 +11,7 @@ pandas
 Pillow
 numpy==1.17.0
 requests
-pycocotools @ git+https://github.com/philferriere/cocoapi.git@2929bd2ef6b451054755dfd7ceb09278f935f7ad#subdirectory=PythonAPI
+pycocotools
+skimage
+imageio
+scipy
