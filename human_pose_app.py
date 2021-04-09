@@ -194,7 +194,7 @@ def main():
         fun = st.sidebar.button('Fur-riend')
         if fun:
            st.sidebar.write('Please enjoy our favourite Kangaroo!')
-           directory = '/Users/wanze/Desktop/SENG_474_Project/COCO-Human-Pose/data/Macropus_rufogriseus_rufogriseus_Bruny.jpg'
+           directory = f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/Macropus_rufogriseus_rufogriseus_Bruny.jpg'
            run_app(directory)
         #    left_column, right_column = st.beta_columns(2)
         #    kangaroo = cv2.imread(directory)
@@ -222,7 +222,7 @@ def main():
     elif app_mode == "Meet the Team":
         st.sidebar.write(" ------ ")
         st.subheader("We Are the Posers")
-        first_column, second_column, third_column, forth_column, fifth_column, sixth_column= st.beta_columns(6)
+        first_column, second_column, third_column, forth_column, fifth_column, sixth_column = st.beta_columns(6)
 
         third_column.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/wanze.jpg', use_column_width = True, caption="Wanze")
         second_column.image(f'{DEFAULT_DATA_BASE_DIR}/{TEAM_DIR}/robert.png', use_column_width = True, caption = "Robert")
