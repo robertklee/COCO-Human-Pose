@@ -75,6 +75,27 @@ class EvaluationWrapper():
 
         self.eval = evaluation.Evaluation(model_base_dir=model_base_dir, model_sub_dir=model_sub_dir, epoch=self.epoch)
 
+    """
+    Run the model instance on either an image path or a directory of images.
+
+    ## Parameters:
+
+    path : {string}
+        File path to the image/directory.
+
+    visualize_heatmaps : {bool}
+        Output a stacked heatmap visualization for each image
+
+    visualize_scatter : {bool}
+        Output a scatter plot of the predicted joint locations
+
+    visualize_skeleton : {bool}
+        Link the joint locations together into a skeleton
+
+    average_flip_prediction : {bool}
+        Run both the original image and a mirrored image through the model, averaging the predictions to obtain
+        the final predictions.
+    """
     def predict_on_path(self, path, visualize_heatmaps=False, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
         image_paths = []
         # https://www.w3resource.com/python-exercises/python-basic-exercise-85.php
