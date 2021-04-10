@@ -1,17 +1,19 @@
+import json
 import os
 import re
+
 import cv2
-from scipy.ndimage import gaussian_filter, maximum_filter
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageOps
+from pycocotools.cocoeval import COCOeval
+from scipy.ndimage import gaussian_filter, maximum_filter
 
-from constants import *
-import HeatMap  # https://github.com/LinShanify/HeatMap
-import util
-import hourglass
-import json
 import data_generator
+import HeatMap  # https://github.com/LinShanify/HeatMap
+import hourglass
+import util
+from constants import *
 
 
 class Evaluation():
@@ -25,94 +27,188 @@ class Evaluation():
             self.output_sub_dir = os.path.join(output_base_dir, match.group(1), str(self.epoch))
         else:
             self.output_sub_dir = os.path.join(output_base_dir, self.model_sub_dir, str(self.epoch))
+
+        self.model_json, self.weights, _ = util.find_resume_json_weights_str(model_base_dir, model_sub_dir, epoch)
+
         if not os.path.exists(self.output_sub_dir):
             os.makedirs(self.output_sub_dir)
 
-        self.model_json, self.weights, _ = util.find_resume_json_weights_str(model_base_dir, model_sub_dir, epoch)
-        self.num_hg_blocks = int(re.match(r'.*stacks_([\d]+)_.*',self.model_json).group(1))
+        self.num_hg_blocks = int(re.match(r'.*stacks_([\d]+).*$',self.model_json).group(1))
         h = hourglass.HourglassNet(NUM_COCO_KEYPOINTS,self.num_hg_blocks,INPUT_CHANNELS,INPUT_DIM,OUTPUT_DIM)
         h._load_model(self.model_json, self.weights)
         self.model = h.model
         print('Loaded model with {} hourglass stacks!'.format(self.num_hg_blocks))
 
+    # ----------------------- PUBLIC METHODS BELOW ----------------------- #
 
-    # Vertically stack images of different widths
-    # https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
-    def _vstack_images(self, img_list, interpolation=cv2.INTER_CUBIC):
-        # take minimum width
-        w_min = min(img.shape[1] for img in img_list)
+    """
+    Returns np array of predicted heatmaps for a given image and model
 
-        # resizing images
-        im_list_resize = [cv2.resize(img,
-                            (w_min,
-                            int(img.shape[0] * w_min / img.shape[1])),
-                            interpolation = interpolation)
-                          for img in img_list]
-        # return final image
-        return cv2.vconcat(im_list_resize)
+    ## Parameters
 
-    # Returns np array of predicted heatmaps for a given image and model
-    def predict_heatmaps(self, X_batch):
-        return np.array(self.model.predict(X_batch)) # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
+    X_batch : {list of ndarrays}
+        A list of images which were used as input to the model
 
-    #  Returns np array of stacked ground truth heatmaps for a given image and label
-    def stacked_ground_truth_heatmaps(self, X, y):
-        ground_truth_heatmaps = []
-        for i in range(NUM_COCO_KEYPOINTS):
-            heatmap = y[:,:,i]
-            hm = HeatMap.HeatMap(X,heatmap)
-            heatmap_array = hm.get_heatmap_array(transparency=0.5)
-            ground_truth_heatmaps.append(heatmap_array)
-        for i, heatmap in enumerate(ground_truth_heatmaps):
-            if(i == 0):
-                stacked_ground_truth_heatmaps = ground_truth_heatmaps[0]
-            else:
-                stacked_ground_truth_heatmaps = np.hstack((stacked_ground_truth_heatmaps, heatmap))
-        return stacked_ground_truth_heatmaps
+    predict_using_flip : {bool}
+        Perform prediction using a flipped version of the input. NOTE the output will be transformed
+        back into the original image coordinate space. Treat this output as you would a normal prediction.
 
-    #  Returns np array of stacked predicted heatmaps
-    def stacked_predict_heatmaps(self, predict_heatmaps):
-        for h in range(self.num_hg_blocks):
-            stacked_predict_heatmaps = np.array(predict_heatmaps[h, :, :, 0])
-            for i in range(NUM_COCO_KEYPOINTS):
-                if(i != 0):
-                    stacked_predict_heatmaps = np.hstack((stacked_predict_heatmaps, predict_heatmaps[h, :, :, i]))
-            if(h == 0):
-                stacked_hourglass_heatmaps = np.array(stacked_predict_heatmaps)
-            else:
-                stacked_hourglass_heatmaps = np.vstack((stacked_hourglass_heatmaps, stacked_predict_heatmaps))
-        return stacked_hourglass_heatmaps
+    ## Returns:
+    output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
+    """
+    def predict_heatmaps(self, X_batch, predict_using_flip=False):
+        def _predict(X_batch):
+            # Instead of calling model.predict or model.predict_on_batch, we call model by itself.
+            # See https://stackoverflow.com/questions/66271988/warningtensorflow11-out-of-the-last-11-calls-to-triggered-tf-function-retracin
+            # This should fix our memory leak in keras
+            return np.array(self.model.predict_on_batch(X_batch))
 
+        # X_batch has dimensions (batch, x, y, channels)
+        # Run both original and flipped image through and average the predictions
+        # Typically increases accuracy by a few percent
+        if predict_using_flip:
+            # Horizontal flip each image in batch
+            X_batch_flipped = X_batch[:,:,::-1,:]
+
+            # Feed flipped image into model
+            # output shape is (num_hg_blocks, X_batch_size, 64, 64, 17)
+            predicted_heatmaps_batch_flipped = _predict(X_batch_flipped)
+
+            # indices to flip order of Left and Right heatmaps [0, 2, 1, 4, 3, 6, 5, 8, 7, etc]
+            reverse_LR_indices = [0] + [2*x-y for x in range(1,9) for y in range(2)]
+
+            # reverse horizontal flip AND reverse left/right heatmaps
+            predicted_heatmaps_batch = predicted_heatmaps_batch_flipped[:,:,:,::-1,reverse_LR_indices]
+        else:
+            predicted_heatmaps_batch = _predict(X_batch)
+
+        return predicted_heatmaps_batch
+
+    """
+    This method has been deprecated in favour of the `visualizeHeatmaps` method in `evaluation_wrapper`
+    """
     def visualize_batch(self, X_batch, y_batch, m_batch):
-        predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
+        raise DeprecationWarning('visualize_batch has been deprecated in favour of the `visualizeHeatmaps` method in `evaluation_wrapper`')
+        # predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
+
+        # img_id_batch = [m['ann_id'] for m in m_batch]
+
+        # self.visualize_heatmaps(X_batch, y_batch, img_id_batch, predicted_heatmaps_batch)
+
+    """
+    Visualize the set of stacked heatmap predictions.
+
+    ## Parameters
+
+    X_batch : {list of ndarrays}
+        A list of images which were used as input to the model
+
+    y_batch : {list of ndarrays}
+        A list of ground truth heatmaps from a single hourglass layer
+
+    img_id_batch : {list of strings}
+        A list of image names. These should not contain the extension, epoch, or type. (Purely image ID)
+
+    predicted_heatmaps_batch : {list of ndarrays}
+        A list of heatmap predictions from the model from all hourglass layers
+    """
+    def visualize_heatmaps(self, X_batch, y_batch, img_id_batch, predicted_heatmaps_batch):
+        # Clear existing plots
+        plt.clf()
+
         for i in range(len(X_batch)):
             X = X_batch[i,]
             y = y_batch[i,]
-            m = m_batch[i]
+            img_id = img_id_batch[i]
+            name = f'{OUTPUT_STACKED_HEATMAP}_{img_id}_{self.epoch}.png'
+
             predicted_heatmaps = predicted_heatmaps_batch[:,i,]
-            self.save_stacked_evaluation_heatmaps(X, y, str(m['ann_id']) + '.png', predicted_heatmaps)
+            self._save_stacked_evaluation_heatmaps(X, y, name, predicted_heatmaps)
 
+    """
+    Visualize the set of keypoints on the model image.
 
-    #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
-    def save_stacked_evaluation_heatmaps(self, X, y, filename, predicted_heatmaps):
-        stacked_predict_heatmaps=self.stacked_predict_heatmaps(predicted_heatmaps)
-        stacked_ground_truth_heatmaps=self.stacked_ground_truth_heatmaps(X, y)
+    Note, it is assumed that the images have the same dimension domain as the keypoints.
+    (i.e., they keypoint (x,y) should point to the corresponding pixel on the image.)
 
-        # Reshape heatmaps to 3 channels with colour injection, normalize channels to [0,255]
-        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
-        stacked_predict_heatmaps = cv2.applyColorMap(stacked_predict_heatmaps, cv2.COLORMAP_JET)
-        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
-        stacked_ground_truth_heatmaps = cv2.cvtColor(stacked_ground_truth_heatmaps, cv2.COLOR_BGRA2RGB)
-        stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
+    ## Parameters
 
-        heatmap_imgs = []
-        heatmap_imgs.append(stacked_predict_heatmaps)
-        heatmap_imgs.append(stacked_ground_truth_heatmaps)
+    X_batch : {list of ndarrays}
+        A list of images, with the same dimensionality as the keypoints. This means
+        if the keypoints are relative to a (256 x 256) image, each element of X_batch must be the same
+        dimension.
 
-        # Resize and vertically stack heatmap images
-        img_v_resize = self._vstack_images(heatmap_imgs)
+    keypoints_batch : {list of lists}
+        Each element consists of a list of keypoints, with each keypoint having the components of (x,y,score).
 
-        cv2.imwrite(os.path.join(self.output_sub_dir,filename), img_v_resize)
+    img_id_batch : {list of strings}
+        A list of image names. These should not contain the extension, epoch, or type. (Purely image ID)
+
+    show_skeleton : {bool}
+        If true, connects joints together (if possible) to construct a COCO-format skeleton
+    """
+    def visualize_keypoints(self, X_batch, keypoints_batch, img_id_batch, show_skeleton=True):
+        # Clear existing plots
+        plt.clf()
+
+        for i in range(len(X_batch)):
+            X = X_batch[i]
+            keypoints = keypoints_batch[i]
+            img_id = img_id_batch[i]
+            name = f'{img_id}_{self.epoch}.png'
+            if show_skeleton:
+                name = f'{OUTPUT_SKELETON}_{name}'
+
+            # Plot predicted keypoints on bounding box image
+            x_left = []
+            y_left = []
+            x_right = []
+            y_right = []
+            valid = np.zeros(NUM_COCO_KEYPOINTS)
+
+            for i in range(NUM_COCO_KEYPOINTS):
+                if keypoints[i,0] != 0 and keypoints[i,1] != 0:
+                    valid[i] = 1
+
+                    if i % 2 == 0:
+                        x_right.append(keypoints[i,0])
+                        y_right.append(keypoints[i,1])
+                    else:
+                        x_left.append(keypoints[i,0])
+                        y_left.append(keypoints[i,1])
+
+            if show_skeleton:
+                color_index = 0
+                for i in range(len(COCO_SKELETON)):
+                    # joint a to joint b
+                    a = COCO_SKELETON[i, 0]
+                    b = COCO_SKELETON[i, 1]
+
+                    # if both are valid keypoints
+                    if valid[a] and valid[b]:
+                        # linewidth = 5, linestyle = "--",
+                        plt.plot([keypoints[a,0],keypoints[b,0]], [keypoints[a,1], keypoints[b,1]], color = COLOUR_MAP[color_index % 10])
+
+                        color_index += 1
+
+            plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
+            plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
+            plt.imshow(X)
+            plt.savefig(os.path.join(self.output_sub_dir, name), bbox_inches='tight', transparent=False, dpi=300)
+            plt.close()
+
+    def heatmaps_to_keypoints_batch(self, heatmaps_batch, threshold=HM_TO_KP_THRESHOLD):
+        keypoints_batch = []
+
+        # dimensions are (num_hg_blocks, batch, x, y, keypoint)
+        for i in range(heatmaps_batch.shape[1]):
+            # Get predicted keypoints from last hourglass (last element of list)
+            # Dimensions are (hourglass_layer, batch, x, y, keypoint)
+            keypoints = self.heatmaps_to_keypoints(heatmaps_batch[-1, i, :, :, :])
+
+            keypoints_batch.append(keypoints)
+
+        return np.array(keypoints_batch)
 
     # Resources for heatmaps to keypoints
     # https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/eddf0ae15715a88d7859847cfff5f5092b260ae1/src/eval/heatmap_process.py#L5
@@ -120,7 +216,7 @@ class Evaluation():
 
     ### Returns np array of predicted keypoints from one image's heatmaps
     def heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
-        keypoints = list()
+        keypoints = np.zeros((NUM_COCO_KEYPOINTS, NUM_COCO_KP_ATTRBS))
         for i in range(NUM_COCO_KEYPOINTS):
             hmap = heatmaps[:,:,i]
             # Resize heatmap from Output DIM to Input DIM
@@ -134,117 +230,65 @@ class Evaluation():
             # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
             # and get its coordinates and confidence
             y, x = np.where(peaks == peaks.max())
+
             if int(x[0]) > 0 and int(y[0]) > 0:
-                keypoints.append((int(x[0]), int(y[0]), peaks[y[0], x[0]]))
+                x_new = int(x[0])
+                y_new = int(y[0])
+                conf_new = peaks[y_new, x_new]
             else:
-                keypoints.append((0, 0, 0))
-        # Turn keypoints into np array
-        keypoints = np.array(keypoints)
+                x_new, y_new, conf_new = 0, 0, 0
+
+            keypoints[i, 0] = x_new
+            keypoints[i, 1] = y_new
+            keypoints[i, 2] = conf_new
+
         return keypoints
 
-    def _non_max_supression(self, plain, threshold, windowSize=3):
-        # Clear values less than threshold
-        under_thresh_indices = plain < threshold
-        plain[under_thresh_indices] = 0
-        return plain * (plain == maximum_filter(plain, footprint=np.ones((windowSize, windowSize))))
-
-    """
-        Parameters
-        ----------
-        metadata : object
-        should be metadata associated to a single image
-
-        untransformed_x : int
-        x coordinate to
-    """
-    def _undo_x(self, metadata, untransformed_x):
-      predicted_x = round(untransformed_x * metadata['cropped_width'] / metadata['input_dim'][0] + metadata['anchor_x'])
-      return int(predicted_x)
-
-    """
-        Parameters
-        ----------
-        metadata : object
-        should be metadata associated to a single image
-
-        untransformed_y : int
-        x coordinate to
-    """
-    def _undo_y(self, metadata, untransformed_y):
-      predicted_y = round(untransformed_y * metadata['cropped_height'] / metadata['input_dim'][1] + metadata['anchor_y'])
-      return int(predicted_y)
-
-    """
-        Parameters
-        ----------
-        metadata : object
-        should be metadata associated to a single image
-
-        untransformed_predictions : list
-        a list of precitions that need to be transformed
-        Example:  [1,2,0,1,4,666,32...]
-    """
-    def undo_bounding_box_transformations(self, metadata, untransformed_predictions):
-        untransformed_predictions = np.array(untransformed_predictions).flatten()
-        predicted_labels = []
-        list_of_scores = []
-        for i in range(len(untransformed_predictions)):
-            if i % 3 == 0: # is an x-coord
-                predicted_labels.append(self._undo_x(metadata, untransformed_predictions[i]))
-            elif i % 3 == 1: # is a y-coord
-                predicted_labels.append(self._undo_y(metadata, untransformed_predictions[i]))
-            elif i % 3 == 2: # is a confidence score
-                if(untransformed_predictions[i] == 0): # this keypoint is not predicted
-                    predicted_labels[i-1] = 0 # Set y value to 0
-                    predicted_labels[i-2] = 0 # Set x value to 0
-                    predicted_labels.append(0) # set visibility to 0
-                else:
-                    predicted_labels.append(1) # set visibility to 1
-                    list_of_scores.append(untransformed_predictions[i])
-        metadata['predicted_labels'] = predicted_labels
-        metadata['score'] = float(np.mean(np.array(list_of_scores)))
-        return metadata
-
-    def write_to_json_file(self, list_of_predictions, location):
-        f = open(location, "w")
-        f.write('[')
-        for i in range(len(list_of_predictions)):
-            f.write(json.dumps(list_of_predictions[i]))
-            if(i < len(list_of_predictions) - 1):
-                f.write(',')
-        f.write(']')
-        f.close()
-
-    def create_oks_obj(self, metadata):
-        oks_obj = {}
-        oks_obj["image_id"] = int(metadata['src_set_image_id'])
-        oks_obj["category_id"] = 1
-        oks_obj["keypoints"] = metadata['predicted_labels']
-        oks_obj["score"] = float(metadata['score'])
-        return oks_obj
-
-    def predict_keypoints(self,generator, location):
+    def heatmap_to_COCO_format(self, predicted_hm_batch, metadata_batch):
         list_of_predictions = []
         image_ids = []
-        for X_batch, y_stacked, metadatas in generator:
-            j = 0
-            # X_batch, y_stacked, metadatas = generator[i]
-            predict_heatmaps= self.predict_heatmaps(X_batch)
-            for X, metadata in zip(X_batch, metadatas):
-                keypoints = self.heatmaps_to_keypoints(predict_heatmaps[self.num_hg_blocks-1, j, :, :, :])
-                metadata = self.undo_bounding_box_transformations(metadata, keypoints)
-                list_of_predictions.append(self.create_oks_obj(metadata))
-                image_ids.append(metadata['src_set_image_id'])
-                j+=1
-        self.write_to_json_file(list_of_predictions, location)
+        for i, metadata in enumerate(metadata_batch):
+            keypoints = self.heatmaps_to_keypoints(predicted_hm_batch[self.num_hg_blocks-1, i, :, :, :])
+            metadata = self._undo_bounding_box_transformations(metadata, keypoints)
+            list_of_predictions.append(self._create_oks_obj(metadata))
+            image_ids.append(metadata['src_set_image_id'])
         return image_ids, list_of_predictions
+
+    def oks_eval(self, image_ids, list_of_predictions, cocoGt):
+        cocoDt=cocoGt.loadRes(list_of_predictions)
+
+        # Convert keypoint predictions to int type
+        for i in range(len(list_of_predictions)):
+            list_of_predictions[i]["keypoints"] = list_of_predictions[i]["keypoints"].astype('int')
+
+        annType = "keypoints"
+        cocoEval = COCOeval(cocoGt,cocoDt,annType)
+        cocoEval.params.imgIds = image_ids
+        cocoEval.params.catIds = [1] # Person category
+        cocoEval.evaluate()
+        cocoEval.accumulate()
+        print('\nSummary: ')
+        cocoEval.summarize()
+        stats = cocoEval.stats
+        oks = {
+            'Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ]': stats[0],
+            'Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ]': stats[1],
+            'Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ]': stats[2],
+            'Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ]': stats[3],
+            'Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ]': stats[4],
+            'Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ]': stats[5],
+            'Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ]': stats[6],
+            'Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ]': stats[7],
+            'Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ]': stats[8],
+            'Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ]': stats[9]
+        }
+        return oks
 
     # This function evaluates PCK@0.2 == Distance between predicted and true joint < 0.2 * torso diameter
     # The PCK_THRESHOLD constant can be updated to adjust this threshold
     # https://github.com/cbsudux/Human-Pose-Estimation-101#percentage-of-correct-key-points---pck
-    def pck_eval(self, generator, save_location, annotation_file):
-        _, list_of_predictions = self.predict_keypoints(generator, save_location)
-        f = open(annotation_file)
+    def pck_eval(self, list_of_predictions):
+        f = open(DEFAULT_VAL_ANNOT_PATH)
         data = json.load(f)
 
         # This function depends on the keypoints order listed in constants COCO_KEYPOINT_LABEL_ARR
@@ -294,23 +338,23 @@ class Evaluation():
             # Each image may have more than one annotation we need to check
             annotations = int(len(dist_list)/NUM_COCO_KEYPOINTS)
 
-            nose_correct = False
-            left_eye_correct = False
-            right_eye_correct = False
-            left_ear_correct = False
-            right_ear_correct = False
-            left_shoulder_correct = False
-            right_shoulder_correct = False
-            left_elbow_correct = False
-            right_elbow_correct = False
-            left_wrist_correct = False
-            right_wrist_correct = False
-            left_hip_correct = False
-            right_hip_correct = False
-            left_knee_correct = False
-            right_knee_correct = False
-            left_ankle_correct = False
-            right_ankle_correct = False
+            nose_correct            = False
+            left_eye_correct        = False
+            right_eye_correct       = False
+            left_ear_correct        = False
+            right_ear_correct       = False
+            left_shoulder_correct   = False
+            right_shoulder_correct  = False
+            left_elbow_correct      = False
+            right_elbow_correct     = False
+            left_wrist_correct      = False
+            right_wrist_correct     = False
+            left_hip_correct        = False
+            right_hip_correct       = False
+            left_knee_correct       = False
+            right_knee_correct      = False
+            left_ankle_correct      = False
+            right_ankle_correct     = False
 
             # Append True to correct joint list if distance is below threshold for any annotation
             for j in range(annotations):
@@ -334,45 +378,193 @@ class Evaluation():
                 right_ankle_correct     = right_ankle_correct       or dist_list[16+base] <= threshold
 
             # Add one to correct keypoint count if any annotation was below threshold for image
-            if nose_correct: correct_keypoints["nose"] += 1
-            if left_eye_correct: correct_keypoints["left_eye"] += 1
-            if right_eye_correct: correct_keypoints["right_eye"] += 1
-            if left_ear_correct: correct_keypoints["left_ear"] += 1
-            if right_ear_correct: correct_keypoints["right_ear"] += 1
-            if left_shoulder_correct: correct_keypoints["left_shoulder"] += 1
-            if right_shoulder_correct: correct_keypoints["right_shoulder"] += 1
-            if left_elbow_correct: correct_keypoints["left_elbow"] += 1
-            if right_elbow_correct: correct_keypoints["right_elbow"] += 1
-            if left_wrist_correct: correct_keypoints["left_wrist"] += 1
-            if right_wrist_correct: correct_keypoints["right_wrist"] += 1
-            if left_hip_correct: correct_keypoints["left_hip"] += 1
-            if right_hip_correct: correct_keypoints["right_hip"] += 1
-            if left_knee_correct: correct_keypoints["left_knee"] += 1
-            if right_knee_correct: correct_keypoints["right_knee"] += 1
-            if left_ankle_correct: correct_keypoints["left_ankle"] += 1
-            if right_ankle_correct: correct_keypoints["right_ankle"] += 1
+            if nose_correct:            correct_keypoints["nose"]            += 1
+            if left_eye_correct:        correct_keypoints["left_eye"]        += 1
+            if right_eye_correct:       correct_keypoints["right_eye"]       += 1
+            if left_ear_correct:        correct_keypoints["left_ear"]        += 1
+            if right_ear_correct:       correct_keypoints["right_ear"]       += 1
+            if left_shoulder_correct:   correct_keypoints["left_shoulder"]   += 1
+            if right_shoulder_correct:  correct_keypoints["right_shoulder"]  += 1
+            if left_elbow_correct:      correct_keypoints["left_elbow"]      += 1
+            if right_elbow_correct:     correct_keypoints["right_elbow"]     += 1
+            if left_wrist_correct:      correct_keypoints["left_wrist"]      += 1
+            if right_wrist_correct:     correct_keypoints["right_wrist"]     += 1
+            if left_hip_correct:        correct_keypoints["left_hip"]        += 1
+            if right_hip_correct:       correct_keypoints["right_hip"]       += 1
+            if left_knee_correct:       correct_keypoints["left_knee"]       += 1
+            if right_knee_correct:      correct_keypoints["right_knee"]      += 1
+            if left_ankle_correct:      correct_keypoints["left_ankle"]      += 1
+            if right_ankle_correct:     correct_keypoints["right_ankle"]     += 1
             dist_list = []
 
         samples = len(list_of_predictions)
+        pck = {k: v/samples for k,v in correct_keypoints.items()}
+        pck['avg'] = sum(pck.values())/len(pck)
         print("Percentage of Correct Key Points (PCK)\n")
-        print("Nose:            {:.2f}".format(correct_keypoints["nose"]/samples))
-        print("Left Eye:        {:.2f}".format(correct_keypoints["left_eye"]/samples))
-        print("Right Eye:       {:.2f}".format(correct_keypoints["right_eye"]/samples))
-        print("Left Ear:        {:.2f}".format(correct_keypoints["left_ear"]/samples))
-        print("Right Ear:       {:.2f}".format(correct_keypoints["right_ear"]/samples))
-        print("Left Shoulder:   {:.2f}".format(correct_keypoints["left_shoulder"]/samples))
-        print("Right Shoulder:  {:.2f}".format(correct_keypoints["right_shoulder"]/samples))
-        print("Left Elbow:      {:.2f}".format(correct_keypoints["left_elbow"]/samples))
-        print("Right Elbow:     {:.2f}".format(correct_keypoints["right_elbow"]/samples))
-        print("Left Wrist:      {:.2f}".format(correct_keypoints["left_wrist"]/samples))
-        print("Right Wrist:     {:.2f}".format(correct_keypoints["right_wrist"]/samples))
-        print("Left Hip:        {:.2f}".format(correct_keypoints["left_hip"]/samples))
-        print("Right Hip:       {:.2f}".format(correct_keypoints["right_hip"]/samples))
-        print("Left Knee:       {:.2f}".format(correct_keypoints["left_knee"]/samples))
-        print("Right Knee:      {:.2f}".format(correct_keypoints["right_knee"]/samples))
-        print("Left Ankle:      {:.2f}".format(correct_keypoints["left_ankle"]/samples))
-        print("Right Ankle:     {:.2f}".format(correct_keypoints["right_ankle"]/samples))
+        print("Average PCK:     {:.2f}".format(pck['avg']))
+        print("Nose:            {:.2f}".format(pck["nose"]))
+        print("Left Eye:        {:.2f}".format(pck["left_eye"]))
+        print("Right Eye:       {:.2f}".format(pck["right_eye"]))
+        print("Left Ear:        {:.2f}".format(pck["left_ear"]))
+        print("Right Ear:       {:.2f}".format(pck["right_ear"]))
+        print("Left Shoulder:   {:.2f}".format(pck["left_shoulder"]))
+        print("Right Shoulder:  {:.2f}".format(pck["right_shoulder"]))
+        print("Left Elbow:      {:.2f}".format(pck["left_elbow"]))
+        print("Right Elbow:     {:.2f}".format(pck["right_elbow"]))
+        print("Left Wrist:      {:.2f}".format(pck["left_wrist"]))
+        print("Right Wrist:     {:.2f}".format(pck["right_wrist"]))
+        print("Left Hip:        {:.2f}".format(pck["left_hip"]))
+        print("Right Hip:       {:.2f}".format(pck["right_hip"]))
+        print("Left Knee:       {:.2f}".format(pck["left_knee"]))
+        print("Right Knee:      {:.2f}".format(pck["right_knee"]))
+        print("Left Ankle:      {:.2f}".format(pck["left_ankle"]))
+        print("Right Ankle:     {:.2f}".format(pck["right_ankle"]))
         f.close()
+        return pck
+    # ----------------------- PRIVATE METHODS BELOW ----------------------- #
+
+    # Vertically stack images of different widths
+    # https://www.geeksforgeeks.org/concatenate-images-using-opencv-in-python/
+    def _vstack_images(self, img_list, interpolation=cv2.INTER_CUBIC):
+        # take minimum width
+        w_min = min(img.shape[1] for img in img_list)
+
+        # resizing images
+        im_list_resize = [cv2.resize(img,
+                                     (w_min, int(img.shape[0] * w_min / img.shape[1])),
+                                     interpolation=interpolation)
+                          for img in img_list]
+        # return final image
+        return cv2.vconcat(im_list_resize)
+
+    #  Returns np array of stacked ground truth heatmaps for a given image and label
+    def _stacked_ground_truth_heatmaps(self, X, y):
+        ground_truth_heatmaps = []
+        for i in range(NUM_COCO_KEYPOINTS):
+            heatmap = y[:,:,i]
+            hm = HeatMap.HeatMap(X, heatmap)
+            heatmap_array = hm.get_heatmap_array(transparency=0.5)
+            ground_truth_heatmaps.append(heatmap_array)
+        for i, heatmap in enumerate(ground_truth_heatmaps):
+            if(i == 0):
+                stacked_ground_truth_heatmaps = ground_truth_heatmaps[0]
+            else:
+                stacked_ground_truth_heatmaps = np.hstack((stacked_ground_truth_heatmaps, heatmap))
+        return stacked_ground_truth_heatmaps
+
+    #  Returns np array of stacked predicted heatmaps
+    def _stacked_predict_heatmaps(self, predict_heatmaps):
+        for h in range(self.num_hg_blocks):
+            stacked_predict_heatmaps = np.array(predict_heatmaps[h, :, :, 0])
+            for i in range(NUM_COCO_KEYPOINTS):
+                if(i != 0):
+                    stacked_predict_heatmaps = np.hstack((stacked_predict_heatmaps, predict_heatmaps[h, :, :, i]))
+            if(h == 0):
+                stacked_hourglass_heatmaps = np.array(stacked_predict_heatmaps)
+            else:
+                stacked_hourglass_heatmaps = np.vstack((stacked_hourglass_heatmaps, stacked_predict_heatmaps))
+        return stacked_hourglass_heatmaps
+
+    #  Saves to disk stacked predicted heatmaps and stacked ground truth heatmaps and one evaluation image
+    def _save_stacked_evaluation_heatmaps(self, X, y, filename, predicted_heatmaps):
+        stacked_predict_heatmaps=self._stacked_predict_heatmaps(predicted_heatmaps)
+        stacked_ground_truth_heatmaps=self._stacked_ground_truth_heatmaps(X, y)
+
+        # Reshape heatmaps to 3 channels with colour injection, normalize channels to [0,255]
+        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
+        stacked_predict_heatmaps = cv2.applyColorMap(stacked_predict_heatmaps, cv2.COLORMAP_JET)
+        stacked_predict_heatmaps = cv2.normalize(stacked_predict_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
+        stacked_ground_truth_heatmaps = cv2.cvtColor(stacked_ground_truth_heatmaps, cv2.COLOR_BGRA2RGB)
+        stacked_ground_truth_heatmaps = cv2.normalize(stacked_ground_truth_heatmaps, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
+
+        heatmap_imgs = []
+        heatmap_imgs.append(stacked_predict_heatmaps)
+        heatmap_imgs.append(stacked_ground_truth_heatmaps)
+
+        # Resize and vertically stack heatmap images
+        img_v_resize = self._vstack_images(heatmap_imgs)
+
+        cv2.imwrite(os.path.join(self.output_sub_dir, filename), img_v_resize)
+
+    def _non_max_supression(self, plain, threshold, windowSize=3):
+        # Clear values less than threshold
+        under_thresh_indices = plain < threshold
+        plain[under_thresh_indices] = 0
+        return plain * (plain == maximum_filter(plain, footprint=np.ones((windowSize, windowSize))))
+
+    """
+        Parameters
+        ----------
+        metadata : object
+        should be metadata associated to a single image
+
+        untransformed_x : int
+        x coordinate to
+    """
+    def _undo_x(self, metadata, untransformed_x):
+      predicted_x = round(untransformed_x * metadata['cropped_width'] / metadata['input_dim'][0] + metadata['anchor_x'])
+      return round(predicted_x)
+
+    """
+        Parameters
+        ----------
+        metadata : object
+        should be metadata associated to a single image
+
+        untransformed_y : int
+        x coordinate to
+    """
+    def _undo_y(self, metadata, untransformed_y):
+      predicted_y = round(untransformed_y * metadata['cropped_height'] / metadata['input_dim'][1] + metadata['anchor_y'])
+      return round(predicted_y)
+
+    """
+        Parameters
+        ----------
+        metadata : object
+        should be metadata associated to a single image
+
+        untransformed_predictions : list
+        a list of precitions that need to be transformed
+        Example:  [1,2,0,1,4,666,32...]
+    """
+    def _undo_bounding_box_transformations(self, metadata, untransformed_predictions):
+        untransformed_predictions = untransformed_predictions.flatten()
+
+        predicted_labels = np.zeros(NUM_COCO_KEYPOINTS * NUM_COCO_KP_ATTRBS)
+        list_of_scores = np.zeros(NUM_COCO_KEYPOINTS)
+
+        for i in range(NUM_COCO_KEYPOINTS):
+            base = i * NUM_COCO_KP_ATTRBS
+
+            x = untransformed_predictions[base]
+            y = untransformed_predictions[base + 1]
+            conf = untransformed_predictions[base + 2]
+
+            if conf == 0:
+                # this keypoint is not predicted
+                x_new, y_new, vis_new = 0, 0, 0
+            else:
+                x_new = self._undo_x(metadata, x)
+                y_new = self._undo_y(metadata, y)
+                vis_new = 1
+                list_of_scores[i] = conf
+
+            predicted_labels[base]     = x_new
+            predicted_labels[base + 1] = y_new
+            predicted_labels[base + 2] = vis_new
+
+        metadata['predicted_labels'] = predicted_labels
+        metadata['score'] = float(np.mean(list_of_scores))
+        return metadata
+
+    def _create_oks_obj(self, metadata):
+        oks_obj = {}
+        oks_obj["image_id"] = int(metadata['src_set_image_id'])
+        oks_obj["category_id"] = 1
+        oks_obj["keypoints"] = metadata['predicted_labels']
+        oks_obj["score"] = float(metadata['score'])
+        return oks_obj
 
 # ----------------------- End of Class -----------------------
 

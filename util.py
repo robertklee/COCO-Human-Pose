@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import unicodedata
 
 from constants import *
@@ -26,9 +27,16 @@ def validate_enum(EnumClass, str):
     return True
 
 def is_highest_epoch_file(model_base_dir, model_subdir, epoch_):
+    highest_epoch = get_highest_epoch_file(model_base_dir, model_subdir)
+
+    return epoch_ >= highest_epoch
+
+def get_highest_epoch_file(model_base_dir, model_subdir):
     enclosing_dir = os.path.join(model_base_dir, model_subdir)
 
     files = os.listdir(enclosing_dir)
+
+    highest_epoch = -1
 
     for f in files:
         match = re.match(MODEL_CHECKPOINT_REGEX, f)
@@ -36,10 +44,25 @@ def is_highest_epoch_file(model_base_dir, model_subdir, epoch_):
         if match:
             epoch = int(match.group(1))
 
-            if epoch > epoch_:
-                return False
+            if epoch > highest_epoch:
+                highest_epoch = epoch
 
-    return True
+    return highest_epoch
+
+def get_all_epochs(model_base_dir, model_subdir):
+    enclosing_dir = os.path.join(model_base_dir, model_subdir)
+
+    files = os.listdir(enclosing_dir)
+
+    model_saved_weights = {}
+    for f in files:
+        match = re.match(MODEL_CHECKPOINT_REGEX, f)
+
+        if match:
+            epoch = int(match.group(1))
+            model_saved_weights[epoch] = f
+
+    return model_saved_weights
 
 def find_resume_json_weights_str(model_base_dir, model_subdir, resume_epoch):
     enclosing_dir = os.path.join(model_base_dir, model_subdir)
@@ -89,3 +112,36 @@ def slugify(value, allow_unicode=False):
         value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
     value = re.sub(r'[^\w\s-]', '', value.lower())
     return re.sub(r'[-\s]+', '-', value).strip('-_')
+
+# https://stackoverflow.com/questions/3002085/python-to-print-out-status-bar-and-percentage
+def print_progress_bar(percent, label=None):
+    # If a label is provided
+    if label is not None and label != '':
+        label = label + ': '
+    else:
+        label = ''
+
+    width = 20 # This width is fixed.
+    sys.stdout.write('\r')
+    # the exact output you're looking for:
+    sys.stdout.write("%s[%-20s] %d%%" % (label, '='*int(percent*width), int(percent*100)))
+    sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    from time import sleep
+
+    for i in range(21):
+        print_progress_bar(i/20.0, label="test")
+        sleep(0.25)
+    print()
+
+    for i in range(21):
+        print_progress_bar(i/20.0)
+        sleep(0.25)
+    print()
+
+    for i in range(21):
+        print_progress_bar(i/20.0, label='')
+        sleep(0.25)
+    print()

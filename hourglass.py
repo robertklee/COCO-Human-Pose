@@ -156,14 +156,14 @@ class HourglassNet(object):
         # for consistency, identify original model subdirectory and create a new subdir of the same name, suffixed by a resume time flag
         orig_model_subdir = os.path.basename(os.path.dirname(model_weights))
 
-        # If resuming a previously resumed training session (to prevent _resume_ from appended over and over)
-        if DEFAULT_RESUME_DIR_FLAG in orig_model_subdir:
-            # strip everything after resume flag
-            orig_model_subdir = orig_model_subdir[:orig_model_subdir.find(DEFAULT_RESUME_DIR_FLAG)]
-
         model_subdir = orig_model_subdir
 
         if new_run:
+            # If resuming a previously resumed training session (to prevent _resume_ from appended over and over)
+            if DEFAULT_RESUME_DIR_FLAG in model_subdir:
+                # strip everything after resume flag
+                model_subdir = model_subdir[:model_subdir.find(DEFAULT_RESUME_DIR_FLAG)]
+
             print("Resuming with a new session ID...\n")
             model_subdir += DEFAULT_RESUME_DIR_FLAG + current_time
 

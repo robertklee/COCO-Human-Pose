@@ -1,9 +1,12 @@
+import io
 import os
-import numpy as np
-from PIL import  Image
+
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import scipy.ndimage as ndimage
+from PIL import Image
+
 
 class HeatMap:
     def __init__(self,image,heat_map,gaussian_std=10):
@@ -94,8 +97,19 @@ class HeatMap:
         plt.imshow(self.image)
         plt.imshow(self.heat_map/255, alpha=transparency, cmap=color_map)
         plt.tight_layout(w_pad=0)
-        fig.canvas.draw()
-        #Turn heatmap into numpy array
-        heatmap_array = np.array(fig.canvas.renderer._renderer)
+
+        # https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-memory-file-which-can-be-read-into-pil-image
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
         plt.close('all')
+
+        # Ensure Image reads from the beginning
+        buf.seek(0)
+        im = Image.open(buf).convert('RGB')
+
+        # Turn heatmap into numpy array.
+        # NOTE that the read image size is too large because of plt's default size.
+        heatmap_array = np.array(im)
+        buf.close()
+        im.close()
         return heatmap_array
