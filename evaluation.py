@@ -324,6 +324,8 @@ class Evaluation():
 
                     # TODO figure out what to do if a hip isn't present
                     threshold = DEFAULT_PCK_THRESHOLD
+
+                    # If both hips are present
                     if annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0:
                         left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
                         right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])

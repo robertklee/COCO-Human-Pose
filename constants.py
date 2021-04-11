@@ -111,7 +111,7 @@ BBOX_MIN_SIZE = 900 # Filter out images smaller than 30x30, TODO tweak
 # Output filtering constants
 HM_TO_KP_THRESHOLD = 0.2
 PCK_THRESHOLD = 0.2
-DEFAULT_PCK_THRESHOLD = 10
+DEFAULT_PCK_THRESHOLD = 5
 
 # Output save names
 OUTPUT_STACKED_HEATMAP = 'heatmaps'
