@@ -319,13 +319,13 @@ class Evaluation():
                     prediction_keypoints = np.array(prediction_keypoints)
                     annotation_keypoints = np.array(annotation_keypoints)
 
-                    # Calculate PCK@0.2 threshold for image
-                    # Joint at 11 is left hip, Joint at 12 is right hip. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
 
+                    # Calculate PCK@0.2 threshold for image
                     # TODO figure out what to do if a hip isn't present
                     threshold = DEFAULT_PCK_THRESHOLD
 
                     # If both hips are present
+                    # Joint at 11 is left hip, Joint at 12 is right hip. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
                     if annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0:
                         left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
                         right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
