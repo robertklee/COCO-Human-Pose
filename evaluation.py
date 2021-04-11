@@ -316,23 +316,33 @@ class Evaluation():
         for prediction in list_of_predictions:
             prediction_image_id = prediction['image_id']
             prediction_keypoints = prediction['keypoints']
-            for i, ann in enumerate(data['annotations']):
+            anns = len(data['annotations'])
+            for i in range(anns):
                 if data['annotations'][i]['image_id'] == prediction_image_id:
                     annotation_keypoints = data['annotations'][i]['keypoints']
                     prediction_keypoints = np.array(prediction_keypoints)
                     annotation_keypoints = np.array(annotation_keypoints)
 
                     # Calculate PCK@0.2 threshold for image
-                    # TODO figure out what to do if a hip isn't present
+                    # TODO figure out what to do if a hip or ear isn't present
                     threshold = DEFAULT_PCK_THRESHOLD
 
                     # If both hips are present
                     # Joint at 11 is left hip, Joint at 12 is right hip. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
-                    if annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0:
+                    # Check visibility flags for both hip joints
+                    if(annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0):
                         left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
                         right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
                         torso = np.linalg.norm(left_hip_point-right_hip_point)
                         threshold = PCK_THRESHOLD*torso
+                    # Use head threshold if no torso exists
+                    # Joint at 1 is left ear, Joint at 2 is right ear. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
+                    # Check visibility flags for both ear joints
+                    elif(annotation_keypoints[5] > 0 and annotation_keypoints[8] > 0):
+                        left_ear_point = np.array(annotation_keypoints[3], annotation_keypoints[4])
+                        right_ear_point = np.array(annotation_keypoints[6], annotation_keypoints[7])
+                        head = np.linalg.norm(left_ear_point-right_ear_point)
+                        threshold = PCK_THRESHOLD*head
 
                     for i in range(NUM_COCO_KEYPOINTS):
                         base = i * NUM_COCO_KP_ATTRBS
