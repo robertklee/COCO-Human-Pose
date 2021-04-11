@@ -231,7 +231,7 @@ class Evaluation():
             # and get its coordinates and confidence
             y, x = np.unravel_index(np.argmax(peaks), peaks.shape)
 
-            if peaks[y, x] > HM_TO_KP_THRESHOLD:
+            if peaks[y, x] > HM_TO_KP_THRESHOLD / 5:
                 conf = peaks[y, x]
             else:
                 x, y, conf = 0, 0, 0
