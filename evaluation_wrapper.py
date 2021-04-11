@@ -165,7 +165,8 @@ class EvaluationWrapper():
     def calculateMetric(self, metric, epochs, genEnum, average_flip_prediction=False):
         gen = self._get_generator(genEnum)
         for i, epoch in enumerate(epochs):
-            util.print_progress_bar(1.0*i/len(epochs), label=f"Epoch {epoch}/{epochs[-1]}")
+            util.print_progress_bar(1.0*i/len(epochs), label=f"Epoch {epoch}. Completed {i}/{len(epochs)}")
+            print('\n')
             if self.epoch != epoch:
                 self.update_model(self.model_sub_dir, epoch=epoch, model_base_dir=DEFAULT_MODEL_BASE_DIR)
             image_ids, list_of_predictions = self._full_list_of_predictions_wrapper(gen, self.model_sub_dir, self.epoch, average_flip_prediction=average_flip_prediction)

@@ -229,18 +229,19 @@ class Evaluation():
 
             # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
             # and get its coordinates and confidence
-            y, x = np.where(peaks == peaks.max())
+            y, x = np.unravel_index(np.argmax(peaks), peaks.shape)
 
-            if int(x[0]) > 0 and int(y[0]) > 0:
-                x_new = int(x[0])
-                y_new = int(y[0])
-                conf_new = peaks[y_new, x_new]
+            # reduce threshold since non-maximum suppression may have reduced the maximum value
+            # values below this threshold have already been suppressed to zero so this shouldnt
+            # affect the conversion of heatmap to keypoint
+            if peaks[y, x] > HM_TO_KP_THRESHOLD_POST_FILTER:
+                conf = peaks[y, x]
             else:
-                x_new, y_new, conf_new = 0, 0, 0
+                x, y, conf = 0, 0, 0
 
-            keypoints[i, 0] = x_new
-            keypoints[i, 1] = y_new
-            keypoints[i, 2] = conf_new
+            keypoints[i, 0] = x
+            keypoints[i, 1] = y
+            keypoints[i, 2] = conf
 
         return keypoints
 
@@ -322,11 +323,16 @@ class Evaluation():
                     annotation_keypoints = np.array(annotation_keypoints)
 
                     # Calculate PCK@0.2 threshold for image
+                    # TODO figure out what to do if a hip isn't present
+                    threshold = DEFAULT_PCK_THRESHOLD
+
+                    # If both hips are present
                     # Joint at 11 is left hip, Joint at 12 is right hip. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
-                    left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
-                    right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
-                    torso = np.linalg.norm(left_hip_point-right_hip_point)
-                    threshold = PCK_THRESHOLD*torso
+                    if annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0:
+                        left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
+                        right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
+                        torso = np.linalg.norm(left_hip_point-right_hip_point)
+                        threshold = PCK_THRESHOLD*torso
 
                     for i in range(NUM_COCO_KEYPOINTS):
                         base = i * NUM_COCO_KP_ATTRBS

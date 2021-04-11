@@ -18,13 +18,15 @@ eval = evaluation_wrapper.EvaluationWrapper('2021-04-03-18h-11m_batchsize_16_hg_
 # %% Run OKS
 start = time.time()
 
-eval.calculateOKS(1, constants.Generator.representative_set_gen, average_flip_prediction=True)
+epochs = [x for x in range(1,6)] + [10*x for x in range(1,8)]
+
+eval.calculateMetric(constants.Metrics.oks, epochs, constants.Generator.representative_set_gen, average_flip_prediction=False)
 elapsed = time.time() - start
 print("Total OKS average normal & flip time: {}".format(str(timedelta(seconds=elapsed))))
 
 start = time.time()
 
-eval.calculateOKS(1, constants.Generator.representative_set_gen, average_flip_prediction=False)
+eval.calculateMetric(constants.Metrics.oks, epochs, constants.Generator.representative_set_gen, average_flip_prediction=True)
 
 elapsed = time.time() - start
 print("Total OKS time: {}".format(str(timedelta(seconds=elapsed))))
@@ -32,8 +34,9 @@ print("Total OKS time: {}".format(str(timedelta(seconds=elapsed))))
 # %% Run PCK
 start = time.time()
 
-eval.calculatePCK(1, constants.Generator.representative_set_gen, average_flip_prediction=True)
-eval.calculatePCK(1, constants.Generator.representative_set_gen, average_flip_prediction=False)
+eval.calculateMetric(constants.Metrics.pck, epochs, constants.Generator.val_gen, average_flip_prediction=False)
+
+eval.calculateMetric(constants.Metrics.pck, epochs, constants.Generator.val_gen, average_flip_prediction=True)
 
 elapsed = time.time() - start
 print("Total PCK time: {}".format(str(timedelta(seconds=elapsed))))
