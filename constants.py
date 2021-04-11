@@ -110,6 +110,8 @@ BBOX_MIN_SIZE = 900 # Filter out images smaller than 30x30, TODO tweak
 
 # Output filtering constants
 HM_TO_KP_THRESHOLD = 0.2
+HM_TO_KP_THRESHOLD_POST_FILTER = HM_TO_KP_THRESHOLD / 5
+
 PCK_THRESHOLD = 0.2
 # This default PCK threshold is used when either hip is not present.
 # It is empirically chosen by taking the mean torso width in the validation set

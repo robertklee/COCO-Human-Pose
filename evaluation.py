@@ -231,7 +231,10 @@ class Evaluation():
             # and get its coordinates and confidence
             y, x = np.unravel_index(np.argmax(peaks), peaks.shape)
 
-            if peaks[y, x] > HM_TO_KP_THRESHOLD / 5:
+            # reduce threshold since non-maximum suppression may have reduced the maximum value
+            # values below this threshold have already been suppressed to zero so this shouldnt
+            # affect the conversion of heatmap to keypoint
+            if peaks[y, x] > HM_TO_KP_THRESHOLD_POST_FILTER:
                 conf = peaks[y, x]
             else:
                 x, y, conf = 0, 0, 0
@@ -318,7 +321,6 @@ class Evaluation():
                     annotation_keypoints = data['annotations'][i]['keypoints']
                     prediction_keypoints = np.array(prediction_keypoints)
                     annotation_keypoints = np.array(annotation_keypoints)
-
 
                     # Calculate PCK@0.2 threshold for image
                     # TODO figure out what to do if a hip isn't present
