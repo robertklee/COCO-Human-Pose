@@ -111,7 +111,10 @@ BBOX_MIN_SIZE = 900 # Filter out images smaller than 30x30, TODO tweak
 # Output filtering constants
 HM_TO_KP_THRESHOLD = 0.2
 PCK_THRESHOLD = 0.2
-DEFAULT_PCK_THRESHOLD = 5
+# This default PCK threshold is used when either hip is not present.
+# It is empirically chosen by taking the mean torso width in the validation set
+# {'mean': 25.273791558055517, 'std': 19.27466898776274}
+DEFAULT_PCK_THRESHOLD = PCK_THRESHOLD * 25
 
 # Output save names
 OUTPUT_STACKED_HEATMAP = 'heatmaps'
