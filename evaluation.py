@@ -323,10 +323,15 @@ class Evaluation():
 
                     # Calculate PCK@0.2 threshold for image
                     # Joint at 11 is left hip, Joint at 12 is right hip. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
-                    left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
-                    right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
-                    torso = np.linalg.norm(left_hip_point-right_hip_point)
-                    threshold = PCK_THRESHOLD*torso
+
+                    # TODO figure out what to do if a hip isn't present
+                    threshold = DEFAULT_PCK_THRESHOLD
+                    if annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0:
+                        left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
+                        right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
+                        torso = np.linalg.norm(left_hip_point-right_hip_point)
+                        threshold = PCK_THRESHOLD*torso
+                        print(f'Torso: {torso},\tthreshold: {threshold}')
 
                     for i in range(NUM_COCO_KEYPOINTS):
                         base = i * NUM_COCO_KP_ATTRBS
