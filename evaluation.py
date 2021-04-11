@@ -331,7 +331,6 @@ class Evaluation():
                         right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
                         torso = np.linalg.norm(left_hip_point-right_hip_point)
                         threshold = PCK_THRESHOLD*torso
-                        print(f'Torso: {torso},\tthreshold: {threshold}')
 
                     for i in range(NUM_COCO_KEYPOINTS):
                         base = i * NUM_COCO_KP_ATTRBS
