@@ -229,9 +229,9 @@ class Evaluation():
 
             # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
             # and get its coordinates and confidence
-            y, x = np.where(peaks == peaks.max())
+            y, x = np.unravel_index(np.argmax(peaks), peaks.shape)
 
-            if int(x[0]) > 0 and int(y[0]) > 0:
+            if peaks[y_new, x_new] > HM_TO_KP_THRESHOLD:
                 x_new = int(x[0])
                 y_new = int(y[0])
                 conf_new = peaks[y_new, x_new]
