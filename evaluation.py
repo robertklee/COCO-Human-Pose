@@ -289,36 +289,43 @@ class Evaluation():
     # The PCK_THRESHOLD constant can be updated to adjust this threshold
     # https://github.com/cbsudux/Human-Pose-Estimation-101#percentage-of-correct-key-points---pck
     def pck_eval(self, list_of_predictions):
+        # This function depends on the keypoints order listed in constants COCO_KEYPOINT_LABEL_ARR
+
         f = open(DEFAULT_VAL_ANNOT_PATH)
         data = json.load(f)
 
-        # This function depends on the keypoints order listed in constants COCO_KEYPOINT_LABEL_ARR
-        dist_list = []
         correct_keypoints = {
-            "nose": 0,
-            "left_eye": 0,
-            "right_eye": 0,
-            "left_ear": 0,
-            "right_ear": 0,
-            "left_shoulder": 0,
-            "right_shoulder": 0,
-            "left_elbow": 0,
-            "right_elbow": 0,
-            "left_wrist": 0,
-            "right_wrist": 0,
-            "left_hip": 0,
-            "right_hip": 0,
-            "left_knee": 0,
-            "right_knee": 0,
-            "left_ankle": 0,
-            "right_ankle": 0
+            "nose":             0,
+            "left_eye":         0,
+            "right_eye":        0,
+            "left_ear":         0,
+            "right_ear":        0,
+            "left_shoulder":    0,
+            "right_shoulder":   0,
+            "left_elbow":       0,
+            "right_elbow":      0,
+            "left_wrist":       0,
+            "right_wrist":      0,
+            "left_hip":         0,
+            "right_hip":        0,
+            "left_knee":        0,
+            "right_knee":       0,
+            "left_ankle":       0,
+            "right_ankle":      0
         }
+
+        num_anns = len(data['annotations'])
+
         for prediction in list_of_predictions:
             prediction_image_id = prediction['image_id']
+            prediction_ann_id = prediction['ann_id']
             prediction_keypoints = prediction['keypoints']
-            anns = len(data['annotations'])
-            for i in range(anns):
-                if data['annotations'][i]['image_id'] == prediction_image_id:
+
+            dist_list = []
+
+            # Find the annotation ID we were predicting for
+            for i in range(num_anns):
+                if data['annotations'][i]['id'] == prediction_ann_id:
                     annotation_keypoints = data['annotations'][i]['keypoints']
                     prediction_keypoints = np.array(prediction_keypoints)
                     annotation_keypoints = np.array(annotation_keypoints)
@@ -330,7 +337,7 @@ class Evaluation():
                     # If both hips are present
                     # Joint at 11 is left hip, Joint at 12 is right hip. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
                     # Check visibility flags for both hip joints
-                    if(annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0):
+                    if annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0:
                         left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
                         right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
                         torso = np.linalg.norm(left_hip_point-right_hip_point)
@@ -338,7 +345,7 @@ class Evaluation():
                     # Use head threshold if no torso exists
                     # Joint at 1 is left ear, Joint at 2 is right ear. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
                     # Check visibility flags for both ear joints
-                    elif(annotation_keypoints[5] > 0 and annotation_keypoints[8] > 0):
+                    elif annotation_keypoints[5] > 0 and annotation_keypoints[8] > 0:
                         left_ear_point = np.array(annotation_keypoints[3], annotation_keypoints[4])
                         right_ear_point = np.array(annotation_keypoints[6], annotation_keypoints[7])
                         head = np.linalg.norm(left_ear_point-right_ear_point)
@@ -348,70 +355,30 @@ class Evaluation():
                         base = i * NUM_COCO_KP_ATTRBS
                         prediction_point = np.array(prediction_keypoints[base], prediction_keypoints[base+1])
                         annotation_point = np.array(annotation_keypoints[base], annotation_keypoints[base+1])
-                        dist = (np.linalg.norm(prediction_point-annotation_point))
+                        dist = np.linalg.norm(prediction_point-annotation_point)
                         dist_list.append(dist)
 
-            # Each image may have more than one annotation we need to check
-            annotations = int(len(dist_list)/NUM_COCO_KEYPOINTS)
+                    break
 
-            nose_correct            = False
-            left_eye_correct        = False
-            right_eye_correct       = False
-            left_ear_correct        = False
-            right_ear_correct       = False
-            left_shoulder_correct   = False
-            right_shoulder_correct  = False
-            left_elbow_correct      = False
-            right_elbow_correct     = False
-            left_wrist_correct      = False
-            right_wrist_correct     = False
-            left_hip_correct        = False
-            right_hip_correct       = False
-            left_knee_correct       = False
-            right_knee_correct      = False
-            left_ankle_correct      = False
-            right_ankle_correct     = False
-
-            # Append True to correct joint list if distance is below threshold for any annotation
-            for j in range(annotations):
-                base = j * NUM_COCO_KEYPOINTS
-                nose_correct            = nose_correct              or dist_list[0+base]  <= threshold
-                left_eye_correct        = left_eye_correct          or dist_list[1+base]  <= threshold
-                right_eye_correct       = right_eye_correct         or dist_list[2+base]  <= threshold
-                left_ear_correct        = left_ear_correct          or dist_list[3+base]  <= threshold
-                right_ear_correct       = right_ear_correct         or dist_list[4+base]  <= threshold
-                left_shoulder_correct   = left_shoulder_correct     or dist_list[5+base]  <= threshold
-                right_shoulder_correct  = right_shoulder_correct    or dist_list[6+base]  <= threshold
-                left_elbow_correct      = left_elbow_correct        or dist_list[7+base]  <= threshold
-                right_elbow_correct     = right_elbow_correct       or dist_list[8+base]  <= threshold
-                left_wrist_correct      = left_wrist_correct        or dist_list[9+base]  <= threshold
-                right_wrist_correct     = right_wrist_correct       or dist_list[10+base] <= threshold
-                left_hip_correct        = left_hip_correct          or dist_list[11+base] <= threshold
-                right_hip_correct       = right_hip_correct         or dist_list[12+base] <= threshold
-                left_knee_correct       = left_knee_correct         or dist_list[13+base] <= threshold
-                right_knee_correct      = right_knee_correct        or dist_list[14+base] <= threshold
-                left_ankle_correct      = left_ankle_correct        or dist_list[15+base] <= threshold
-                right_ankle_correct     = right_ankle_correct       or dist_list[16+base] <= threshold
-
+            # True to correct joint if distance is below threshold for any annotation
             # Add one to correct keypoint count if any annotation was below threshold for image
-            if nose_correct:            correct_keypoints["nose"]            += 1
-            if left_eye_correct:        correct_keypoints["left_eye"]        += 1
-            if right_eye_correct:       correct_keypoints["right_eye"]       += 1
-            if left_ear_correct:        correct_keypoints["left_ear"]        += 1
-            if right_ear_correct:       correct_keypoints["right_ear"]       += 1
-            if left_shoulder_correct:   correct_keypoints["left_shoulder"]   += 1
-            if right_shoulder_correct:  correct_keypoints["right_shoulder"]  += 1
-            if left_elbow_correct:      correct_keypoints["left_elbow"]      += 1
-            if right_elbow_correct:     correct_keypoints["right_elbow"]     += 1
-            if left_wrist_correct:      correct_keypoints["left_wrist"]      += 1
-            if right_wrist_correct:     correct_keypoints["right_wrist"]     += 1
-            if left_hip_correct:        correct_keypoints["left_hip"]        += 1
-            if right_hip_correct:       correct_keypoints["right_hip"]       += 1
-            if left_knee_correct:       correct_keypoints["left_knee"]       += 1
-            if right_knee_correct:      correct_keypoints["right_knee"]      += 1
-            if left_ankle_correct:      correct_keypoints["left_ankle"]      += 1
-            if right_ankle_correct:     correct_keypoints["right_ankle"]     += 1
-            dist_list = []
+            correct_keypoints["nose"]            += int(dist_list[0]  <= threshold)
+            correct_keypoints["left_eye"]        += int(dist_list[1]  <= threshold)
+            correct_keypoints["right_eye"]       += int(dist_list[2]  <= threshold)
+            correct_keypoints["left_ear"]        += int(dist_list[3]  <= threshold)
+            correct_keypoints["right_ear"]       += int(dist_list[4]  <= threshold)
+            correct_keypoints["left_shoulder"]   += int(dist_list[5]  <= threshold)
+            correct_keypoints["right_shoulder"]  += int(dist_list[6]  <= threshold)
+            correct_keypoints["left_elbow"]      += int(dist_list[7]  <= threshold)
+            correct_keypoints["right_elbow"]     += int(dist_list[8]  <= threshold)
+            correct_keypoints["left_wrist"]      += int(dist_list[9]  <= threshold)
+            correct_keypoints["right_wrist"]     += int(dist_list[10] <= threshold)
+            correct_keypoints["left_hip"]        += int(dist_list[11] <= threshold)
+            correct_keypoints["right_hip"]       += int(dist_list[12] <= threshold)
+            correct_keypoints["left_knee"]       += int(dist_list[13] <= threshold)
+            correct_keypoints["right_knee"]      += int(dist_list[14] <= threshold)
+            correct_keypoints["left_ankle"]      += int(dist_list[15] <= threshold)
+            correct_keypoints["right_ankle"]     += int(dist_list[16] <= threshold)
 
         samples = len(list_of_predictions)
         pck = {k: v/samples for k,v in correct_keypoints.items()}
@@ -577,6 +544,7 @@ class Evaluation():
     def _create_oks_obj(self, metadata):
         oks_obj = {}
         oks_obj["image_id"] = int(metadata['src_set_image_id'])
+        oks_obj["ann_id"] = int(metadata['ann_id'])
         oks_obj["category_id"] = 1
         oks_obj["keypoints"] = metadata['predicted_labels']
         oks_obj["score"] = float(metadata['score'])
