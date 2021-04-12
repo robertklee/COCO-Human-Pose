@@ -295,23 +295,23 @@ class Evaluation():
         data = json.load(f)
 
         correct_keypoints = {
-            "nose": 0,
-            "left_eye": 0,
-            "right_eye": 0,
-            "left_ear": 0,
-            "right_ear": 0,
-            "left_shoulder": 0,
-            "right_shoulder": 0,
-            "left_elbow": 0,
-            "right_elbow": 0,
-            "left_wrist": 0,
-            "right_wrist": 0,
-            "left_hip": 0,
-            "right_hip": 0,
-            "left_knee": 0,
-            "right_knee": 0,
-            "left_ankle": 0,
-            "right_ankle": 0
+            "nose":             0,
+            "left_eye":         0,
+            "right_eye":        0,
+            "left_ear":         0,
+            "right_ear":        0,
+            "left_shoulder":    0,
+            "right_shoulder":   0,
+            "left_elbow":       0,
+            "right_elbow":      0,
+            "left_wrist":       0,
+            "right_wrist":      0,
+            "left_hip":         0,
+            "right_hip":        0,
+            "left_knee":        0,
+            "right_knee":       0,
+            "left_ankle":       0,
+            "right_ankle":      0
         }
 
         num_anns = len(data['annotations'])
