@@ -289,11 +289,11 @@ class Evaluation():
     # The PCK_THRESHOLD constant can be updated to adjust this threshold
     # https://github.com/cbsudux/Human-Pose-Estimation-101#percentage-of-correct-key-points---pck
     def pck_eval(self, list_of_predictions):
+        # This function depends on the keypoints order listed in constants COCO_KEYPOINT_LABEL_ARR
+
         f = open(DEFAULT_VAL_ANNOT_PATH)
         data = json.load(f)
 
-        # This function depends on the keypoints order listed in constants COCO_KEYPOINT_LABEL_ARR
-        dist_list = []
         correct_keypoints = {
             "nose": 0,
             "left_eye": 0,
@@ -317,8 +317,15 @@ class Evaluation():
             prediction_image_id = prediction['image_id']
             prediction_keypoints = prediction['keypoints']
             anns = len(data['annotations'])
+
+            dist_list = []
+            anns_in_img_id = 0
+
+            # Each image may have more than one annotation we need to check
             for i in range(anns):
                 if data['annotations'][i]['image_id'] == prediction_image_id:
+                    anns_in_img_id += 1
+
                     annotation_keypoints = data['annotations'][i]['keypoints']
                     prediction_keypoints = np.array(prediction_keypoints)
                     annotation_keypoints = np.array(annotation_keypoints)
@@ -330,7 +337,7 @@ class Evaluation():
                     # If both hips are present
                     # Joint at 11 is left hip, Joint at 12 is right hip. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
                     # Check visibility flags for both hip joints
-                    if(annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0):
+                    if annotation_keypoints[35] > 0 and annotation_keypoints[38] > 0:
                         left_hip_point = np.array(annotation_keypoints[33], annotation_keypoints[34])
                         right_hip_point = np.array(annotation_keypoints[36], annotation_keypoints[37])
                         torso = np.linalg.norm(left_hip_point-right_hip_point)
@@ -338,7 +345,7 @@ class Evaluation():
                     # Use head threshold if no torso exists
                     # Joint at 1 is left ear, Joint at 2 is right ear. Multiply by 3 as each keypoint has (x, y, visibility) to get the array index
                     # Check visibility flags for both ear joints
-                    elif(annotation_keypoints[5] > 0 and annotation_keypoints[8] > 0):
+                    elif annotation_keypoints[5] > 0 and annotation_keypoints[8] > 0:
                         left_ear_point = np.array(annotation_keypoints[3], annotation_keypoints[4])
                         right_ear_point = np.array(annotation_keypoints[6], annotation_keypoints[7])
                         head = np.linalg.norm(left_ear_point-right_ear_point)
@@ -351,8 +358,8 @@ class Evaluation():
                         dist = (np.linalg.norm(prediction_point-annotation_point))
                         dist_list.append(dist)
 
-            # Each image may have more than one annotation we need to check
-            annotations = int(len(dist_list)/NUM_COCO_KEYPOINTS)
+            # TODO find lowest mean distance and use that as the annotation ID
+            # mean_dist =
 
             nose_correct            = False
             left_eye_correct        = False
@@ -373,7 +380,7 @@ class Evaluation():
             right_ankle_correct     = False
 
             # Append True to correct joint list if distance is below threshold for any annotation
-            for j in range(annotations):
+            for j in range(anns_in_img_id):
                 base = j * NUM_COCO_KEYPOINTS
                 nose_correct            = nose_correct              or dist_list[0+base]  <= threshold
                 left_eye_correct        = left_eye_correct          or dist_list[1+base]  <= threshold
@@ -411,7 +418,6 @@ class Evaluation():
             if right_knee_correct:      correct_keypoints["right_knee"]      += 1
             if left_ankle_correct:      correct_keypoints["left_ankle"]      += 1
             if right_ankle_correct:     correct_keypoints["right_ankle"]     += 1
-            dist_list = []
 
         samples = len(list_of_predictions)
         pck = {k: v/samples for k,v in correct_keypoints.items()}
