@@ -314,7 +314,7 @@ class Evaluation():
             "right_ankle": 0
         }
 
-        anns = len(data['annotations'])
+        num_anns = len(data['annotations'])
 
         for prediction in list_of_predictions:
             prediction_image_id = prediction['image_id']
@@ -324,7 +324,7 @@ class Evaluation():
             dist_list = []
 
             # Find the annotation ID we were predicting for
-            for i in range(anns):
+            for i in range(num_anns):
                 if data['annotations'][i]['id'] == prediction_ann_id:
                     annotation_keypoints = data['annotations'][i]['keypoints']
                     prediction_keypoints = np.array(prediction_keypoints)
