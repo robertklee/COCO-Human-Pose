@@ -584,7 +584,6 @@ def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
 
     if bbox is not None:
         # If a bounding box is provided, use it
-
         bbox = np.array(bbox, dtype=int)
 
         # Crop with box of order left, upper, right, lower
