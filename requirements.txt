@@ -8,10 +8,10 @@ opencv-python-headless
 matplotlib
 pandas
 Pillow
-numpy==1.17.0
+numpy
 requests
 scikit-image
 imageio
 scipy
 # pycocotools @ git+https://github.com/philferriere/cocoapi.git@2929bd2ef6b451054755dfd7ceb09278f935f7ad#subdirectory=PythonAPI
-pycocotools
+pycocotools==2.0.2
