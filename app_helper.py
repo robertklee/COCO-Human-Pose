@@ -225,6 +225,8 @@ class AppHelper():
 
                 plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
                 plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
+                # https://stackoverflow.com/questions/9295026/matplotlib-plots-removing-axis-legends-and-white-spaces
+                plt.axis('off')
                 plt.imshow(X)
 
                 plt.tight_layout(w_pad=0)
