@@ -194,13 +194,13 @@ def main():
     elif app_mode == SIDEBAR_OPTION_UPLOAD_IMAGE:
         #upload = st.empty()
         #with upload:
-        st.sidebar.write(" ------ ")
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
             and discarded after the final results are displayed. ')
-        f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif', 'jp2'])
+        f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif'])
         if f is not None:
             tfile = tempfile.NamedTemporaryFile(delete=True)
             tfile.write(f.read())
+            st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
             run_app(tfile)
 
 
