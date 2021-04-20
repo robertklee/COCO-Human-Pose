@@ -75,12 +75,33 @@ COCO_KEYPOINT_LABEL_ARR = ["nose", "left_eye", "right_eye", "left_ear", "right_e
 
 # This array was copied from https://github.com/microsoft/human-pose-estimation.pytorch/blob/master/lib/dataset/coco.py
 # The original array was 1-indexed, so we subtract 1 from each element
-COCO_SKELETON = np.array([[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12], [7, 13], [6, 7], [6, 8],
-                          [7, 9], [8, 10], [9, 11], [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]]) - 1
+COCO_SKELETON = np.array([
+                    [16, 14],
+                    [14, 12],
+                    [17, 15],
+                    [15, 13],
+                    [12, 13],
+                    [6, 12],
+                    [7, 13],
+                    [6, 7],
+                    [6, 8],
+                    [7, 9],
+                    [8, 10],
+                    [9, 11],
+                    [2, 3],
+                    [1, 2],
+                    [1, 3],
+                    [2, 4],
+                    [3, 5],
+                    [4, 6],
+                    [5, 7]]) - 1
 
 # Colouring for linking joints together
 COLOUR_MAP = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-              '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+            #   '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+              '#37123c', '#01295f', '#f76f8e', '#048ba8', '#16db93',
+              '#f06449', '#0f7173', '#fffff2', '#791e94', '#407899',
+              '#e71d36', '#ffc8fb', '#2e4057', '#034c3c']
 
 # Model parameters
 INPUT_DIM = (256,256)
