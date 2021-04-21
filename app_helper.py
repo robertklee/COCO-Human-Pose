@@ -210,7 +210,6 @@ class AppHelper():
                         y_left.append(keypoints[i,1])
             with _lock:
                 if show_skeleton:
-                    color_index = 0
                     for i in range(len(COCO_SKELETON)):
                         # joint a to joint b
                         a = COCO_SKELETON[i, 0]
@@ -219,9 +218,7 @@ class AppHelper():
                         # if both are valid keypoints
                         if valid[a] and valid[b]:
                             # linewidth = 5, linestyle = "--",
-                            plt.plot([keypoints[a,0],keypoints[b,0]], [keypoints[a,1], keypoints[b,1]], color = COLOUR_MAP[color_index % 10])
-
-                            color_index += 1
+                            plt.plot([keypoints[a,0],keypoints[b,0]], [keypoints[a,1], keypoints[b,1]], color = COLOUR_MAP[i])
 
                 plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
                 plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
