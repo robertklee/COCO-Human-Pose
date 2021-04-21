@@ -8,7 +8,7 @@ opencv-python-headless
 matplotlib
 pandas
 Pillow
-numpy==1.17.0
+numpy
 requests
 scikit-image
 scikit-learn
