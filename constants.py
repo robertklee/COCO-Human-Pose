@@ -99,9 +99,9 @@ COCO_SKELETON = np.array([
 # Colouring for linking joints together
 COLOUR_MAP = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
             #   '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-              '#37123c', '#01295f', '#f76f8e', '#048ba8', '#16db93',
-              '#f06449', '#0f7173', '#fffff2', '#791e94', '#407899',
-              '#e71d36', '#ffc8fb', '#2e4057', '#034c3c']
+              '#B73CC7', '#0258C9', '#f76f8e', '#048ba8', '#16db93',
+              '#f06449', '#0f7173', '#276FBF', '#791e94', '#407899',
+              '#e71d36', '#FFA69E', '#678EC2', '#069E7D']
 
 # Model parameters
 INPUT_DIM = (256,256)
