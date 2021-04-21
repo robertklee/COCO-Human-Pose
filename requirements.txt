@@ -4,14 +4,16 @@ Keras==2.3.1
 tensorboard==1.15.0
 tensorflow==1.15.2
 h5py==2.10.0
-opencv-contrib-python==4.4.0.42
-opencv-python==4.4.0.42
+opencv-python-headless
 matplotlib
 pandas
 Pillow
-numpy==1.17.0
+numpy
 requests
 scikit-image
+scikit-learn
 imageio
 scipy
-pycocotools @ git+https://github.com/philferriere/cocoapi.git@2929bd2ef6b451054755dfd7ceb09278f935f7ad#subdirectory=PythonAPI
+# pycocotools @ git+https://github.com/philferriere/cocoapi.git@2929bd2ef6b451054755dfd7ceb09278f935f7ad#subdirectory=PythonAPI
+pycocotools==2.0.2
+streamlit==0.80.0

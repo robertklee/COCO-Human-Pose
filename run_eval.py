@@ -20,13 +20,13 @@ start = time.time()
 
 epochs = [x for x in range(1,6)] + [10*x for x in range(1,8)]
 
-eval.calculateMetric(constants.Metrics.oks, epochs, constants.Generator.representative_set_gen, average_flip_prediction=False)
+eval.calculateMetric(constants.Metrics.oks, epochs, constants.Generator.val_gen, average_flip_prediction=False)
 elapsed = time.time() - start
 print("Total OKS average normal & flip time: {}".format(str(timedelta(seconds=elapsed))))
 
 start = time.time()
 
-eval.calculateMetric(constants.Metrics.oks, epochs, constants.Generator.representative_set_gen, average_flip_prediction=True)
+eval.calculateMetric(constants.Metrics.oks, epochs, constants.Generator.val_gen, average_flip_prediction=True)
 
 elapsed = time.time() - start
 print("Total OKS time: {}".format(str(timedelta(seconds=elapsed))))

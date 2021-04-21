@@ -51,6 +51,14 @@ MODEL_JSON = f'{DEFAULT_MODEL_BASE_DIR}/hpe_hourglass_stacks_04_.json'
 MODEL_WEIGHTS_DEPLOYMENT_URL = 'https://github.com/robertklee/COCO-Human-Pose/releases/download/v0.1-alpha/hpe_epoch107_.hdf5'
 MODEL_JSON_DEPLOYMENT_URL = 'https://github.com/robertklee/COCO-Human-Pose/releases/download/v0.1-alpha/hpe_hourglass_stacks_04_.json'
 
+# Constants for sidebar dropdown
+SIDEBAR_OPTION_PROJECT_INFO = "Show Project Info"
+SIDEBAR_OPTION_DEMO_IMAGE = "Select a Demo Image"
+SIDEBAR_OPTION_UPLOAD_IMAGE = "Upload an Image"
+SIDEBAR_OPTION_MEET_TEAM = "Meet the Team"
+
+SIDEBAR_OPTIONS = [SIDEBAR_OPTION_PROJECT_INFO, SIDEBAR_OPTION_DEMO_IMAGE, SIDEBAR_OPTION_UPLOAD_IMAGE, SIDEBAR_OPTION_MEET_TEAM]
+
 def get_file_content_as_string(path):
     url = 'https://raw.githubusercontent.com/robertklee/COCO-Human-Pose/master/' + path
     response = urllib.request.urlopen(url)
@@ -103,7 +111,6 @@ def load_model():
     return handle, session
 
 
-
 def run_app(img):
 
     left_column, right_column = st.beta_columns(2)
@@ -137,24 +144,21 @@ def demo():
     right_column.subheader("Explanation")
     right_column.write("We predict human poses based on key joints.")
 
-
-
 def main():
 
     st.sidebar.warning('\
-        Please upload SINGLE-person images. For best results, please also CENTER the person in the image. \
-        Due to limitations in our hosting environment, we require images to be < 5 MB.')
+        Please upload SINGLE-person images. For best results, please also CENTER the person in the image.')
     st.sidebar.write(" ------ ")
     st.sidebar.title("Explore the Following")
 
-    app_mode = st.sidebar.selectbox("Please select from the following", ["Show Project Info", "Select a Demo Image", "Upload an Image","Meet the Team"])
+    app_mode = st.sidebar.selectbox("Please select from the following", SIDEBAR_OPTIONS)
 
-    if app_mode == "Show Project Info":
+    if app_mode == SIDEBAR_OPTION_PROJECT_INFO:
         st.sidebar.write(" ------ ")
         st.sidebar.success("Project information showing on the right!")
         st.write(get_file_content_as_string("Project_Info.md"))
 
-    elif app_mode == "Select a Demo Image":
+    elif app_mode == SIDEBAR_OPTION_DEMO_IMAGE:
         st.sidebar.write(" ------ ")
 
         directory = os.path.join(DEFAULT_DATA_BASE_DIR, IMAGE_DIR)
@@ -186,20 +190,20 @@ def main():
             k = os.path.join(DEFAULT_DATA_BASE_DIR, 'Macropus_rufogriseus_rufogriseus_Bruny.jpg')
             run_app(k)
 
-    elif app_mode == "Upload an Image":
+    elif app_mode == SIDEBAR_OPTION_UPLOAD_IMAGE:
         #upload = st.empty()
         #with upload:
-        st.sidebar.write(" ------ ")
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
             and discarded after the final results are displayed. ')
-        f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif', 'jp2'])
+        f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif'])
         if f is not None:
             tfile = tempfile.NamedTemporaryFile(delete=True)
             tfile.write(f.read())
+            st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
             run_app(tfile)
 
 
-    elif app_mode == "Meet the Team":
+    elif app_mode == SIDEBAR_OPTION_MEET_TEAM:
         st.sidebar.write(" ------ ")
         st.subheader("We are the Posers")
         first_column, second_column, third_column, forth_column, fifth_column, sixth_column = st.beta_columns(6)
@@ -230,6 +234,8 @@ def main():
         expandar_linkedin.write('Nicole: https://www.linkedin.com/in/nicole-peverley-64181316a/')
         expandar_linkedin.write('Rafay: https://www.linkedin.com/in/rafay-chaudhy')
         expandar_linkedin.write('Corey: https://www.linkedin.com/in/corey-koelewyn-5b45061ab')
+    else:
+        raise ValueError('Selected sidebar option is not implemented. Please open an issue on Github: https://github.com/robertklee/COCO-Human-Pose')
 
 main()
 expander_faq = st.beta_expander("More About Our Project")
