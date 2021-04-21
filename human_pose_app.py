@@ -4,7 +4,6 @@ import shutil
 import ssl
 import tempfile
 import urllib.request
-from enum import Enum
 from pathlib import Path
 
 import cv2
