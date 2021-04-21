@@ -25,6 +25,8 @@ import util
 from constants import *
 
 
+# TODO: Refactor this class to use the existing (COCO API dependent) evaluation_wrapper, evaluation, and hourglass code
+
 class AppHelper():
     def __init__(self, model_weights, model_json) -> None:
         self._load_model(model_json=model_json, model_weights=model_weights)
