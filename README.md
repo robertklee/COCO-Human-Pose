@@ -22,6 +22,10 @@ pip3 install -r requirements.txt
 bash ./scripts/coco_dl.sh
 ```
 
+## Deployed Model
+
+Our model is deployed [here](https://share.streamlit.io/robertklee/coco-human-pose/main/human_pose_app.py)! Feel free to check out our demo photos, or upload your own to try out. If you encounter any issues, please open an issue in this repository.
+
 ## Troubleshooting
 
 - If you encounter any pip issues installing `pycocotools`, manually install directly a version that's been updated for Python 3. See [this Stack Overflow pycocotools question](https://stackoverflow.com/questions/49311195/how-to-install-coco-pythonapi-in-python3)
@@ -30,7 +34,7 @@ bash ./scripts/coco_dl.sh
 pip3 install git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
 ```
 
-- If you encounter issues running the evaluation code (specifically OKS), you may need an earlier version of `numpy`:
+- If you encounter issues running the evaluation code (specifically for OKS), you may need an earlier version of `numpy`:
 
 ```bash
 pip3 install numpy==1.17.0
