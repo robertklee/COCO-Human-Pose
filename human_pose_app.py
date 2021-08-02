@@ -15,7 +15,6 @@ import streamlit as st
 import tensorflow as tf
 from PIL import Image
 from tensorflow import keras
-import sys
 
 import app_helper
 from app_helper import AppHelper
@@ -121,7 +120,7 @@ def run_app(img):
     global num_analyzed
     num_analyzed += 1
 
-    sys.stdout.write(f'Number of images analyzed: {num_analyzed:d}\n')
+    print(f'Number of images analyzed: {num_analyzed:d}')
 
     left_column, right_column = st.columns(2)
 
@@ -156,7 +155,7 @@ def demo():
 
 def main():
     current_time = datetime.today().strftime(TIME_FORMAT)
-    sys.stdout.write(f'Event: {current_time}\n')
+    print(f'App launched at: {current_time}')
     st.sidebar.warning('\
         Please upload SINGLE-person images. For best results, please also CENTER the person in the image.')
     st.sidebar.write(" ------ ")
@@ -170,7 +169,7 @@ def main():
         st.write(get_file_content_as_string("Project_Info.md"))
 
     elif app_mode == SIDEBAR_OPTION_DEMO_IMAGE:
-        sys.stdout.write('Demo image tab')
+        print('Demo image tab')
         st.sidebar.write(" ------ ")
 
         directory = os.path.join(DEFAULT_DATA_BASE_DIR, IMAGE_DIR)
@@ -203,7 +202,7 @@ def main():
             run_app(k)
 
     elif app_mode == SIDEBAR_OPTION_UPLOAD_IMAGE:
-        sys.stdout.write('Upload image tab')
+        print('Upload image tab')
         #upload = st.empty()
         #with upload:
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
