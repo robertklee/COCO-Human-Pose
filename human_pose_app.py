@@ -13,7 +13,6 @@ import requests
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
-from streamlit.elements.vega_lite import _CHANNELS
 from tensorflow import keras
 
 import app_helper
