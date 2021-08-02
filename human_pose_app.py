@@ -4,6 +4,7 @@ import shutil
 import ssl
 import tempfile
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 import cv2
@@ -59,6 +60,10 @@ SIDEBAR_OPTION_MEET_TEAM = "Meet the Team"
 
 SIDEBAR_OPTIONS = [SIDEBAR_OPTION_PROJECT_INFO, SIDEBAR_OPTION_DEMO_IMAGE, SIDEBAR_OPTION_UPLOAD_IMAGE, SIDEBAR_OPTION_CAMERA, SIDEBAR_OPTION_MEET_TEAM]
 
+TIME_FORMAT = '%Y-%m-%d %Hh:%Mm:%Ss'
+
+num_analyzed = 0
+
 def get_file_content_as_string(path):
     url = 'https://raw.githubusercontent.com/robertklee/COCO-Human-Pose/master/' + path
     response = urllib.request.urlopen(url)
@@ -112,6 +117,10 @@ def load_model():
 
 
 def run_app(img):
+    global num_analyzed
+    num_analyzed += 1
+
+    print(f'Number of images analyzed: {num_analyzed:d}')
 
     left_column, right_column = st.columns(2)
 
@@ -145,7 +154,8 @@ def demo():
     right_column.write("We predict human poses based on key joints.")
 
 def main():
-
+    current_time = datetime.today().strftime(TIME_FORMAT)
+    print(f'App launched at: {current_time}')
     st.sidebar.warning('\
         Please upload SINGLE-person images. For best results, please also CENTER the person in the image.')
     st.sidebar.write(" ------ ")
@@ -159,6 +169,7 @@ def main():
         st.write(get_file_content_as_string("Project_Info.md"))
 
     elif app_mode == SIDEBAR_OPTION_DEMO_IMAGE:
+        print('Demo image tab')
         st.sidebar.write(" ------ ")
 
         directory = os.path.join(DEFAULT_DATA_BASE_DIR, IMAGE_DIR)
@@ -191,6 +202,9 @@ def main():
             run_app(k)
 
     elif app_mode == SIDEBAR_OPTION_UPLOAD_IMAGE:
+        print('Upload image tab')
+        #upload = st.empty()
+        #with upload:
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
             and discarded after the final results are displayed. ')
         f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif'])
