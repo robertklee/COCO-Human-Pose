@@ -112,7 +112,7 @@ def load_model():
 
 def run_app(img):
 
-    left_column, right_column = st.beta_columns(2)
+    left_column, right_column = st.columns(2)
 
     xb, yb = app_helper.load_and_preprocess_img(img, num_hg_blocks=1)
     display_image = cv2.resize(np.array(xb[0]), IMAGE_DISPLAY_SIZE,
@@ -134,7 +134,7 @@ def run_app(img):
             st.image(skeleton_img, caption = 'FINAL: Predicted Pose')
 
 def demo():
-    left_column, middle_column, right_column = st.beta_columns(3)
+    left_column, middle_column, right_column = st.columns(3)
 
     left_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR,'skier.png'), caption = "Demo Image")
 
@@ -205,7 +205,7 @@ def main():
     elif app_mode == SIDEBAR_OPTION_MEET_TEAM:
         st.sidebar.write(" ------ ")
         st.subheader("We are the Posers")
-        first_column, second_column, third_column, forth_column, fifth_column, sixth_column = st.beta_columns(6)
+        first_column, second_column, third_column, forth_column, fifth_column, sixth_column = st.columns(6)
 
         third_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'wanze.jpg'),      use_column_width = True, caption = "Wanze")
         second_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'robert.png'),    use_column_width = True, caption = "Robert")
@@ -214,7 +214,7 @@ def main():
         fifth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'rafay.png'),      use_column_width = True, caption = 'Rafay')
         sixth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'corey.jpg'),      use_column_width = True, caption = "Corey")
 
-        first_column_predict, second_column_predict, third_column_predict,forth_column_predict, fifth_column_predict, sixth_column_predict = st.beta_columns(6)
+        first_column_predict, second_column_predict, third_column_predict,forth_column_predict, fifth_column_predict, sixth_column_predict = st.columns(6)
         third_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'wanze_output.png'),       use_column_width = True, caption = "Wanze Pose")
         second_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'robert_output.png'),     use_column_width = True, caption = "Robert Pose")
         first_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'julian_output.png'),      use_column_width = True, caption = "Julian Pose")
@@ -226,7 +226,7 @@ def main():
         st.sidebar.write('Please feel free to connect with us on Linkedin!')
         st.sidebar.success('Hope you had a great time :)')
 
-        expandar_linkedin = st.beta_expander('Contact Information')
+        expandar_linkedin = st.expander('Contact Information')
         expandar_linkedin.write('Robert: https://www.linkedin.com/in/robert-k-lee/')
         expandar_linkedin.write('Julian: https://www.linkedin.com/in/julianrocha/')
         expandar_linkedin.write('Wanze: https://www.linkedin.com/in/wanze-zhang-59320b137/')
@@ -237,5 +237,5 @@ def main():
         raise ValueError('Selected sidebar option is not implemented. Please open an issue on Github: https://github.com/robertklee/COCO-Human-Pose')
 
 main()
-expander_faq = st.beta_expander("More About Our Project")
+expander_faq = st.expander("More About Our Project")
 expander_faq.write("Hi there! If you have any questions about our project, or simply want to check out the source code, please visit our github repo: https://github.com/robertklee/COCO-Human-Pose")
