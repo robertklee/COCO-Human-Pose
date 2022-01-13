@@ -2,6 +2,70 @@
 
 This repository contains the source code for training a deep neural network to perform human pose estimation from scratch. A brief excerpt from our final report is copied below.
 
+## Deployed Model
+
+Our model is deployed [at this website](https://share.streamlit.io/robertklee/coco-human-pose/main/human_pose_app.py)! Please be aware that the model only supports single-person human pose estimation. In the event there are multiple people in the frame, the model will label the skeleton of the **center-most person**.
+
+Feel free to check out our demo photos, or upload your own to try out. If you encounter any issues, please open an issue in this repository.
+
+If you upload your own photos, **please crop them so the person of interest is relatively centered**, taking up approxiately 70-90% of the vertical space. The model is robust to cropped image boundaries being black, so don't worry about cropping to an irregular shape. We'll automatically center the image in our pre-processing pipeline.
+
+## Example Outputs
+
+### Sample Output Predictions
+
+The following outputs show the predictions from a 4 hourglass stack model, epoch 107. The input image is on the left. The prediction image is on the right. The right-side body keypoints are magenta, and the left-side body keypoints are blue. Each joint-joint connection has its own assigned colour that is consistent across images. Keypoints that are not seen by the model are not displayed. These sample images are from the COCO 2017 dataset.
+
+
+<p align="center">
+  <img src="figures/skateboarder-orig.jpg" alt="skateboarder, input" style="width: 45%"/>
+  &nbsp; &nbsp; &nbsp; &nbsp;
+  <img src="figures/skateboarder-pred.jpg" alt="skateboarder, prediction" style="width: 45%"/>
+</p>
+
+
+<p align="center">
+  <img src="figures/skateboarder2-orig.jpg" alt="skateboarder2, input" style="width: 45%"/>
+  &nbsp; &nbsp; &nbsp; &nbsp;
+  <img src="figures/skateboarder2-pred.jpg" alt="skateboarder2, prediction" style="width: 45%"/>
+</p>
+
+
+<p align="center">
+  <img src="figures/paddleboarder-orig.jpg" alt="paddleboarder, input" style="width: 45%"/>
+  &nbsp; &nbsp; &nbsp; &nbsp;
+  <img src="figures/paddleboarder-pred.jpg" alt="paddleboarder, prediction" style="width: 45%"/>
+</p>
+
+
+<p align="center">
+  <img src="figures/baseball-orig.jpg" alt="baseball, input" style="width: 45%"/>
+  &nbsp; &nbsp; &nbsp; &nbsp;
+  <img src="figures/baseball-pred.jpg" alt="baseball, prediction" style="width: 45%"/>
+</p>
+
+### Sample Heatmaps
+
+The model's unprocessed output is a series of heatmaps, one for each joint. Since intermediate supervision was used, we also visualize the heatmaps in the inner layers. To read the heatmap, each column represents one of the 17 joints. Each row represents a layer. The first layer is the first row, and the last layer is the second-last row. The final prediction for a particular joint is overlayed on the input image and displayed on the last row.
+
+Notice that the model refines its predictions as we proceed deeper into the layers. For example, the first row predictions often identify both ankles, wrists, or other joints that are difficult to immediately discern left and right. Each image below that shows the model deciding which joint corresponds to the person's left/right.
+
+The columns, if numbered in increasing order from left to right (0, 1, 2, ..., 16), correspond to the joints in this labelled figure.
+
+![column order, labelled](figures/skeleton_442619_flip_107_labelled.png)
+
+**4-layer hourglass, epoch 107**
+
+![4-layer hourglass heatmaps](figures/hg4_heatmaps_560228_107.png)
+
+**8-layer hourglass, epoch 70**
+
+![8-layer hourglass heatmaps](figures/hg8_heatmaps_560228_70.png)
+
+To better see the model performing refinements, we retrieve a heatmap output from the **early stages** of training, epoch 15 of 107. Notice the ankles and knees (rightmost 4 columns). In the first layer, both are identified. As we proceed deeper into the model, it uses context and other cues to determine which side is the person's left and right.
+
+![4-layer, epoch 15](figures/heatmaps_442619_15.png)
+
 ## Getting Started
 
 - init submodules
@@ -21,10 +85,6 @@ pip3 install -r requirements.txt
 ```bash
 bash ./scripts/coco_dl.sh
 ```
-
-## Deployed Model
-
-Our model is deployed [here](https://share.streamlit.io/robertklee/coco-human-pose/main/human_pose_app.py)! Feel free to check out our demo photos, or upload your own to try out. If you encounter any issues, please open an issue in this repository.
 
 ## Troubleshooting
 
