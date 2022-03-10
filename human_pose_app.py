@@ -54,9 +54,10 @@ MODEL_JSON_DEPLOYMENT_URL = 'https://github.com/robertklee/COCO-Human-Pose/relea
 SIDEBAR_OPTION_PROJECT_INFO = "Show Project Info"
 SIDEBAR_OPTION_DEMO_IMAGE = "Select a Demo Image"
 SIDEBAR_OPTION_UPLOAD_IMAGE = "Upload an Image"
+SIDEBAR_OPTION_CAMERA = "Take a Picture"
 SIDEBAR_OPTION_MEET_TEAM = "Meet the Team"
 
-SIDEBAR_OPTIONS = [SIDEBAR_OPTION_PROJECT_INFO, SIDEBAR_OPTION_DEMO_IMAGE, SIDEBAR_OPTION_UPLOAD_IMAGE, SIDEBAR_OPTION_MEET_TEAM]
+SIDEBAR_OPTIONS = [SIDEBAR_OPTION_PROJECT_INFO, SIDEBAR_OPTION_DEMO_IMAGE, SIDEBAR_OPTION_UPLOAD_IMAGE, SIDEBAR_OPTION_CAMERA, SIDEBAR_OPTION_MEET_TEAM]
 
 def get_file_content_as_string(path):
     url = 'https://raw.githubusercontent.com/robertklee/COCO-Human-Pose/master/' + path
@@ -199,6 +200,18 @@ def main():
             st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
             run_app(tfile)
 
+    elif app_mode == SIDEBAR_OPTION_CAMERA:
+        st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
+            and discarded after the final results are displayed.')
+        
+        img = st.camera_input("Please take a photo with a person in the center of the image. By submitting an image, you agree to the \
+            privacy policy.")
+
+        if img is not None:
+            tfile = tempfile.NamedTemporaryFile(delete=True)
+            tfile.write(img.read())
+            st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
+            run_app(tfile)
 
     elif app_mode == SIDEBAR_OPTION_MEET_TEAM:
         st.sidebar.write(" ------ ")
