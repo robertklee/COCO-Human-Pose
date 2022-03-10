@@ -190,8 +190,6 @@ def main():
             run_app(k)
 
     elif app_mode == SIDEBAR_OPTION_UPLOAD_IMAGE:
-        #upload = st.empty()
-        #with upload:
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
             and discarded after the final results are displayed. ')
         f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif'])
