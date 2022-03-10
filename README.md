@@ -4,7 +4,7 @@ This repository contains the source code for training a deep neural network to p
 
 ## Deployed Model
 
-Our model is deployed [at this website](https://share.streamlit.io/robertklee/coco-human-pose/main/human_pose_app.py)! Please be aware that the model only supports single-person human pose estimation. In the event there are multiple people in the frame, the model will label the skeleton of the **center-most person**.
+Our model is deployed [online here](https://share.streamlit.io/robertklee/coco-human-pose/main/human_pose_app.py)! Please be aware that the model only supports single-person human pose estimation. In the event there are multiple people in the frame, the model will label the skeleton of the **center-most person**.
 
 Feel free to check out our demo photos, or upload your own to try out. If you encounter any issues, please open an issue in this repository.
 
