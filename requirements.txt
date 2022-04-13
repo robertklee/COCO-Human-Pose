@@ -17,3 +17,4 @@ scipy
 # pycocotools @ git+https://github.com/philferriere/cocoapi.git@2929bd2ef6b451054755dfd7ceb09278f935f7ad#subdirectory=PythonAPI
 pycocotools==2.0.2
 streamlit==1.7.0
+click==8.0.4
