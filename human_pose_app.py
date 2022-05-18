@@ -240,7 +240,7 @@ def main():
         expandar_linkedin = st.expander('Contact Information')
         expandar_linkedin.write('Robert: https://www.linkedin.com/in/robert-k-lee/')
         expandar_linkedin.write('Julian: https://www.linkedin.com/in/julianrocha/')
-        expandar_linkedin.write('Wanze: https://www.linkedin.com/in/wanze-zhang-59320b137/')
+        expandar_linkedin.write('Wanze: https://www.linkedin.com/in/wanze-zhang/')
         expandar_linkedin.write('Nicole: https://www.linkedin.com/in/nicole-peverley-64181316a/')
         expandar_linkedin.write('Rafay: https://www.linkedin.com/in/rafay-chaudhy')
         expandar_linkedin.write('Corey: https://www.linkedin.com/in/corey-koelewyn-5b45061ab')
