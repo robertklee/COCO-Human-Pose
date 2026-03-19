@@ -4,14 +4,14 @@ import random
 
 # import the library and helpers
 import imageio
-import imgaug as ia
 import numpy as np  # linear algebra
-from imgaug import augmenters as iaa
-from imgaug.augmentables.kps import Keypoint, KeypointsOnImage
-from imgaug.augmenters.meta import OneOf
 
 from constants import RL_FLIP, ImageAugmentationStrength
 from util import validate_enum
+
+# imgaug imports are deferred to function scope because imgaug is
+# incompatible with NumPy 2.x (removed np.sctypes). These are only
+# needed during training augmentation, not inference.
 
 # Holy resources: https://nbviewer.jupyter.org/github/aleju/imgaug-doc/blob/master/notebooks/B01%20-%20Augment%20Keypoints.ipynb
 # Credit to the above notebook for their tutorial on keypoint augmentation
@@ -84,6 +84,11 @@ def get_augmenter_pipeline(strength_enum):
         - Rotation                                          (+/- 15 deg)
     """
 
+    if strength_enum is ImageAugmentationStrength.none:
+        return None
+
+    from imgaug import augmenters as iaa
+
     if strength_enum is ImageAugmentationStrength.heavy:
         iaaGaussianBlurSigmaMax                 = 2.0
 
@@ -155,8 +160,6 @@ def get_augmenter_pipeline(strength_enum):
         # Only up to one of the image size/rotation operations
         iaaCropAndPadPercentMagnitude           = 0.15 # add and subtract this from 1.00 (100%, no scaling)
         iaaRotateDegreesMagnitude               = 15 # add and subtract this from 0 deg
-    elif strength_enum is ImageAugmentationStrength.none:
-        return None
     else:
         validate_enum(ImageAugmentationStrength, strength_enum.name)
         exit(1)
@@ -222,6 +225,7 @@ def get_augmenter_pipeline(strength_enum):
 def flipRL(image, keypoints, probability=RL_FLIP):
     if random.random() > probability:
         return image, keypoints
+    from imgaug import augmenters as iaa
     flip = iaa.Fliplr(1.0)
     flipped_img, flipped_kps = flip(image=image, keypoints=keypoints)
     flat_map = lambda f, xs: [y for ys in xs for y in f(ys)] # https://dev.to/turbaszek/flat-map-in-python-3g98
@@ -231,6 +235,8 @@ def flipRL(image, keypoints, probability=RL_FLIP):
 
 # %% Load sample image
 if __name__ == '__main__':
+    import imgaug as ia
+    from imgaug.augmentables.kps import Keypoint, KeypointsOnImage
     image = imageio.imread('./data/Macropus_rufogriseus_rufogriseus_Bruny.jpg')
     image = ia.imresize_single_image(image, (389, 259))
 

@@ -1,8 +1,6 @@
-from tensorflow.keras import backend as K
-from tensorflow.keras.layers import *
-from tensorflow.keras.losses import mean_squared_error
-from tensorflow.keras.models import *
-from tensorflow.keras.optimizers import Adam, RMSprop
+from tensorflow.keras.layers import (Add, BatchNormalization, Conv2D, Input,
+                                     MaxPool2D, SeparableConv2D, UpSampling2D)
+from tensorflow.keras.models import Model
 
 # Adapted from https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/master/src/net/hg_blocks.py
 
@@ -39,7 +37,7 @@ def hourglass_module(bottom, num_classes, num_channels, bottleneck, hgid, activa
 
 def bottleneck_block(bottom, num_out_channels, block_name):
     # skip layer
-    if K.int_shape(bottom)[-1] == num_out_channels:
+    if bottom.shape[-1] == num_out_channels:
         _skip = bottom
     else:
         _skip = Conv2D(num_out_channels, kernel_size=(1, 1), activation='relu', padding='same',
@@ -62,7 +60,7 @@ def bottleneck_block(bottom, num_out_channels, block_name):
 
 def bottleneck_mobile(bottom, num_out_channels, block_name):
     # skip layer
-    if K.int_shape(bottom)[-1] == num_out_channels:
+    if bottom.shape[-1] == num_out_channels:
         _skip = bottom
     else:
         _skip = SeparableConv2D(num_out_channels, kernel_size=(1, 1), activation='relu', padding='same',

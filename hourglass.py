@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 from tensorflow.keras.callbacks import (CSVLogger, LearningRateScheduler,
                                         ModelCheckpoint, TensorBoard)
-from tensorflow.keras.losses import mean_squared_error
+from tensorflow.keras.losses import MeanSquaredError
 from tensorflow.keras.models import load_model, model_from_json
 from tensorflow.keras.optimizers import Adam, RMSprop
 
@@ -177,8 +177,8 @@ class HourglassNet(object):
             optimizer = Adam(learning_rate=self.learningrate)
 
         if self.loss is None:
-            print("No loss function provided. Using default of keras.losses.mean_squared_error")
-            self.loss = mean_squared_error
+            print("No loss function provided. Using default of keras.losses.MeanSquaredError")
+            self.loss = MeanSquaredError()
 
         self.model.compile(optimizer=optimizer, loss=self.loss, metrics=[f1_m, precision_m, recall_m])
 
