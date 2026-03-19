@@ -68,9 +68,11 @@ class AppHelper():
         fullres_keypoints_batch = keypoints_batch.copy()
         for i in range(fullres_keypoints_batch.shape[0]):
             for j in range(NUM_COCO_KEYPOINTS):
-                if fullres_keypoints_batch[i, j, 2] > 0:
-                    fullres_keypoints_batch[i, j, 0] = fullres_keypoints_batch[i, j, 0] * scale_x + anchor_x
-                    fullres_keypoints_batch[i, j, 1] = fullres_keypoints_batch[i, j, 1] * scale_y + anchor_y
+                kp_x = fullres_keypoints_batch[i, j, 0]
+                kp_y = fullres_keypoints_batch[i, j, 1]
+                if kp_x != 0 or kp_y != 0:
+                    fullres_keypoints_batch[i, j, 0] = kp_x * scale_x + anchor_x
+                    fullres_keypoints_batch[i, j, 1] = kp_y * scale_y + anchor_y
 
         # Load original full-res image for overlay
         with Image.open(img_path) as orig_img:
