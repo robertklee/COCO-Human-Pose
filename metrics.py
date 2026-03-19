@@ -1,6 +1,6 @@
-import keras
-import keras.backend as K
 import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import backend as K
 
 def recall_m(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))

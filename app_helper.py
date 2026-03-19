@@ -7,7 +7,6 @@ import re
 from functools import lru_cache
 
 import cv2
-import keras
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import RendererAgg
@@ -15,7 +14,8 @@ _lock = RendererAgg.lock
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndimage
-from keras.models import load_model, model_from_json
+from tensorflow import keras
+from tensorflow.keras.models import load_model, model_from_json
 from PIL import Image, ImageOps
 from scipy.ndimage import gaussian_filter, maximum_filter
 

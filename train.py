@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from pandas.io import pickle
 
 import tensorflow as tf
-from keras import backend as k
+from tensorflow.keras import backend as k
 
 from df_pickler import check_pickle_folder
 from constants import *
@@ -17,23 +17,19 @@ from util import *
 
 def tensorflow_setup():
     print("TensorFlow detected the following GPU(s):")
-    tf.test.gpu_device_name()
+    print(tf.config.list_physical_devices('GPU'))
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     # os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpuID)
 
-    # TensorFlow wizardry
-    config = tf.ConfigProto()
-
     # Don't pre-allocate memory; allocate as-needed
-    config.gpu_options.allow_growth = True
-    ## TODO may need to turn this off for the first few trials to ensure we won't run out of GPU memory mid-training
-
-    # Only allow a total of half the GPU memory to be allocated
-    config.gpu_options.per_process_gpu_memory_fraction = 1.0
-
-    # Create a session with the above options specified.
-    k.tensorflow_backend.set_session(tf.Session(config=config))
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+        except RuntimeError as e:
+            print(e)
 
 def process_args():
     argparser = argparse.ArgumentParser(description='Training parameters')
