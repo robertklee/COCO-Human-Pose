@@ -65,7 +65,7 @@ def download_file(url, local_filename):
     return local_filename
 
 # Modified from https://github.com/thoppe/streamlit-skyAR/blob/master/streamlit_app.py
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def ensure_model_exists():
 
     save_dest = Path(DEFAULT_MODEL_BASE_DIR)
@@ -89,11 +89,9 @@ def ensure_model_exists():
 #         rescale_f = cv2.cvtColor(rescale_f,cv2.COLOR_BGR2RGB)
 #         rescale_f = cv2.resize(rescale_f, dsize=(256,256))
 
-@st.cache_resource
+@st.cache_resource(show_spinner="Loading model... this may take a moment on first run.")
 def load_model():
-    with st.spinner("Loading model... this may take a moment on first run."):
-        handle = ensure_model_exists()
-    return handle
+    return ensure_model_exists()
 
 
 def run_app(img):
