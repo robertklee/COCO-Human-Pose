@@ -176,11 +176,13 @@ def main():
             and discarded after the final results are displayed. ')
         f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif', 'webp'])
         if f is not None:
-            with tempfile.NamedTemporaryFile(delete=True, suffix='.jpg') as tfile:
+            with tempfile.NamedTemporaryFile(delete=False, delete_on_close=False, suffix='.jpg') as tfile:
                 tfile.write(f.read())
-                tfile.flush()
+            try:
                 st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
                 run_app(tfile.name)
+            finally:
+                os.unlink(tfile.name)
 
     elif app_mode == SIDEBAR_OPTION_CAMERA:
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
@@ -190,11 +192,13 @@ def main():
             privacy policy.")
 
         if img is not None:
-            with tempfile.NamedTemporaryFile(delete=True, suffix='.jpg') as tfile:
+            with tempfile.NamedTemporaryFile(delete=False, delete_on_close=False, suffix='.jpg') as tfile:
                 tfile.write(img.read())
-                tfile.flush()
+            try:
                 st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
                 run_app(tfile.name)
+            finally:
+                os.unlink(tfile.name)
 
     elif app_mode == SIDEBAR_OPTION_MEET_TEAM:
         st.sidebar.write(" ------ ")
