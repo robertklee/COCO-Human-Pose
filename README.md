@@ -82,6 +82,13 @@ git submodule update --init --recursive
 pip3 install -r requirements.txt
 ```
 
+- install imgaug (required for training data augmentation only, not needed for inference)
+
+```bash
+pip3 install "setuptools<81"
+pip3 install --no-build-isolation "imgaug @ git+https://github.com/jasoncmyers/imgaug.git"
+```
+
 - install dataset (requires just under 30 GB after unzipping, but will require at least 45 GB free disk space to unzip a ~18 GB training set)
 
 ```bash

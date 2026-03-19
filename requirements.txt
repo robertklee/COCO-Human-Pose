@@ -14,7 +14,8 @@ streamlit>=1.22.0
 
 # Version specific imports
 setuptools<81
-imgaug @ git+https://github.com/jasoncmyers/imgaug.git
+# imgaug - only needed for training, not for Streamlit inference app
+# imgaug @ git+https://github.com/jasoncmyers/imgaug.git
 tensorboard>=2.10.0
 tensorflow>=2.10.0
 h5py>=3.10.0
