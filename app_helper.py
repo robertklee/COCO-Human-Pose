@@ -1,5 +1,4 @@
 import csv
-import imghdr
 import io
 import json
 import os
