@@ -109,8 +109,8 @@ def run_app(img):
 
     handle = load_model()
 
-    scatter = handle.predict_in_memory(img, visualize_scatter=True, visualize_skeleton=False)
-    skeleton = handle.predict_in_memory(img, visualize_scatter=True, visualize_skeleton=True)
+    scatter = handle.predict_in_memory_fullres(img, visualize_scatter=True, visualize_skeleton=False)
+    skeleton = handle.predict_in_memory_fullres(img, visualize_scatter=True, visualize_skeleton=True)
 
     right_column.image(scatter, caption = "Predicted Keypoints")
     st.image(skeleton, caption = 'FINAL: Predicted Pose')

@@ -83,25 +83,34 @@ class AppHelper():
         return self.visualize_keypoints(orig_batch, fullres_keypoints_batch, show_skeleton=visualize_skeleton)
 
     def _load_model(self, model_json, model_weights):
-        # Keras 3 cannot deserialize Keras 2 model JSON via model_from_json.
-        # Rebuild architecture from code and load only the weights.
         from hourglass_blocks import create_hourglass_network, bottleneck_block
-
-        num_stacks = int(re.search(r'stacks_(\d+)', model_json).group(1))
+        from tensorflow.keras.models import model_from_json
 
         with open(model_json) as f:
             model_config = json.load(f)
-        activation = DEFAULT_ACTIVATION
-        for layer in model_config['config']['layers']:
-            if '_conv_1x1_parts' in layer.get('name', ''):
-                activation = layer['config']['activation']
-                break
 
-        self.model = create_hourglass_network(
-            NUM_COCO_KEYPOINTS, num_stacks, NUM_CHANNELS,
-            INPUT_DIM, OUTPUT_DIM, bottleneck_block, activation
-        )
-        self.model.load_weights(model_weights)
+        is_keras2 = model_config.get('class_name') == 'Model' and 'module' not in model_config
+
+        if is_keras2:
+            # Keras 2 JSON cannot be deserialized by Keras 3's model_from_json.
+            # Rebuild architecture from code and load only the weights.
+            num_stacks = int(re.search(r'stacks_(\d+)', model_json).group(1))
+
+            activation = DEFAULT_ACTIVATION
+            for layer in model_config['config']['layers']:
+                if '_conv_1x1_parts' in layer.get('name', ''):
+                    activation = layer['config']['activation']
+                    break
+
+            self.model = create_hourglass_network(
+                NUM_COCO_KEYPOINTS, num_stacks, NUM_CHANNELS,
+                INPUT_DIM, OUTPUT_DIM, bottleneck_block, activation
+            )
+            self.model.load_weights(model_weights)
+        else:
+            # Keras 3 JSON can be loaded directly
+            self.model = model_from_json(json.dumps(model_config))
+            self.model.load_weights(model_weights)
 
     def _predict_and_visualize(self, X_batch, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
         predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
