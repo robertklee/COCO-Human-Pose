@@ -1,5 +1,4 @@
 import csv
-import imghdr
 import os
 from functools import lru_cache
 
@@ -103,8 +102,13 @@ class EvaluationWrapper():
 
             for file in files:
                 filepath = os.path.join(path, file)
-                if imghdr.what(filepath) is not None:
+                try:
+                    from PIL import Image
+                    with Image.open(filepath) as test_img:
+                        test_img.verify()
                     image_paths.append(filepath)
+                except Exception:
+                    pass
         elif os.path.isfile(path):
             image_paths.append(path)
         else:

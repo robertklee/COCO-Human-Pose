@@ -1,4 +1,3 @@
-import imghdr
 import os
 import shutil
 import ssl
@@ -159,8 +158,12 @@ def main():
             filepath = os.path.join(directory, file)
 
             # Find all valid images
-            if imghdr.what(filepath) is not None:
+            try:
+                with Image.open(filepath) as test_img:
+                    test_img.verify()
                 photos.append(file)
+            except Exception:
+                pass
 
         photos.sort()
 
