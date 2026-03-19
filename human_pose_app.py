@@ -109,9 +109,10 @@ def run_app(img):
 
     left_column, right_column = st.columns(2)
 
-    xb, yb, _crop_info = app_helper.load_and_preprocess_img(img, num_hg_blocks=1)
-    display_image = cv2.resize(np.array(xb[0]), IMAGE_DISPLAY_SIZE,
-                        interpolation=cv2.INTER_LINEAR)
+    # Display the original image as-is
+    with Image.open(img) as orig_img:
+        from PIL import ImageOps
+        display_image = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
 
     left_column.image(display_image, caption = "Selected Input")
 
