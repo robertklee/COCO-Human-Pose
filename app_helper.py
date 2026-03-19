@@ -235,39 +235,41 @@ class AppHelper():
                         x_left.append(keypoints[i,0])
                         y_left.append(keypoints[i,1])
             with _lock:
-                if show_skeleton:
-                    for i in range(len(COCO_SKELETON)):
-                        # joint a to joint b
-                        a = COCO_SKELETON[i, 0]
-                        b = COCO_SKELETON[i, 1]
+                fig = plt.figure()
+                try:
+                    if show_skeleton:
+                        for i in range(len(COCO_SKELETON)):
+                            # joint a to joint b
+                            a = COCO_SKELETON[i, 0]
+                            b = COCO_SKELETON[i, 1]
 
-                        # if both are valid keypoints
-                        if valid[a] and valid[b]:
-                            # linewidth = 5, linestyle = "--",
-                            plt.plot([keypoints[a,0],keypoints[b,0]], [keypoints[a,1], keypoints[b,1]], color = COLOUR_MAP[i])
+                            # if both are valid keypoints
+                            if valid[a] and valid[b]:
+                                # linewidth = 5, linestyle = "--",
+                                plt.plot([keypoints[a,0],keypoints[b,0]], [keypoints[a,1], keypoints[b,1]], color = COLOUR_MAP[i])
 
-                plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
-                plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
-                # https://stackoverflow.com/questions/9295026/matplotlib-plots-removing-axis-legends-and-white-spaces
-                plt.axis('off')
-                plt.imshow(X)
+                    plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
+                    plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
+                    # https://stackoverflow.com/questions/9295026/matplotlib-plots-removing-axis-legends-and-white-spaces
+                    plt.axis('off')
+                    plt.imshow(X)
 
-                plt.tight_layout(w_pad=0)
+                    plt.tight_layout(w_pad=0)
 
-                # https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-memory-file-which-can-be-read-into-pil-image
-                buf = io.BytesIO()
-                plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, transparent=False, dpi=300)
-                plt.close('all')
+                    # https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-memory-file-which-can-be-read-into-pil-image
+                    buf = io.BytesIO()
+                    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, transparent=False, dpi=300)
+                finally:
+                    plt.close(fig)
 
             # Ensure Image reads from the beginning
             buf.seek(0)
-            im = Image.open(buf).convert('RGB')
-
-            # Turn heatmap into numpy array.
-            # NOTE that the read image size is too large because of plt's default size.
-            visualized = np.array(im)
+            with Image.open(buf) as im:
+                im = im.convert('RGB')
+                # Turn heatmap into numpy array.
+                # NOTE that the read image size is too large because of plt's default size.
+                visualized = np.array(im)
             buf.close()
-            im.close()
             return visualized
 
     def heatmaps_to_keypoints_batch(self, heatmaps_batch, threshold=HM_TO_KP_THRESHOLD):
@@ -338,31 +340,32 @@ bbox : {tuple of element type int or float}
     optional bounding box info, anchored at top left of image, of elements (x,y,w,h)
 """
 def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
-    img = Image.open(img_path).convert('RGB')
+    with Image.open(img_path) as img:
+        img = img.convert('RGB')
 
-    # Required because PIL will read EXIF tags about rotation by default. We want to
-    # preserve the input image rotation so we manually apply the rotation if required.
-    # See https://stackoverflow.com/questions/4228530/pil-thumbnail-is-rotating-my-image/
-    # and the answer I used: https://stackoverflow.com/a/63798032
-    img = ImageOps.exif_transpose(img)
+        # Required because PIL will read EXIF tags about rotation by default. We want to
+        # preserve the input image rotation so we manually apply the rotation if required.
+        # See https://stackoverflow.com/questions/4228530/pil-thumbnail-is-rotating-my-image/
+        # and the answer I used: https://stackoverflow.com/a/63798032
+        img = ImageOps.exif_transpose(img)
 
-    if bbox is None:
-        w, h = img.size
+        if bbox is None:
+            w, h = img.size
 
-        if w != h:
-            # if the image is not square
-            # Indexed so upper left corner is (0,0)
-            bbox = data_generator.transform_bbox_square((0, 0, w, h))
+            if w != h:
+                # if the image is not square
+                # Indexed so upper left corner is (0,0)
+                bbox = data_generator.transform_bbox_square((0, 0, w, h))
 
-    if bbox is not None:
-        # If a bounding box is provided, use it
-        bbox = np.array(bbox, dtype=int)
+        if bbox is not None:
+            # If a bounding box is provided, use it
+            bbox = np.array(bbox, dtype=int)
 
-        # Crop with box of order left, upper, right, lower
-        img = img.crop(box=bbox)
+            # Crop with box of order left, upper, right, lower
+            img = img.crop(box=bbox)
 
-    new_img = cv2.resize(np.array(img), INPUT_DIM,
-                        interpolation=cv2.INTER_LINEAR)
+        new_img = cv2.resize(np.array(img), INPUT_DIM,
+                            interpolation=cv2.INTER_LINEAR)
 
     # Add a 'batch' axis
     X_batch = np.expand_dims(new_img.astype('float'), axis=0)
