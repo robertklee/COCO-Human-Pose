@@ -42,8 +42,11 @@ class AppHelper():
             average_flip_prediction=average_flip_prediction
         )
 
-    def predict_in_memory_fullres(self, img_path, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
-        """Predict keypoints and overlay them on the original full-resolution image."""
+    def predict_in_memory_fullres(self, img_path, average_flip_prediction=True):
+        """Predict keypoints and return them mapped to original image coordinates.
+
+        Returns (orig_batch, fullres_keypoints_batch) for use with visualize_keypoints().
+        """
         X_batch, _y_stacked, crop_info = load_and_preprocess_img(img_path, 1)
 
         predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
@@ -79,7 +82,7 @@ class AppHelper():
             orig_array = np.array(orig_img) / 255.0
 
         orig_batch = np.expand_dims(orig_array, axis=0)
-        return self.visualize_keypoints(orig_batch, fullres_keypoints_batch, show_skeleton=visualize_skeleton)
+        return orig_batch, fullres_keypoints_batch
 
     def _load_model(self, model_json, model_weights):
         from hourglass_blocks import create_hourglass_network, bottleneck_block
