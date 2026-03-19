@@ -6,13 +6,10 @@
 import os
 
 import cv2
-import imgaug as ia
 import numpy as np
 import pandas as pd
 import skimage.io as io
 import tensorflow as tf
-from imgaug import augmenters as iaa
-from imgaug.augmentables.kps import Keypoint, KeypointsOnImage
 from PIL import Image
 from tensorflow.keras.utils import Sequence
 
@@ -133,6 +130,7 @@ class DataGenerator(Sequence):
         return heat_maps
 
     def convert_coco_kp_to_imgaug_kp(self, label):
+        from imgaug.augmentables.kps import Keypoint
         kps = []
         valid = np.ones(NUM_COCO_KEYPOINTS)
         invalid_xy = -1
@@ -261,6 +259,7 @@ class DataGenerator(Sequence):
 
             # if image augmentations should be applied
             if self.augmenter is not None:
+                from imgaug.augmentables.kps import KeypointsOnImage
                 imgaug_kps, valid = self.convert_coco_kp_to_imgaug_kp(transformed_label.astype('float32'))
 
                 # Keep track of image dimension

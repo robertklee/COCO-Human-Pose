@@ -11,7 +11,7 @@ def get_loss_from_string(loss_str):
     loss = str_to_enum(LossFunctionOptions, loss_str)
 
     if loss is LossFunctionOptions.keras_mse:
-        return keras.losses.mean_squared_error
+        return keras.losses.MeanSquaredError()
     elif loss is LossFunctionOptions.euclidean_loss:
         return euclidean_loss
     elif loss is LossFunctionOptions.weighted_mse:
@@ -42,15 +42,15 @@ def categorical_focal_loss(gamma=2.0, alpha=0.25):
         # Add the epsilon to prediction value
         #y_pred = y_pred + epsilon
         # Clip the prediction value
-        y_pred = K.clip(y_pred, epsilon, 1.0-epsilon)
+        y_pred = tf.clip_by_value(y_pred, epsilon, 1.0-epsilon)
         # Calculate cross entropy
-        cross_entropy = -y_true*K.log(y_pred)
+        cross_entropy = -y_true*tf.math.log(y_pred)
         # Calculate weight that consists of  modulating factor and weighting factor
-        weight = alpha * y_true * K.pow((1-y_pred), gamma)
+        weight = alpha * y_true * tf.math.pow((1-y_pred), gamma)
         # Calculate focal loss
         loss = weight * cross_entropy
         # Sum the losses in mini_batch
-        loss = K.sum(loss, axis=1)
+        loss = tf.reduce_sum(loss, axis=1)
         return loss
 
     return focal_loss
@@ -82,19 +82,19 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
         # Add the epsilon to prediction value
         #y_pred = y_pred + epsilon
         # Clip the prediciton value
-        y_pred = K.clip(y_pred, epsilon, 1.0-epsilon)
+        y_pred = tf.clip_by_value(y_pred, epsilon, 1.0-epsilon)
         # Calculate p_t
-        p_t = tf.where(K.equal(y_true, 1), y_pred, 1-y_pred)
+        p_t = tf.where(tf.equal(y_true, 1), y_pred, 1-y_pred)
         # Calculate alpha_t
-        alpha_factor = K.ones_like(y_true)*alpha
-        alpha_t = tf.where(K.equal(y_true, 1), alpha_factor, 1-alpha_factor)
+        alpha_factor = tf.ones_like(y_true)*alpha
+        alpha_t = tf.where(tf.equal(y_true, 1), alpha_factor, 1-alpha_factor)
         # Calculate cross entropy
-        cross_entropy = -K.log(p_t)
-        weight = alpha_t * K.pow((1-p_t), gamma)
+        cross_entropy = -tf.math.log(p_t)
+        weight = alpha_t * tf.math.pow((1-p_t), gamma)
         # Calculate focal loss
         loss = weight * cross_entropy
         # Sum the losses in mini_batch
-        loss = K.sum(loss, axis=1)
+        loss = tf.reduce_sum(loss, axis=1)
         return loss
 
     return focal_loss
@@ -105,7 +105,7 @@ def focal_loss_fixed(gamma=2., alpha=.25):
 	def focal_loss_fixed_func(y_true, y_pred):
 		pt_1 = tf.where(tf.equal(y_true, 1), y_pred, tf.ones_like(y_pred))
 		pt_0 = tf.where(tf.equal(y_true, 0), y_pred, tf.zeros_like(y_pred))
-		return -K.mean(alpha * K.pow(1. - pt_1, gamma) * K.log(pt_1)) - K.mean((1 - alpha) * K.pow(pt_0, gamma) * K.log(1. - pt_0))
+		return -tf.reduce_mean(alpha * tf.math.pow(1. - pt_1, gamma) * tf.math.log(pt_1)) - tf.reduce_mean((1 - alpha) * tf.math.pow(pt_0, gamma) * tf.math.log(1. - pt_0))
 	return focal_loss_fixed_func
 
 # This isn't ideal since it uses tf operations, but I think the investment required to validate any translation we do
@@ -152,7 +152,7 @@ def weighted_mean_squared_error(y_true, y_pred):
     return loss
 
 def vanilla_mean_squared_error(y_true, y_pred):
-    return K.mean(K.square(y_pred - y_true), axis=-1)
+    return tf.reduce_mean(tf.math.square(y_pred - y_true), axis=-1)
 
 def euclidean_loss(x, y):
-    return K.sqrt(K.sum(K.square(x - y)))
+    return tf.math.sqrt(tf.reduce_sum(tf.math.square(x - y)))

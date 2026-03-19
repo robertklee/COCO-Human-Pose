@@ -9,8 +9,8 @@ from functools import lru_cache
 import cv2
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import RendererAgg
-_lock = RendererAgg.lock
+import threading
+_lock = threading.Lock()
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndimage
