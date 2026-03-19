@@ -100,12 +100,14 @@ def ensure_model_exists():
 
 @st.cache_resource
 def load_model():
-    handle = ensure_model_exists()
-    handle.model.summary()
+    with st.spinner("Loading model... this may take a moment on first run."):
+        handle = ensure_model_exists()
     return handle
 
 
 def run_app(img):
+
+    handle = load_model()
 
     left_column, right_column = st.columns(2)
 
@@ -116,10 +118,9 @@ def run_app(img):
 
     left_column.image(display_image, caption = "Selected Input")
 
-    handle = load_model()
-
-    scatter = handle.predict_in_memory_fullres(img, visualize_scatter=True, visualize_skeleton=False)
-    skeleton = handle.predict_in_memory_fullres(img, visualize_scatter=True, visualize_skeleton=True)
+    with st.spinner("Running pose estimation..."):
+        scatter = handle.predict_in_memory_fullres(img, visualize_scatter=True, visualize_skeleton=False)
+        skeleton = handle.predict_in_memory_fullres(img, visualize_scatter=True, visualize_skeleton=True)
 
     right_column.image(scatter, caption = "Predicted Keypoints")
     st.image(skeleton, caption = 'FINAL: Predicted Pose')
