@@ -15,7 +15,6 @@ import numpy as np
 import pandas as pd
 import scipy.ndimage as ndimage
 from tensorflow import keras
-from tensorflow.keras.models import load_model, model_from_json
 from PIL import Image, ImageOps
 from scipy.ndimage import gaussian_filter, maximum_filter
 
@@ -45,8 +44,24 @@ class AppHelper():
         )
 
     def _load_model(self, model_json, model_weights):
+        # Keras 3 cannot deserialize Keras 2 model JSON via model_from_json.
+        # Rebuild architecture from code and load only the weights.
+        from hourglass_blocks import create_hourglass_network, bottleneck_block
+
+        num_stacks = int(re.search(r'stacks_(\d+)', model_json).group(1))
+
         with open(model_json) as f:
-            self.model = model_from_json(f.read())
+            model_config = json.load(f)
+        activation = DEFAULT_ACTIVATION
+        for layer in model_config['config']['layers']:
+            if '_conv_1x1_parts' in layer.get('name', ''):
+                activation = layer['config']['activation']
+                break
+
+        self.model = create_hourglass_network(
+            NUM_COCO_KEYPOINTS, num_stacks, NUM_CHANNELS,
+            INPUT_DIM, OUTPUT_DIM, bottleneck_block, activation
+        )
         self.model.load_weights(model_weights)
 
     def _predict_and_visualize(self, X_batch, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):

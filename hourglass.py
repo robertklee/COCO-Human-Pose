@@ -1,11 +1,12 @@
+import json
 import os
+import re
 from datetime import datetime
 
 import numpy as np
 from tensorflow.keras.callbacks import (CSVLogger, LearningRateScheduler,
                                         ModelCheckpoint, TensorBoard)
 from tensorflow.keras.losses import MeanSquaredError
-from tensorflow.keras.models import load_model, model_from_json
 from tensorflow.keras.optimizers import Adam, RMSprop
 
 import coco_df
@@ -183,6 +184,17 @@ class HourglassNet(object):
         self.model.compile(optimizer=optimizer, loss=self.loss)
 
     def _load_model(self, model_json, model_weights):
+        # Keras 3 cannot deserialize Keras 2 model JSON via model_from_json.
+        # Rebuild architecture from code and load only the weights.
+        num_stacks = int(re.search(r'stacks_(\d+)', model_json).group(1))
+
         with open(model_json) as f:
-            self.model = model_from_json(f.read())
+            model_config = json.load(f)
+        for layer in model_config['config']['layers']:
+            if '_conv_1x1_parts' in layer.get('name', ''):
+                self.activation_str = layer['config']['activation']
+                break
+
+        self.num_stacks = num_stacks
+        self.build_model()
         self.model.load_weights(model_weights)
