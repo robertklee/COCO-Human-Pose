@@ -20,21 +20,14 @@ from app_helper import AppHelper
 from constants import *
 from util import *
 
-HASH_FUNCS = {
-    tf.Session : id
-}
-
-config = tf.compat.v1.ConfigProto(
-    device_count={'GPU': 1},
-    intra_op_parallelism_threads=1,
-    allow_soft_placement=True
-)
-config.gpu_options.allow_growth = True
-config.gpu_options.per_process_gpu_memory_fraction = 0.6
-
-session = tf.compat.v1.Session(config=config)
-
-tf.compat.v1.keras.backend.set_session(session)
+# Configure GPU memory growth for TF2
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
 
 st.title('Welcome to Posers')
 st.write(" ------ ")
@@ -73,7 +66,7 @@ def download_file(url, local_filename):
     return local_filename
 
 # Modified from https://github.com/thoppe/streamlit-skyAR/blob/master/streamlit_app.py
-@st.cache
+@st.cache_resource
 def ensure_model_exists():
 
     save_dest = Path(DEFAULT_MODEL_BASE_DIR)
@@ -97,18 +90,11 @@ def ensure_model_exists():
 #         rescale_f = cv2.cvtColor(rescale_f,cv2.COLOR_BGR2RGB)
 #         rescale_f = cv2.resize(rescale_f, dsize=(256,256))
 
-@st.cache(allow_output_mutation=True, hash_funcs=HASH_FUNCS)
+@st.cache_resource
 def load_model():
-    config = tf.ConfigProto(allow_soft_placement=True)
-    session = tf.Session(config=config)
-    with session.as_default():
-        handle = ensure_model_exists()
-
-        # Needed to ensure model can be cached and called
-        handle.model._make_predict_function()
-        handle.model.summary()
-
-    return handle, session
+    handle = ensure_model_exists()
+    handle.model.summary()
+    return handle
 
 
 def run_app(img):
@@ -121,18 +107,16 @@ def run_app(img):
 
     left_column.image(display_image, caption = "Selected Input")
 
-    handle, session = load_model()
+    handle = load_model()
 
-    with session.as_default():
-        with session.graph.as_default():
-            scatter = handle.predict_in_memory(img, visualize_scatter=True, visualize_skeleton=False)
-            skeleton = handle.predict_in_memory(img, visualize_scatter=True, visualize_skeleton=True)
+    scatter = handle.predict_in_memory(img, visualize_scatter=True, visualize_skeleton=False)
+    skeleton = handle.predict_in_memory(img, visualize_scatter=True, visualize_skeleton=True)
 
-            scatter_img = Image.fromarray(scatter)
-            skeleton_img = Image.fromarray(skeleton)
+    scatter_img = Image.fromarray(scatter)
+    skeleton_img = Image.fromarray(skeleton)
 
-            right_column.image(scatter_img,  caption = "Predicted Keypoints")
-            st.image(skeleton_img, caption = 'FINAL: Predicted Pose')
+    right_column.image(scatter_img,  caption = "Predicted Keypoints")
+    st.image(skeleton_img, caption = 'FINAL: Predicted Pose')
 
 def demo():
     left_column, middle_column, right_column = st.columns(3)
@@ -218,20 +202,20 @@ def main():
         st.subheader("We are the Posers")
         first_column, second_column, third_column, forth_column, fifth_column, sixth_column = st.columns(6)
 
-        third_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'wanze.jpg'),      use_column_width = True, caption = "Wanze")
-        second_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'robert.png'),    use_column_width = True, caption = "Robert")
-        first_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'julian.jpg'),     use_column_width = True, caption = "Julian")
-        forth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'nicole.jpg'),     use_column_width = True, caption = "Nicole")
-        fifth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'rafay.png'),      use_column_width = True, caption = 'Rafay')
-        sixth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'corey.jpg'),      use_column_width = True, caption = "Corey")
+        third_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'wanze.jpg'),      use_container_width = True, caption = "Wanze")
+        second_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'robert.png'),    use_container_width = True, caption = "Robert")
+        first_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'julian.jpg'),     use_container_width = True, caption = "Julian")
+        forth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'nicole.jpg'),     use_container_width = True, caption = "Nicole")
+        fifth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'rafay.png'),      use_container_width = True, caption = 'Rafay')
+        sixth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'corey.jpg'),      use_container_width = True, caption = "Corey")
 
         first_column_predict, second_column_predict, third_column_predict,forth_column_predict, fifth_column_predict, sixth_column_predict = st.columns(6)
-        third_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'wanze_output.png'),       use_column_width = True, caption = "Wanze Pose")
-        second_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'robert_output.png'),     use_column_width = True, caption = "Robert Pose")
-        first_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'julian_output.png'),      use_column_width = True, caption = "Julian Pose")
-        forth_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'nicole_output.png'),      use_column_width = True, caption = "Nicole Pose")
-        fifth_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'rafay_output.png'),       use_column_width = True, caption = "Rafay Pose")
-        sixth_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'corey_output.png'),       use_column_width = True, caption = "Corey Pose")
+        third_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'wanze_output.png'),       use_container_width = True, caption = "Wanze Pose")
+        second_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'robert_output.png'),     use_container_width = True, caption = "Robert Pose")
+        first_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'julian_output.png'),      use_container_width = True, caption = "Julian Pose")
+        forth_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'nicole_output.png'),      use_container_width = True, caption = "Nicole Pose")
+        fifth_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'rafay_output.png'),       use_container_width = True, caption = "Rafay Pose")
+        sixth_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'corey_output.png'),       use_container_width = True, caption = "Corey Pose")
 
 
         st.sidebar.write('Please feel free to connect with us on Linkedin!')

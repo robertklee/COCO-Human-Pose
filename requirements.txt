@@ -10,14 +10,13 @@ scikit-image==0.19.1
 scikit-learn==1.0.1
 imageio==2.13.3
 scipy==1.7.3
-streamlit==1.9.0
+streamlit>=1.22.0
 
 # Version specific imports
 imgaug>=0.3.0
-Keras==2.3.1
-tensorboard==1.15.0
-tensorflow==1.15.2
-h5py==2.10.0
+tensorboard>=2.10.0
+tensorflow>=2.10.0
+h5py>=3.0.0
 # pycocotools @ git+https://github.com/philferriere/cocoapi.git@2929bd2ef6b451054755dfd7ceb09278f935f7ad#subdirectory=PythonAPI
 pycocotools==2.0.2
 click==8.0.4

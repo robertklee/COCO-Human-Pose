@@ -2,12 +2,11 @@ import os
 from datetime import datetime
 
 import numpy as np
-import scipy.misc
-from keras.callbacks import (CSVLogger, LearningRateScheduler, ModelCheckpoint,
-                             TensorBoard)
-from keras.losses import mean_squared_error
-from keras.models import load_model, model_from_json
-from keras.optimizers import Adam, RMSprop
+from tensorflow.keras.callbacks import (CSVLogger, LearningRateScheduler,
+                                        ModelCheckpoint, TensorBoard)
+from tensorflow.keras.losses import mean_squared_error
+from tensorflow.keras.models import load_model, model_from_json
+from tensorflow.keras.optimizers import Adam, RMSprop
 
 import coco_df
 from constants import *
@@ -122,7 +121,7 @@ class HourglassNet(object):
 
         print(f"Model checkpoints saved to:         {modelSavePath}")
 
-        self.model.fit_generator(generator=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
+        self.model.fit(x=train_generator, validation_data=val_generator, steps_per_epoch=len(train_generator), \
             validation_steps=len(val_generator), epochs=epochs, initial_epoch=initial_epoch, callbacks=callbacks)
 
     def train(self, batch_size, model_save_base_dir, epochs, subset, notes=None):

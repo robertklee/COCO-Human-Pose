@@ -1,8 +1,8 @@
-import keras.backend as K
-from keras.layers import *
-from keras.losses import mean_squared_error
-from keras.models import *
-from keras.optimizers import Adam, RMSprop
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import *
+from tensorflow.keras.losses import mean_squared_error
+from tensorflow.keras.models import *
+from tensorflow.keras.optimizers import Adam, RMSprop
 
 # Adapted from https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/master/src/net/hg_blocks.py
 

@@ -1,9 +1,9 @@
 from enum import Enum
 from util import str_to_enum
 
-import keras
-import keras.backend as K
 import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import backend as K
 
 from constants import LossFunctionOptions
 
