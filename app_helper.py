@@ -32,7 +32,7 @@ class AppHelper():
 
     def predict_in_memory(self, img, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
         # Number of hg blocks doesn't matter
-        X_batch, y_stacked = evaluation.load_and_preprocess_img(img, 1)
+        X_batch, y_stacked, _crop_info = load_and_preprocess_img(img, 1)
         y_batch = y_stacked[0] # take first hourglass section
         img_id_batch = None
 
@@ -42,6 +42,43 @@ class AppHelper():
             visualize_skeleton=visualize_skeleton,
             average_flip_prediction=average_flip_prediction
         )
+
+    def predict_in_memory_fullres(self, img_path, visualize_scatter=True, visualize_skeleton=True, average_flip_prediction=True):
+        """Predict keypoints and overlay them on the original full-resolution image."""
+        X_batch, _y_stacked, crop_info = load_and_preprocess_img(img_path, 1)
+
+        predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
+        keypoints_batch = self.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
+
+        if average_flip_prediction:
+            predicted_heatmaps_batch_2 = self.predict_heatmaps(X_batch=X_batch, predict_using_flip=True)
+            keypoints_batch_2 = self.heatmaps_to_keypoints_batch(predicted_heatmaps_batch_2)
+            for i in range(keypoints_batch.shape[0]):
+                keypoints_batch[i] = self._average_LR_flip_predictions(keypoints_batch[i], keypoints_batch_2[i], coco_format=False)
+
+        # Map keypoints from 256x256 model space back to original image coordinates
+        bbox = crop_info['bbox']  # (left, upper, right, lower)
+        crop_w = crop_info['crop_w']
+        crop_h = crop_info['crop_h']
+        scale_x = crop_w / INPUT_DIM[0]
+        scale_y = crop_h / INPUT_DIM[1]
+        anchor_x = bbox[0]
+        anchor_y = bbox[1]
+
+        fullres_keypoints_batch = keypoints_batch.copy()
+        for i in range(fullres_keypoints_batch.shape[0]):
+            for j in range(NUM_COCO_KEYPOINTS):
+                if fullres_keypoints_batch[i, j, 2] > 0:
+                    fullres_keypoints_batch[i, j, 0] = fullres_keypoints_batch[i, j, 0] * scale_x + anchor_x
+                    fullres_keypoints_batch[i, j, 1] = fullres_keypoints_batch[i, j, 1] * scale_y + anchor_y
+
+        # Load original full-res image for overlay
+        with Image.open(img_path) as orig_img:
+            orig_img = ImageOps.exif_transpose(orig_img.convert('RGB'))
+            orig_array = np.array(orig_img) / 255.0
+
+        orig_batch = np.expand_dims(orig_array, axis=0)
+        return self.visualize_keypoints(orig_batch, fullres_keypoints_batch, show_skeleton=visualize_skeleton)
 
     def _load_model(self, model_json, model_weights):
         from hourglass_blocks import create_hourglass_network, bottleneck_block
@@ -349,6 +386,8 @@ def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
         # and the answer I used: https://stackoverflow.com/a/63798032
         img = ImageOps.exif_transpose(img)
 
+        orig_w, orig_h = img.size
+
         if bbox is None:
             w, h = img.size
 
@@ -363,6 +402,10 @@ def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
 
             # Crop with box of order left, upper, right, lower
             img = img.crop(box=bbox)
+        else:
+            bbox = np.array([0, 0, orig_w, orig_h], dtype=int)
+
+        crop_w, crop_h = img.size
 
         new_img = cv2.resize(np.array(img), INPUT_DIM,
                             interpolation=cv2.INTER_LINEAR)
@@ -375,4 +418,14 @@ def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
 
     # Normalize input image
     X_batch /= 255
-    return X_batch, y_batch
+
+    # Crop metadata for mapping keypoints back to original image coordinates
+    crop_info = {
+        'bbox': bbox,           # (left, upper, right, lower) used for cropping
+        'crop_w': crop_w,       # width of cropped region
+        'crop_h': crop_h,       # height of cropped region
+        'orig_w': orig_w,
+        'orig_h': orig_h,
+    }
+
+    return X_batch, y_batch, crop_info
