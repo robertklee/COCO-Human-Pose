@@ -13,7 +13,8 @@ scipy>=1.11.0
 streamlit>=1.22.0
 
 # Version specific imports
-imgaug>=0.3.0
+setuptools<81
+imgaug @ git+https://github.com/jasoncmyers/imgaug.git
 tensorboard>=2.10.0
 tensorflow>=2.10.0
 h5py>=3.10.0
