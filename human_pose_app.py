@@ -112,11 +112,8 @@ def run_app(img):
     scatter = handle.predict_in_memory(img, visualize_scatter=True, visualize_skeleton=False)
     skeleton = handle.predict_in_memory(img, visualize_scatter=True, visualize_skeleton=True)
 
-    scatter_img = Image.fromarray(scatter)
-    skeleton_img = Image.fromarray(skeleton)
-
-    right_column.image(scatter_img,  caption = "Predicted Keypoints")
-    st.image(skeleton_img, caption = 'FINAL: Predicted Pose')
+    right_column.image(scatter, caption = "Predicted Keypoints")
+    st.image(skeleton, caption = 'FINAL: Predicted Pose')
 
 def demo():
     left_column, middle_column, right_column = st.columns(3)
@@ -179,10 +176,11 @@ def main():
             and discarded after the final results are displayed. ')
         f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif'])
         if f is not None:
-            tfile = tempfile.NamedTemporaryFile(delete=True)
-            tfile.write(f.read())
-            st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
-            run_app(tfile)
+            with tempfile.NamedTemporaryFile(delete=True, suffix='.jpg') as tfile:
+                tfile.write(f.read())
+                tfile.flush()
+                st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
+                run_app(tfile.name)
 
     elif app_mode == SIDEBAR_OPTION_CAMERA:
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
@@ -192,10 +190,11 @@ def main():
             privacy policy.")
 
         if img is not None:
-            tfile = tempfile.NamedTemporaryFile(delete=True)
-            tfile.write(img.read())
-            st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
-            run_app(tfile)
+            with tempfile.NamedTemporaryFile(delete=True, suffix='.jpg') as tfile:
+                tfile.write(img.read())
+                tfile.flush()
+                st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
+                run_app(tfile.name)
 
     elif app_mode == SIDEBAR_OPTION_MEET_TEAM:
         st.sidebar.write(" ------ ")
