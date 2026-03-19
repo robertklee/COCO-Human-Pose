@@ -110,8 +110,9 @@ def run_app(img):
     left_column.image(display_image, caption = "Selected Input")
 
     with st.spinner("Running pose estimation..."):
-        scatter = handle.predict_in_memory_fullres(img, visualize_scatter=True, visualize_skeleton=False)
-        skeleton = handle.predict_in_memory_fullres(img, visualize_scatter=True, visualize_skeleton=True)
+        orig_batch, keypoints_batch = handle.predict_in_memory_fullres(img)
+        scatter = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=False)
+        skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
 
     right_column.image(scatter, caption = "Predicted Keypoints")
     st.image(skeleton, caption = 'FINAL: Predicted Pose')
