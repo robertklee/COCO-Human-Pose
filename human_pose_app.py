@@ -14,6 +14,9 @@ import tensorflow as tf
 from PIL import Image
 from tensorflow import keras
 
+import pillow_heif
+pillow_heif.register_heif_opener()
+
 import app_helper
 from app_helper import AppHelper
 from constants import *
@@ -186,9 +189,11 @@ def main():
     elif app_mode == SIDEBAR_OPTION_UPLOAD_IMAGE:
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
             and discarded after the final results are displayed. ')
-        f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif', 'webp'])
+        f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif', 'webp', 'heic', 'heif'])
         if f is not None:
-            with tempfile.NamedTemporaryFile(delete=False, delete_on_close=False, suffix='.jpg') as tfile:
+            suffix = os.path.splitext(f.name)[1] or '.jpg'
+            f.seek(0)
+            with tempfile.NamedTemporaryFile(delete=False, delete_on_close=False, suffix=suffix) as tfile:
                 tfile.write(f.read())
             try:
                 st.sidebar.write('Please wait for the magic to happen! This may take up to a minute.')
@@ -204,6 +209,7 @@ def main():
             privacy policy.")
 
         if img is not None:
+            img.seek(0)
             with tempfile.NamedTemporaryFile(delete=False, delete_on_close=False, suffix='.jpg') as tfile:
                 tfile.write(img.read())
             try:
