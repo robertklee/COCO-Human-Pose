@@ -56,7 +56,7 @@ class DataGenerator(Sequence):
 
     def __init__(self, df, base_dir, input_dim, output_dim, num_hg_blocks, shuffle=False, \
         batch_size=DEFAULT_BATCH_SIZE, online_fetch=False, img_aug_strength=None, is_eval=False):
-
+        super().__init__()
         self.df = df                    # df of the the annotations we want
         self.base_dir = base_dir        # where to read imgs from in collab runtime
         # NOTE update image transformation logic if input is no longer square
@@ -289,6 +289,6 @@ class DataGenerator(Sequence):
             y_stacked.append(y)
 
         if self.is_eval:
-            return X, y_stacked, metadatas
+            return X, tuple(y_stacked), metadatas
 
-        return X, y_stacked
+        return X, tuple(y_stacked)
