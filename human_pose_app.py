@@ -182,7 +182,7 @@ def main():
     elif app_mode == SIDEBAR_OPTION_UPLOAD_IMAGE:
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
             and discarded after the final results are displayed. ')
-        f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif'])
+        f = st.sidebar.file_uploader("Please Select to Upload an Image", type=['png', 'jpg', 'jpeg', 'tiff', 'gif', 'webp'])
         if f is not None:
             with tempfile.NamedTemporaryFile(delete=True, suffix='.jpg') as tfile:
                 tfile.write(f.read())
