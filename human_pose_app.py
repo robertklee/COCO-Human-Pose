@@ -98,10 +98,12 @@ def load_model():
 
 
 PREDICTION_CACHE_PREFIX = "prediction_"
+TEAM_CACHE_KEY = "team_predictions"
 
 def _clear_prediction_cache():
     """Remove all cached prediction data from session state."""
-    keys_to_remove = [k for k in st.session_state if k.startswith(PREDICTION_CACHE_PREFIX)]
+    keys_to_remove = [k for k in st.session_state
+                      if k.startswith(PREDICTION_CACHE_PREFIX) or k == TEAM_CACHE_KEY]
     for k in keys_to_remove:
         del st.session_state[k]
 
@@ -249,22 +251,49 @@ def main():
     elif app_mode == SIDEBAR_OPTION_MEET_TEAM:
         st.sidebar.write(" ------ ")
         st.subheader("We are the Posers")
-        first_column, second_column, third_column, forth_column, fifth_column, sixth_column = st.columns(6)
 
-        third_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'wanze.jpg'),      use_container_width = True, caption = "Wanze")
-        second_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'robert.png'),    use_container_width = True, caption = "Robert")
-        first_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'julian.jpg'),     use_container_width = True, caption = "Julian")
-        forth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'nicole.jpg'),     use_container_width = True, caption = "Nicole")
-        fifth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'rafay.png'),      use_container_width = True, caption = 'Rafay')
-        sixth_column.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'corey.jpg'),      use_container_width = True, caption = "Corey")
+        team_members = [
+            ('julian',  'julian.jpg',  "Julian"),
+            ('robert',  'robert.png',  "Robert"),
+            ('wanze',   'wanze.jpg',   "Wanze"),
+            ('nicole',  'nicole.jpg',  "Nicole"),
+            ('rafay',   'rafay.png',   "Rafay"),
+            ('corey',   'corey.jpg',   "Corey"),
+        ]
 
-        first_column_predict, second_column_predict, third_column_predict,forth_column_predict, fifth_column_predict, sixth_column_predict = st.columns(6)
-        third_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'wanze_output.png'),       use_container_width = True, caption = "Wanze Pose")
-        second_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'robert_output.png'),     use_container_width = True, caption = "Robert Pose")
-        first_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'julian_output.png'),      use_container_width = True, caption = "Julian Pose")
-        forth_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'nicole_output.png'),      use_container_width = True, caption = "Nicole Pose")
-        fifth_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'rafay_output.png'),       use_container_width = True, caption = "Rafay Pose")
-        sixth_column_predict.image(os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, 'corey_output.png'),       use_container_width = True, caption = "Corey Pose")
+        handle = load_model()
+
+        # Run predictions (cached so page doesn't re-run on every rerun)
+        if TEAM_CACHE_KEY not in st.session_state:
+            with st.spinner("Running pose estimation on team photos..."):
+                results = {}
+                for member_id, filename, display_name in team_members:
+                    img_path = os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, filename)
+                    orig_batch, keypoints_batch, _heatmaps = handle.predict_in_memory_fullres(img_path)
+                    skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
+                    with Image.open(img_path) as orig_img:
+                        from PIL import ImageOps
+                        display_image = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
+                    results[member_id] = {
+                        'display_image': display_image,
+                        'skeleton': skeleton,
+                        'display_name': display_name,
+                    }
+                st.session_state[TEAM_CACHE_KEY] = results
+
+        team_results = st.session_state[TEAM_CACHE_KEY]
+
+        # Row 1: Original photos
+        cols_orig = st.columns(len(team_members))
+        for col, (member_id, _filename, _name) in zip(cols_orig, team_members):
+            r = team_results[member_id]
+            col.image(r['display_image'], use_container_width=True, caption=r['display_name'])
+
+        # Row 2: Live predictions
+        cols_pred = st.columns(len(team_members))
+        for col, (member_id, _filename, _name) in zip(cols_pred, team_members):
+            r = team_results[member_id]
+            col.image(r['skeleton'], use_container_width=True, caption=f"{r['display_name']} Pose")
 
 
         st.sidebar.write('Please feel free to connect with us on Linkedin!')
