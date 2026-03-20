@@ -300,7 +300,8 @@ class AppHelper():
 
             return canvas
 
-    def visualize_heatmap(self, image, heatmap, joint_index, alpha=0.5):
+    def visualize_heatmap(self, image, heatmap, joint_index, alpha=0.7,
+                          image_brightness=0.4):
         """Overlay a single joint's heatmap on the image.
 
         Parameters
@@ -313,24 +314,30 @@ class AppHelper():
             Index into COCO_KEYPOINT_LABEL_ARR (used for the keypoint color).
         alpha : float
             Blend factor for the heatmap overlay.
+        image_brightness : float
+            Dim the base image (0 = black, 1 = original brightness).
 
         Returns
         -------
         ndarray : uint8 RGB image with the heatmap overlay.
         """
         h, w = image.shape[:2]
-        base_img = (np.clip(image, 0, 1) * 255).astype(np.uint8)
+        base_img = (np.clip(image, 0, 1) * 255 * image_brightness).astype(np.uint8)
 
-        # Resize heatmap to match image dimensions and normalize to [0, 255]
+        # Resize heatmap to match image dimensions and normalize to [0, 1]
         hm_resized = cv2.resize(heatmap, (w, h), interpolation=cv2.INTER_LINEAR)
         hm_norm = np.clip(hm_resized / (hm_resized.max() + 1e-8), 0, 1)
+
+        # Gamma correction to boost mid-level activations
+        hm_norm = np.power(hm_norm, 0.6)
+
         hm_uint8 = (hm_norm * 255).astype(np.uint8)
 
         # Apply a colormap (hot: black → red → yellow → white)
         hm_colored = cv2.applyColorMap(hm_uint8, cv2.COLORMAP_HOT)
         hm_colored = cv2.cvtColor(hm_colored, cv2.COLOR_BGR2RGB)
 
-        # Blend only where the heatmap has meaningful activation
+        # Blend proportionally to heatmap activation
         mask = hm_norm[..., np.newaxis]
         blended = (base_img * (1 - alpha * mask) + hm_colored * alpha * mask).astype(np.uint8)
 
