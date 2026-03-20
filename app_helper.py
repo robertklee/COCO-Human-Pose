@@ -45,8 +45,9 @@ class AppHelper():
     def predict_in_memory_fullres(self, img_path, average_flip_prediction=True):
         """Predict keypoints and return them mapped to original image coordinates.
 
-        Returns (orig_batch, fullres_keypoints_batch, heatmaps) where heatmaps
-        is the last hourglass stack output with shape (batch, 64, 64, 17).
+        Returns (orig_batch, fullres_keypoints_batch, heatmaps, crop_info) where
+        heatmaps is the last hourglass stack output with shape (batch, 64, 64, 17)
+        and crop_info contains the bbox and crop dimensions used for preprocessing.
         """
         X_batch, _y_stacked, crop_info = load_and_preprocess_img(img_path, 1)
 
@@ -85,7 +86,7 @@ class AppHelper():
         orig_batch = np.expand_dims(orig_array, axis=0)
         # Last hourglass stack heatmaps: shape (batch, 64, 64, 17)
         last_heatmaps = predicted_heatmaps_batch[-1]
-        return orig_batch, fullres_keypoints_batch, last_heatmaps
+        return orig_batch, fullres_keypoints_batch, last_heatmaps, crop_info
 
     def _load_model(self, model_json, model_weights):
         from hourglass_blocks import create_hourglass_network, bottleneck_block
@@ -300,8 +301,8 @@ class AppHelper():
 
             return canvas
 
-    def visualize_heatmap(self, image, heatmap, joint_index, alpha=0.7,
-                          image_brightness=0.4):
+    def visualize_heatmap(self, image, heatmap, joint_index, crop_info=None,
+                          alpha=0.7, image_brightness=0.4):
         """Overlay a single joint's heatmap on the image.
 
         Parameters
@@ -312,6 +313,9 @@ class AppHelper():
             Single-joint heatmap with shape (64, 64).
         joint_index : int
             Index into COCO_KEYPOINT_LABEL_ARR (used for the keypoint color).
+        crop_info : dict or None
+            Crop metadata from predict_in_memory_fullres. When provided, the
+            heatmap is placed only within the crop region on the full image.
         alpha : float
             Blend factor for the heatmap overlay.
         image_brightness : float
@@ -324,8 +328,33 @@ class AppHelper():
         h, w = image.shape[:2]
         base_img = (np.clip(image, 0, 1) * 255 * image_brightness).astype(np.uint8)
 
-        # Resize heatmap to match image dimensions and normalize to [0, 1]
-        hm_resized = cv2.resize(heatmap, (w, h), interpolation=cv2.INTER_LINEAR)
+        if crop_info is not None:
+            # Heatmap is relative to the crop region, not the full image.
+            # Resize heatmap to the crop dimensions, then place it on a
+            # full-image-sized canvas at the correct position.
+            bbox = crop_info['bbox']  # (left, upper, right, lower)
+            crop_w = crop_info['crop_w']
+            crop_h = crop_info['crop_h']
+
+            hm_crop = cv2.resize(heatmap, (crop_w, crop_h),
+                                 interpolation=cv2.INTER_LINEAR)
+            hm_full = np.zeros((h, w), dtype=np.float32)
+
+            # Clamp placement to image bounds
+            x1 = max(0, int(bbox[0]))
+            y1 = max(0, int(bbox[1]))
+            x2 = min(w, x1 + crop_w)
+            y2 = min(h, y1 + crop_h)
+            src_x = x1 - int(bbox[0])
+            src_y = y1 - int(bbox[1])
+            hm_full[y1:y2, x1:x2] = hm_crop[src_y:src_y + (y2 - y1),
+                                              src_x:src_x + (x2 - x1)]
+            hm_resized = hm_full
+        else:
+            hm_resized = cv2.resize(heatmap, (w, h),
+                                    interpolation=cv2.INTER_LINEAR)
+
+        # Normalize to [0, 1]
         hm_norm = np.clip(hm_resized / (hm_resized.max() + 1e-8), 0, 1)
 
         # Gamma correction to boost mid-level activations
