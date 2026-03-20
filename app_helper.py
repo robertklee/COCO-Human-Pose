@@ -354,11 +354,21 @@ class AppHelper():
             hm_resized = cv2.resize(heatmap, (w, h),
                                     interpolation=cv2.INTER_LINEAR)
 
-        # Normalize to [0, 1]
-        hm_norm = np.clip(hm_resized / (hm_resized.max() + 1e-8), 0, 1)
+        # Scale by absolute confidence rather than self-normalizing.
+        # This way weak predictions produce dim heatmaps and strong ones are bright.
+        peak_val = hm_resized.max()
+        confidence = np.clip(peak_val, 0, 1)
+        if confidence < 1e-4:
+            # No meaningful activation — return the dimmed base image
+            return base_img
+
+        hm_norm = np.clip(hm_resized / (peak_val + 1e-8), 0, 1)
 
         # Gamma correction to boost mid-level activations
         hm_norm = np.power(hm_norm, 0.6)
+
+        # Scale the entire overlay by the peak confidence
+        hm_norm = hm_norm * confidence
 
         hm_uint8 = (hm_norm * 255).astype(np.uint8)
 
