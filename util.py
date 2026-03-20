@@ -6,7 +6,7 @@ import unicodedata
 from constants import *
 
 MODEL_ARCHITECTURE_JSON_REGEX = f'^{HPE_HOURGLASS_STACKS_PREFIX}.*\\.json$'
-MODEL_CHECKPOINT_REGEX = f'^{HPE_EPOCH_PREFIX}([\\d]+).*\\.hdf5$'
+MODEL_CHECKPOINT_REGEX = f'^{HPE_EPOCH_PREFIX}([\\d]+).*\\.keras$'
 
 def str_to_enum(EnumClass, str):
     try:

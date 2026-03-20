@@ -91,7 +91,7 @@ class AppHelper():
         with open(model_json) as f:
             model_config = json.load(f)
 
-        is_keras2 = model_config.get('class_name') == 'Model' and 'module' not in model_config
+        is_keras2 = model_weights.endswith('.hdf5')
 
         if is_keras2:
             # Keras 2 JSON cannot be deserialized by Keras 3's model_from_json.
