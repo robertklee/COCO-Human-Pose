@@ -97,6 +97,14 @@ def load_model():
     return ensure_model_exists()
 
 
+PREDICTION_CACHE_PREFIX = "prediction_"
+
+def _clear_prediction_cache():
+    """Remove all cached prediction data from session state."""
+    keys_to_remove = [k for k in st.session_state if k.startswith(PREDICTION_CACHE_PREFIX)]
+    for k in keys_to_remove:
+        del st.session_state[k]
+
 def run_app(img):
 
     handle = load_model()
@@ -104,8 +112,11 @@ def run_app(img):
     left_column, right_column = st.columns(2)
 
     # Cache prediction results so dropdown changes don't re-run inference
-    cache_key = f"prediction_{img}"
+    cache_key = f"{PREDICTION_CACHE_PREFIX}{img}"
     if cache_key not in st.session_state:
+        # Clear any previous prediction cache to avoid holding stale user images
+        _clear_prediction_cache()
+
         # Display the original image as-is
         with Image.open(img) as orig_img:
             from PIL import ImageOps
@@ -156,6 +167,11 @@ def main():
     st.sidebar.title("Explore the Following")
 
     app_mode = st.sidebar.selectbox("Please select from the following", SIDEBAR_OPTIONS)
+
+    # Clear cached prediction data when navigating away from prediction pages
+    prediction_pages = {SIDEBAR_OPTION_DEMO_IMAGE, SIDEBAR_OPTION_UPLOAD_IMAGE, SIDEBAR_OPTION_CAMERA}
+    if app_mode not in prediction_pages:
+        _clear_prediction_cache()
 
     if app_mode == SIDEBAR_OPTION_PROJECT_INFO:
         st.sidebar.write(" ------ ")
