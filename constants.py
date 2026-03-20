@@ -1,9 +1,14 @@
+import os
 from enum import Enum
 
 import numpy as np
 
-# Colab Training
-COLAB_TRAINING = False
+# Auto-detect Google Colab environment
+try:
+    import google.colab
+    COLAB_TRAINING = True
+except ImportError:
+    COLAB_TRAINING = os.path.exists('/content')
 
 # Model Defaults
 DEFAULT_NUM_HG = 4 # NOTE in their final design, 8 were used
