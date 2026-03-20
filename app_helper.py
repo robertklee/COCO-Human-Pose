@@ -254,64 +254,48 @@ class AppHelper():
     """
     def visualize_keypoints(self, X_batch, keypoints_batch, show_skeleton=True):
 
-        for i in range(len(X_batch)):
-            X = X_batch[i]
-            keypoints = keypoints_batch[i]
+        for idx in range(len(X_batch)):
+            X = X_batch[idx]
+            keypoints = keypoints_batch[idx]
 
-            # Plot predicted keypoints on bounding box image
-            x_left = []
-            y_left = []
-            x_right = []
-            y_right = []
+            # Convert float [0,1] image to uint8 for OpenCV drawing
+            canvas = (np.clip(X, 0, 1) * 255).astype(np.uint8).copy()
+            h, w = canvas.shape[:2]
+
+            # Scale drawing sizes relative to image dimensions
+            base_dim = max(h, w)
+            line_thickness = max(2, int(base_dim / 120))
+            kp_radius = max(3, int(base_dim / 80))
+            kp_border = max(1, kp_radius // 3)
+
             valid = np.zeros(NUM_COCO_KEYPOINTS)
+            for j in range(NUM_COCO_KEYPOINTS):
+                if keypoints[j, 0] != 0 and keypoints[j, 1] != 0:
+                    valid[j] = 1
 
-            for i in range(NUM_COCO_KEYPOINTS):
-                if keypoints[i,0] != 0 and keypoints[i,1] != 0:
-                    valid[i] = 1
+            # Draw skeleton bones (below keypoint dots)
+            if show_skeleton:
+                for j in range(len(COCO_SKELETON)):
+                    a = COCO_SKELETON[j, 0]
+                    b = COCO_SKELETON[j, 1]
+                    if valid[a] and valid[b]:
+                        pt1 = (int(keypoints[a, 0]), int(keypoints[a, 1]))
+                        pt2 = (int(keypoints[b, 0]), int(keypoints[b, 1]))
+                        cv2.line(canvas, pt1, pt2, SKELETON_BONE_COLORS[j],
+                                 line_thickness, lineType=cv2.LINE_AA)
 
-                    if i % 2 == 0:
-                        x_right.append(keypoints[i,0])
-                        y_right.append(keypoints[i,1])
-                    else:
-                        x_left.append(keypoints[i,0])
-                        y_left.append(keypoints[i,1])
-            with _lock:
-                fig = plt.figure()
-                try:
-                    if show_skeleton:
-                        for i in range(len(COCO_SKELETON)):
-                            # joint a to joint b
-                            a = COCO_SKELETON[i, 0]
-                            b = COCO_SKELETON[i, 1]
+            # Draw keypoint dots on top of skeleton
+            for j in range(NUM_COCO_KEYPOINTS):
+                if valid[j]:
+                    pt = (int(keypoints[j, 0]), int(keypoints[j, 1]))
+                    # Dark border for visibility against any background
+                    cv2.circle(canvas, pt, kp_radius, (0, 0, 0), -1,
+                               lineType=cv2.LINE_AA)
+                    # Colored fill per keypoint
+                    cv2.circle(canvas, pt, kp_radius - kp_border,
+                               KEYPOINT_COLORS[j], -1, lineType=cv2.LINE_AA)
 
-                            # if both are valid keypoints
-                            if valid[a] and valid[b]:
-                                # linewidth = 5, linestyle = "--",
-                                plt.plot([keypoints[a,0],keypoints[b,0]], [keypoints[a,1], keypoints[b,1]], color = COLOUR_MAP[i])
-
-                    plt.scatter(x_left,y_left, color=COLOUR_MAP[0])
-                    plt.scatter(x_right,y_right, color=COLOUR_MAP[4])
-                    # https://stackoverflow.com/questions/9295026/matplotlib-plots-removing-axis-legends-and-white-spaces
-                    plt.axis('off')
-                    plt.imshow(X)
-
-                    plt.tight_layout(w_pad=0)
-
-                    # https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-memory-file-which-can-be-read-into-pil-image
-                    buf = io.BytesIO()
-                    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, transparent=False, dpi=300)
-                finally:
-                    plt.close(fig)
-
-            # Ensure Image reads from the beginning
-            buf.seek(0)
-            with Image.open(buf) as im:
-                im = im.convert('RGB')
-                # Turn heatmap into numpy array.
-                # NOTE that the read image size is too large because of plt's default size.
-                visualized = np.array(im)
-            buf.close()
-            return visualized
+            return canvas
 
     def heatmaps_to_keypoints_batch(self, heatmaps_batch, threshold=HM_TO_KP_THRESHOLD):
         keypoints_batch = []

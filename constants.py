@@ -101,12 +101,59 @@ COCO_SKELETON = np.array([
                     [4, 6],
                     [5, 7]]) - 1
 
-# Colouring for linking joints together
+# Colouring for linking joints together (legacy, kept for backward compatibility)
 COLOUR_MAP = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
             #   '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
               '#B73CC7', '#0258C9', '#f76f8e', '#048ba8', '#16db93',
               '#f06449', '#0f7173', '#276FBF', '#791e94', '#407899',
               '#e71d36', '#FFA69E', '#678EC2', '#069E7D']
+
+# Body-region skeleton bone colors (RGB tuples), indexed to match COCO_SKELETON.
+# Left side = warm tones (red/orange), right side = cool tones (blue/cyan),
+# torso = green, head = yellow.
+SKELETON_BONE_COLORS = [
+    (255, 100, 100),  # left_ankle  → left_knee   (left leg)
+    (255, 130, 80),   # left_knee   → left_hip    (left leg)
+    (100, 100, 255),  # right_ankle → right_knee  (right leg)
+    (80, 130, 255),   # right_knee  → right_hip   (right leg)
+    (100, 210, 100),  # left_hip    → right_hip   (torso)
+    (100, 210, 100),  # left_shoulder → left_hip   (torso)
+    (100, 210, 100),  # right_shoulder → right_hip (torso)
+    (100, 210, 100),  # left_shoulder → right_shoulder (torso)
+    (255, 160, 60),   # left_shoulder → left_elbow (left arm)
+    (60, 160, 255),   # right_shoulder → right_elbow (right arm)
+    (255, 180, 40),   # left_elbow  → left_wrist  (left arm)
+    (40, 180, 255),   # right_elbow → right_wrist  (right arm)
+    (230, 230, 80),   # left_eye    → right_eye   (head)
+    (230, 230, 80),   # nose        → left_eye    (head)
+    (230, 230, 80),   # nose        → right_eye   (head)
+    (220, 210, 90),   # left_eye    → left_ear    (head)
+    (220, 210, 90),   # right_eye   → right_ear   (head)
+    (180, 210, 120),  # left_ear    → left_shoulder  (head/torso)
+    (180, 210, 120),  # right_ear   → right_shoulder (head/torso)
+]
+
+# Per-keypoint colors (RGB tuples), indexed by COCO keypoint index.
+# Follows the same warm-left / cool-right convention.
+KEYPOINT_COLORS = [
+    (255, 255, 255),  # 0:  nose           (center - white)
+    (230, 220, 100),  # 1:  left_eye       (head warm)
+    (100, 220, 230),  # 2:  right_eye      (head cool)
+    (230, 200, 80),   # 3:  left_ear       (head warm)
+    (80, 200, 230),   # 4:  right_ear      (head cool)
+    (255, 160, 60),   # 5:  left_shoulder  (left arm)
+    (60, 160, 255),   # 6:  right_shoulder (right arm)
+    (255, 140, 50),   # 7:  left_elbow     (left arm)
+    (50, 140, 255),   # 8:  right_elbow    (right arm)
+    (255, 180, 40),   # 9:  left_wrist     (left arm)
+    (40, 180, 255),   # 10: right_wrist    (right arm)
+    (255, 100, 100),  # 11: left_hip       (left leg)
+    (100, 100, 255),  # 12: right_hip      (right leg)
+    (255, 80, 80),    # 13: left_knee      (left leg)
+    (80, 80, 255),    # 14: right_knee     (right leg)
+    (255, 60, 60),    # 15: left_ankle     (left leg)
+    (60, 60, 255),    # 16: right_ankle    (right leg)
+]
 
 # Model parameters
 INPUT_DIM = (256,256)
