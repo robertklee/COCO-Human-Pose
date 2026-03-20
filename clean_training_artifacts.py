@@ -21,7 +21,7 @@ def find_non_trivial_runs():
             continue
 
         # All the files within this training run
-        # If this is a training run, it should contain a .csv, .json, and .hdf5
+        # If this is a training run, it should contain a .csv, .json, and .keras
         files = os.listdir(path)
 
         # Contains at least one valid checkpoint

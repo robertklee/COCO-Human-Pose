@@ -98,7 +98,7 @@ class HourglassNet(object):
         logsDir = os.path.join(DEFAULT_LOGS_BASE_DIR, model_subdir)
 
         # If this path is changed, the corresponding logic to resume should be updated in util.py
-        modelSavePath = os.path.join(modelDir, f'{HPE_EPOCH_PREFIX}{{epoch:02d}}_val_loss_{{val_loss:.4f}}_train_loss_{{loss:.4f}}.hdf5')
+        modelSavePath = os.path.join(modelDir, f'{HPE_EPOCH_PREFIX}{{epoch:02d}}_val_loss_{{val_loss:.4f}}_train_loss_{{loss:.4f}}.keras')
 
         if not os.path.exists(modelDir):
             print(f"Model save directory created:       {modelDir}")
@@ -143,7 +143,7 @@ class HourglassNet(object):
 
     def resume_train(self, batch_size, model_save_base_dir, model_json, model_weights, init_epoch, epochs, resume_subdir, subset, new_run=True):
         if resume_subdir is not None:
-            print('Automatically locating model architecture .json and weights .hdf5...')
+            print('Automatically locating model architecture .json and weights .keras...')
 
         print(f'Restoring model architecture json:  {model_json}')
         print(f'Restoring model weights:            {model_weights}\n')
@@ -189,7 +189,7 @@ class HourglassNet(object):
         with open(model_json) as f:
             model_config = json.load(f)
 
-        is_keras2 = model_config.get('class_name') == 'Model' and 'module' not in model_config
+        is_keras2 = model_weights.endswith('.hdf5')
 
         if is_keras2:
             # Keras 2 JSON cannot be deserialized by Keras 3's model_from_json.
