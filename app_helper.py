@@ -45,7 +45,8 @@ class AppHelper():
     def predict_in_memory_fullres(self, img_path, average_flip_prediction=True):
         """Predict keypoints and return them mapped to original image coordinates.
 
-        Returns (orig_batch, fullres_keypoints_batch) for use with visualize_keypoints().
+        Returns (orig_batch, fullres_keypoints_batch, heatmaps) where heatmaps
+        is the last hourglass stack output with shape (batch, 64, 64, 17).
         """
         X_batch, _y_stacked, crop_info = load_and_preprocess_img(img_path, 1)
 
@@ -82,7 +83,9 @@ class AppHelper():
             orig_array = np.array(orig_img) / 255.0
 
         orig_batch = np.expand_dims(orig_array, axis=0)
-        return orig_batch, fullres_keypoints_batch
+        # Last hourglass stack heatmaps: shape (batch, 64, 64, 17)
+        last_heatmaps = predicted_heatmaps_batch[-1]
+        return orig_batch, fullres_keypoints_batch, last_heatmaps
 
     def _load_model(self, model_json, model_weights):
         from hourglass_blocks import create_hourglass_network, bottleneck_block
@@ -296,6 +299,42 @@ class AppHelper():
                                KEYPOINT_COLORS[j], -1, lineType=cv2.LINE_AA)
 
             return canvas
+
+    def visualize_heatmap(self, image, heatmap, joint_index, alpha=0.5):
+        """Overlay a single joint's heatmap on the image.
+
+        Parameters
+        ----------
+        image : ndarray
+            Original image as float [0,1] with shape (H, W, 3).
+        heatmap : ndarray
+            Single-joint heatmap with shape (64, 64).
+        joint_index : int
+            Index into COCO_KEYPOINT_LABEL_ARR (used for the keypoint color).
+        alpha : float
+            Blend factor for the heatmap overlay.
+
+        Returns
+        -------
+        ndarray : uint8 RGB image with the heatmap overlay.
+        """
+        h, w = image.shape[:2]
+        base_img = (np.clip(image, 0, 1) * 255).astype(np.uint8)
+
+        # Resize heatmap to match image dimensions and normalize to [0, 255]
+        hm_resized = cv2.resize(heatmap, (w, h), interpolation=cv2.INTER_LINEAR)
+        hm_norm = np.clip(hm_resized / (hm_resized.max() + 1e-8), 0, 1)
+        hm_uint8 = (hm_norm * 255).astype(np.uint8)
+
+        # Apply a colormap (hot: black → red → yellow → white)
+        hm_colored = cv2.applyColorMap(hm_uint8, cv2.COLORMAP_HOT)
+        hm_colored = cv2.cvtColor(hm_colored, cv2.COLOR_BGR2RGB)
+
+        # Blend only where the heatmap has meaningful activation
+        mask = hm_norm[..., np.newaxis]
+        blended = (base_img * (1 - alpha * mask) + hm_colored * alpha * mask).astype(np.uint8)
+
+        return blended
 
     def heatmaps_to_keypoints_batch(self, heatmaps_batch, threshold=HM_TO_KP_THRESHOLD):
         keypoints_batch = []
