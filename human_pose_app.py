@@ -128,12 +128,18 @@ def run_app(img):
             orig_batch, keypoints_batch, heatmaps = handle.predict_in_memory_fullres(img)
             scatter = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=False)
             skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
+
+            # Pre-render all heatmap overlays so no widgets are needed
+            heatmap_overlays = {}
+            for joint_idx in range(NUM_COCO_KEYPOINTS):
+                heatmap_overlays[joint_idx] = handle.visualize_heatmap(
+                    orig_batch[0], heatmaps[0, :, :, joint_idx], joint_idx)
+
             st.session_state[cache_key] = {
                 'display_image': display_image,
-                'orig_batch': orig_batch,
-                'heatmaps': heatmaps,
                 'scatter': scatter,
                 'skeleton': skeleton,
+                'heatmap_overlays': heatmap_overlays,
             }
 
     cached = st.session_state[cache_key]
@@ -142,14 +148,20 @@ def run_app(img):
     right_column.image(cached['scatter'], caption = "Predicted Keypoints")
     st.image(cached['skeleton'], caption = 'FINAL: Predicted Pose')
 
-    # Optional per-joint heatmap visualization
+    # Per-joint heatmap visualization grid
     with st.expander("🔥 View Per-Joint Heatmaps"):
-        joint_options = {label: idx for idx, label in enumerate(COCO_KEYPOINT_LABEL_ARR)}
-        selected_joint = st.selectbox("Select a joint to visualize its heatmap", list(joint_options.keys()))
-        joint_idx = joint_options[selected_joint]
-        hm_overlay = handle.visualize_heatmap(
-            cached['orig_batch'][0], cached['heatmaps'][0, :, :, joint_idx], joint_idx)
-        st.image(hm_overlay, caption=f"Heatmap: {selected_joint}")
+        overlays = cached['heatmap_overlays']
+
+        # Center: nose
+        for joint_idx, label in HEATMAP_DISPLAY_ORDER_CENTER:
+            st.image(overlays[joint_idx], caption=label, width=300)
+
+        # Left and right side-by-side, top to bottom
+        for (l_idx, l_label), (r_idx, r_label) in zip(
+                HEATMAP_DISPLAY_ORDER_LEFT, HEATMAP_DISPLAY_ORDER_RIGHT):
+            col_l, col_r = st.columns(2)
+            col_l.image(overlays[l_idx], caption=l_label, use_container_width=True)
+            col_r.image(overlays[r_idx], caption=r_label, use_container_width=True)
 
 def demo():
     left_column, middle_column, right_column = st.columns(3)
