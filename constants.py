@@ -78,6 +78,32 @@ COCO_VAL_ANNOT_PATH = DEFAULT_VAL_ANNOT_PATH
 COCO_KEYPOINT_LABEL_ARR = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", "left_elbow",
                            "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle"]
 
+# Anatomical display order: top-to-bottom, left column then right column.
+# Each tuple is (COCO keypoint index, display label).
+HEATMAP_DISPLAY_ORDER_LEFT = [
+    (1,  "Left Eye"),
+    (3,  "Left Ear"),
+    (5,  "Left Shoulder"),
+    (7,  "Left Elbow"),
+    (9,  "Left Wrist"),
+    (11, "Left Hip"),
+    (13, "Left Knee"),
+    (15, "Left Ankle"),
+]
+HEATMAP_DISPLAY_ORDER_CENTER = [
+    (0, "Nose"),
+]
+HEATMAP_DISPLAY_ORDER_RIGHT = [
+    (2,  "Right Eye"),
+    (4,  "Right Ear"),
+    (6,  "Right Shoulder"),
+    (8,  "Right Elbow"),
+    (10, "Right Wrist"),
+    (12, "Right Hip"),
+    (14, "Right Knee"),
+    (16, "Right Ankle"),
+]
+
 # This array was copied from https://github.com/microsoft/human-pose-estimation.pytorch/blob/master/lib/dataset/coco.py
 # The original array was 1-indexed, so we subtract 1 from each element
 COCO_SKELETON = np.array([
