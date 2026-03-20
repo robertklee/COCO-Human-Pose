@@ -224,17 +224,15 @@ class Evaluation():
             resized_hmap = gaussian_filter(resized_hmap, REVERSE_HEATMAP_SIGMA)
 
             # Get peak point (brightest area) in heatmap with 3x3 max filter
-            peaks = self._non_max_supression(resized_hmap, threshold, windowSize=3)
+            peaks = self._non_max_supression(resized_hmap.copy(), threshold, windowSize=3)
 
-            # Choose the max point in heatmap (we only pick 1 keypoint in each heatmap)
-            # and get its coordinates and confidence
-            y, x = np.unravel_index(np.argmax(peaks), peaks.shape)
+            # Find the peak location for confidence check
+            peak_y, peak_x = np.unravel_index(np.argmax(peaks), peaks.shape)
 
-            # reduce threshold since non-maximum suppression may have reduced the maximum value
-            # values below this threshold have already been suppressed to zero so this shouldnt
-            # affect the conversion of heatmap to keypoint
-            if peaks[y, x] > HM_TO_KP_THRESHOLD_POST_FILTER:
-                conf = peaks[y, x]
+            if peaks[peak_y, peak_x] > HM_TO_KP_THRESHOLD_POST_FILTER:
+                conf = peaks[peak_y, peak_x]
+                # Use weighted centroid on the smoothed heatmap (pre-NMS) for sub-pixel accuracy
+                x, y = self._weighted_centroid(resized_hmap, peak_y, peak_x)
             else:
                 x, y, conf = 0, 0, 0
 
@@ -467,6 +465,50 @@ class Evaluation():
         img_v_resize = self._vstack_images(heatmap_imgs)
 
         cv2.imwrite(os.path.join(self.output_sub_dir, filename), img_v_resize)
+
+    def _weighted_centroid(self, heatmap, peak_y, peak_x,
+                           brightness_k=WEIGHTED_CENTROID_BRIGHTNESS_K,
+                           spatial_k=WEIGHTED_CENTROID_SPATIAL_K):
+        """Compute the weighted centroid of the heatmap region near the peak.
+
+        The region is defined by pixels that are both:
+        - Within brightness_k std devs of the peak brightness value
+        - Within spatial_k std devs of distance from the peak
+        """
+        peak_val = heatmap[peak_y, peak_x]
+
+        # Brightness constraint: include pixels within k std devs of the peak
+        nonzero_vals = heatmap[heatmap > 0]
+        if len(nonzero_vals) < 2:
+            return peak_x, peak_y
+        brightness_std = np.std(nonzero_vals)
+        brightness_threshold = peak_val - brightness_k * brightness_std
+        brightness_mask = heatmap >= brightness_threshold
+
+        # Spatial constraint: include pixels within k std devs of distance from peak
+        ys, xs = np.mgrid[0:heatmap.shape[0], 0:heatmap.shape[1]]
+        distances = np.sqrt((ys - peak_y) ** 2 + (xs - peak_x) ** 2)
+        bright_distances = distances[brightness_mask]
+        if len(bright_distances) < 2:
+            return peak_x, peak_y
+        spatial_std = np.std(bright_distances)
+        if spatial_std == 0:
+            return peak_x, peak_y
+        spatial_mask = distances <= spatial_k * spatial_std
+
+        # Combined region
+        region_mask = brightness_mask & spatial_mask
+        weights = heatmap[region_mask]
+
+        if weights.sum() == 0:
+            return peak_x, peak_y
+
+        region_ys = ys[region_mask]
+        region_xs = xs[region_mask]
+        centroid_x = np.average(region_xs, weights=weights)
+        centroid_y = np.average(region_ys, weights=weights)
+
+        return centroid_x, centroid_y
 
     def _non_max_supression(self, plain, threshold, windowSize=3):
         # Clear values less than threshold
