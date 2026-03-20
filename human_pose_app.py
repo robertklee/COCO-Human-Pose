@@ -133,7 +133,7 @@ def run_app(img):
             display_image = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
 
         with st.spinner("Running pose estimation..."):
-            orig_batch, keypoints_batch, heatmaps = handle.predict_in_memory_fullres(img)
+            orig_batch, keypoints_batch, heatmaps, crop_info = handle.predict_in_memory_fullres(img)
             scatter = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=False)
             skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
 
@@ -141,7 +141,8 @@ def run_app(img):
             heatmap_overlays = {}
             for joint_idx in range(NUM_COCO_KEYPOINTS):
                 heatmap_overlays[joint_idx] = handle.visualize_heatmap(
-                    orig_batch[0], heatmaps[0, :, :, joint_idx], joint_idx)
+                    orig_batch[0], heatmaps[0, :, :, joint_idx], joint_idx,
+                    crop_info=crop_info)
 
             st.session_state[cache_key] = {
                 'display_image': display_image,
@@ -289,7 +290,7 @@ def main():
                 results = {}
                 for member_id, filename, display_name in team_members:
                     img_path = os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, filename)
-                    orig_batch, keypoints_batch, _heatmaps = handle.predict_in_memory_fullres(img_path)
+                    orig_batch, keypoints_batch, _heatmaps, _crop_info = handle.predict_in_memory_fullres(img_path)
                     skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
                     with Image.open(img_path) as orig_img:
                         from PIL import ImageOps
