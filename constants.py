@@ -185,6 +185,12 @@ BBOX_MIN_SIZE = 900 # Filter out images smaller than 30x30, TODO tweak
 HM_TO_KP_THRESHOLD = 0.2
 HM_TO_KP_THRESHOLD_POST_FILTER = HM_TO_KP_THRESHOLD / 5
 
+# Weighted centroid parameters for keypoint coordinate refinement
+# Number of brightness std devs below peak to include in the centroid region
+WEIGHTED_CENTROID_BRIGHTNESS_K = 2
+# Number of spatial std devs from peak to include in the centroid region
+WEIGHTED_CENTROID_SPATIAL_K = 2
+
 PCK_THRESHOLD = 0.2
 # This default PCK threshold is used when either hip is not present.
 # It is empirically chosen by taking the mean torso width in the validation set
