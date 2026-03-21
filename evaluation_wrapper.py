@@ -118,7 +118,7 @@ class EvaluationWrapper():
 
         for image_path in image_paths:
             # Number of hg blocks doesn't matter
-            X_batch, y_stacked = evaluation.load_and_preprocess_img(image_path, 1)
+            X_batch, y_stacked, _ = util.load_and_preprocess_img(image_path, 1)
             y_batch = y_stacked[0] # take first hourglass section
             # https://stackoverflow.com/questions/678236/how-to-get-the-filename-without-the-extension-from-a-path-in-python
             img_id = os.path.splitext(os.path.basename(image_path))[0]
