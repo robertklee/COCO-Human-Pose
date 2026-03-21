@@ -96,10 +96,6 @@ def ensure_model_exists():
 
     return AppHelper(model_weights=model_weights, model_json=MODEL_JSON)
 
-#         rescale_f = cv2.imread(img)
-#         rescale_f = cv2.cvtColor(rescale_f,cv2.COLOR_BGR2RGB)
-#         rescale_f = cv2.resize(rescale_f, dsize=(256,256))
-
 @st.cache_resource(show_spinner="Loading model... this may take a moment on first run.")
 def load_model():
     return ensure_model_exists()
@@ -121,56 +117,38 @@ def run_app(img):
 
     left_column, right_column = st.columns(2)
 
-    # Cache prediction results so dropdown changes don't re-run inference
-    cache_key = f"{PREDICTION_CACHE_PREFIX}{img}"
-    if cache_key not in st.session_state:
-        # Clear any previous prediction cache to avoid holding stale user images
-        _clear_prediction_cache()
+    # Display the original image as-is
+    with Image.open(img) as orig_img:
+        from PIL import ImageOps
+        display_image = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
 
-        # Display the original image as-is
-        with Image.open(img) as orig_img:
-            from PIL import ImageOps
-            display_image = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
+    with st.spinner("Running pose estimation..."):
+        orig_batch, keypoints_batch, heatmaps, crop_info = handle.predict_in_memory_fullres(img)
+        scatter = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=False)
+        skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
 
-        with st.spinner("Running pose estimation..."):
-            orig_batch, keypoints_batch, heatmaps, crop_info = handle.predict_in_memory_fullres(img)
-            scatter = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=False)
-            skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
+        # Pre-render all heatmap overlays so no widgets are needed
+        heatmap_overlays = {}
+        for joint_idx in range(NUM_COCO_KEYPOINTS):
+            heatmap_overlays[joint_idx] = handle.visualize_heatmap(
+                orig_batch[0], heatmaps[0, :, :, joint_idx], joint_idx,
+                crop_info=crop_info)
 
-            # Pre-render all heatmap overlays so no widgets are needed
-            heatmap_overlays = {}
-            for joint_idx in range(NUM_COCO_KEYPOINTS):
-                heatmap_overlays[joint_idx] = handle.visualize_heatmap(
-                    orig_batch[0], heatmaps[0, :, :, joint_idx], joint_idx,
-                    crop_info=crop_info)
-
-            st.session_state[cache_key] = {
-                'display_image': display_image,
-                'scatter': scatter,
-                'skeleton': skeleton,
-                'heatmap_overlays': heatmap_overlays,
-            }
-
-    cached = st.session_state[cache_key]
-
-    left_column.image(cached['display_image'], caption = "Selected Input")
-    right_column.image(cached['scatter'], caption = "Predicted Keypoints")
-    st.image(cached['skeleton'], caption = 'FINAL: Predicted Pose')
+    right_column.image(scatter, caption = "Predicted Keypoints")
+    st.image(skeleton, caption = 'FINAL: Predicted Pose')
 
     # Per-joint heatmap visualization grid
     with st.expander("🔥 View Per-Joint Heatmaps"):
-        overlays = cached['heatmap_overlays']
-
         # Center: nose
         for joint_idx, label in HEATMAP_DISPLAY_ORDER_CENTER:
-            st.image(overlays[joint_idx], caption=label, width=300)
+            st.image(heatmap_overlays[joint_idx], caption=label, width=300)
 
         # Left and right side-by-side, top to bottom
         for (l_idx, l_label), (r_idx, r_label) in zip(
                 HEATMAP_DISPLAY_ORDER_LEFT, HEATMAP_DISPLAY_ORDER_RIGHT):
             col_l, col_r = st.columns(2)
-            col_l.image(overlays[l_idx], caption=l_label, use_container_width=True)
-            col_r.image(overlays[r_idx], caption=r_label, use_container_width=True)
+            col_l.image(heatmap_overlays[l_idx], caption=l_label, use_container_width=True)
+            col_r.image(heatmap_overlays[r_idx], caption=r_label, use_container_width=True)
 
 def demo():
     left_column, middle_column, right_column = st.columns(3)
