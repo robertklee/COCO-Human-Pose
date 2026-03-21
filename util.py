@@ -241,6 +241,46 @@ def heatmaps_to_keypoints_batch(heatmaps_batch, threshold=HM_TO_KP_THRESHOLD):
     return np.array(keypoints_batch)
 
 
+def predict_heatmaps(model, X_batch, predict_using_flip=False):
+    """Return predicted heatmaps for a batch of images.
+
+    Parameters
+    ----------
+    model : keras.Model
+        The loaded hourglass model.
+    X_batch : ndarray
+        Input images with shape (batch, x, y, channels).
+    predict_using_flip : bool
+        When True, horizontally flip the input, predict, then undo the flip
+        and swap left/right keypoint channels so the output is in the original
+        coordinate space.
+
+    Returns
+    -------
+    ndarray of shape (num_hg_blocks, batch, 64, 64, 17)
+    """
+    def _predict(X_batch):
+        # predict_on_batch avoids the memory-leak caused by repeated
+        # model.predict / model.__call__ retracing.
+        # See https://stackoverflow.com/questions/66271988
+        return np.array(model.predict_on_batch(X_batch))
+
+    if predict_using_flip:
+        X_batch_flipped = X_batch[:,:,::-1,:]
+
+        predicted_heatmaps_batch_flipped = _predict(X_batch_flipped)
+
+        # indices to flip order of Left and Right heatmaps [0, 2, 1, 4, 3, 6, 5, 8, 7, …]
+        reverse_LR_indices = [0] + [2*x-y for x in range(1,9) for y in range(2)]
+
+        # reverse horizontal flip AND reverse left/right heatmaps
+        predicted_heatmaps_batch = predicted_heatmaps_batch_flipped[:,:,:,::-1,reverse_LR_indices]
+    else:
+        predicted_heatmaps_batch = _predict(X_batch)
+
+    return predicted_heatmaps_batch
+
+
 if __name__ == "__main__":
     from time import sleep
 
