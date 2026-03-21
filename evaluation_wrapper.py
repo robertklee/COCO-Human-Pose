@@ -257,51 +257,7 @@ class EvaluationWrapper():
             self.eval.visualize_keypoints(X_batch, keypoints_batch, img_id_batch, show_skeleton=visualize_skeleton)
 
     def _average_LR_flip_predictions(self, prediction_1, prediction_2, coco_format=True):
-        # Average predictions from original image and the untransformed flipped image to get a more accurate prediction
-        original_shape = prediction_1.shape
-
-        prediction_1_flat = prediction_1.flatten()
-        prediction_2_flat = prediction_2.flatten()
-
-        output_prediction = prediction_1_flat
-
-        for j in range(NUM_COCO_KEYPOINTS):
-            # This code is required so if one version detects the keypoint (x,y,1),
-            # and the other doesn't (0,0,0), we don't average them to be (x/2, y/2, 0.5)
-            base = j * NUM_COCO_KP_ATTRBS
-
-            n = 0
-            x_sum = 0
-            y_sum = 0
-            vc_sum = 0 # Could be visibility or confidence
-
-            # Verify visibility flag
-            if prediction_1_flat[base+2] >= HM_TO_KP_THRESHOLD:
-                x_sum += prediction_1_flat[base]
-                y_sum += prediction_1_flat[base + 1]
-                vc_sum += prediction_1_flat[base + 2]
-                n += 1
-
-            if prediction_2_flat[base+2] >= HM_TO_KP_THRESHOLD:
-                x_sum += prediction_2_flat[base]
-                y_sum += prediction_2_flat[base + 1]
-                vc_sum += prediction_2_flat[base + 2]
-                n += 1
-
-            # Verify that no division by 0 will occur
-            if n > 0:
-                output_prediction[base]     = round(x_sum / n)
-                output_prediction[base + 1] = round(y_sum / n)
-                output_prediction[base + 2] = 1 if coco_format else round(vc_sum / n)
-
-            ## There is probably some numpy method to do this. The following line doesn't work because it doesn't account for the vis flag being 0,
-            ## which causes the x,y to be (0,0)
-            # list_of_predictions[i]['keypoints'] = np.round(np.mean( np.array([ list_of_predictions[i]['keypoints'], list_of_predictions_2[i]['keypoints'] ]), axis=0 ))
-
-        if not coco_format:
-            output_prediction = np.reshape(output_prediction, original_shape)
-
-        return output_prediction
+        return util.average_LR_flip_predictions(prediction_1, prediction_2, coco_format)
 
     def _full_list_of_predictions_wrapper(self, gen, model_sub_dir, epoch, average_flip_prediction=False):
         print('Predicting over all batches...')
