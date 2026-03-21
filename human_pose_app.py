@@ -126,6 +126,7 @@ def run_app(img):
                 orig_batch[0], heatmaps[0, :, :, joint_idx], joint_idx,
                 crop_info=crop_info)
 
+    left_column.image(display_image, caption="Original Image")
     right_column.image(scatter, caption = "Predicted Keypoints")
     st.image(skeleton, caption = 'FINAL: Predicted Pose')
 
