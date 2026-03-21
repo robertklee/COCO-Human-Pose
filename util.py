@@ -5,8 +5,10 @@ import unicodedata
 
 import cv2
 import numpy as np
+from PIL import Image, ImageOps
 from scipy.ndimage import gaussian_filter, maximum_filter
 
+import data_generator
 from constants import *
 
 MODEL_ARCHITECTURE_JSON_REGEX = f'^{HPE_HOURGLASS_STACKS_PREFIX}.*\\.json$'
@@ -338,6 +340,75 @@ def average_LR_flip_predictions(prediction_1, prediction_2, coco_format=True):
         output_prediction = np.reshape(output_prediction, original_shape)
 
     return output_prediction
+
+
+def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
+    """Load an image, crop/resize to model input dimensions, and return batch arrays.
+
+    Used by both the inference demo app (which needs crop_info to map
+    predictions back to full-resolution coordinates) and the evaluation
+    pipeline (which can ignore crop_info).
+
+    Parameters
+    ----------
+    img_path : str
+        Path to the image file.
+    num_hg_blocks : int
+        Number of hourglass blocks — used to generate dummy ground truth.
+    bbox : tuple or None
+        Optional bounding box (x, y, w, h) anchored at top-left.
+
+    Returns
+    -------
+    X_batch : ndarray
+        Preprocessed image with shape (1, *INPUT_DIM, 3), normalised to [0,1].
+    y_batch : list of ndarray
+        Dummy ground truth heatmaps, one per hourglass block.
+    crop_info : dict
+        Crop metadata: bbox, crop_w, crop_h, orig_w, orig_h.
+    """
+    with Image.open(img_path) as img:
+        img = img.convert('RGB')
+
+        # Preserve original rotation from EXIF metadata.
+        # See https://stackoverflow.com/a/63798032
+        img = ImageOps.exif_transpose(img)
+
+        orig_w, orig_h = img.size
+
+        if bbox is None:
+            w, h = img.size
+
+            if w != h:
+                # if the image is not square
+                bbox = data_generator.transform_bbox_square((0, 0, w, h))
+
+        if bbox is not None:
+            bbox = np.array(bbox, dtype=int)
+            img = img.crop(box=bbox)
+        else:
+            bbox = np.array([0, 0, orig_w, orig_h], dtype=int)
+
+        crop_w, crop_h = img.size
+
+        new_img = cv2.resize(np.array(img), INPUT_DIM,
+                            interpolation=cv2.INTER_LINEAR)
+
+    X_batch = np.expand_dims(new_img.astype('float'), axis=0)
+
+    y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS), dtype='float') for _ in range(num_hg_blocks)]
+
+    X_batch /= 255
+
+    crop_info = {
+        'bbox': bbox,
+        'crop_w': crop_w,
+        'crop_h': crop_h,
+        'orig_w': orig_w,
+        'orig_h': orig_h,
+    }
+
+    return X_batch, y_batch, crop_info
 
 
 if __name__ == "__main__":
