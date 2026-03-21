@@ -14,6 +14,7 @@ train_df, val_df = h.load_and_filter_annotations(DEFAULT_TRAIN_ANNOT_PATH,DEFAUL
 # %% Declare evaluation class instance
 import pandas as pd
 import evaluation
+import util
 import HeatMap
 imp.reload(evaluation)
 imp.reload(HeatMap)
@@ -71,7 +72,7 @@ name_no_extension = "tmp"
 ## Uncomment below for arbitrary images
 img_name = 'IMG_8175.jpg'
 name_no_extension = img_name.split('.')[0]
-X_batch, y_stacked = evaluation.load_and_preprocess_img(os.path.join('data', img_name), eval.num_hg_blocks)
+X_batch, y_stacked, _ = util.load_and_preprocess_img(os.path.join('data', img_name), eval.num_hg_blocks)
 y_batch = y_stacked[0] # take first hourglass section
 X, y = X_batch[0], y_batch[0] # take first example of batch
 

@@ -5,10 +5,8 @@ import re
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image, ImageOps
 from pycocotools.cocoeval import COCOeval
 
-import data_generator
 import HeatMap  # https://github.com/LinShanify/HeatMap
 import hourglass
 import util
@@ -461,53 +459,3 @@ class Evaluation():
         return oks_obj
 
 # ----------------------- End of Class -----------------------
-
-"""
-Runs the model for any general file. This aims to extend the DataGenerator output format for arbitrary images
-
-## Parameters:
-img_path : {string-typed} path to image
-    Note this image must be square, and centered around the person you wish to retrieve predictions for.
-
-num_hg_blocks : {int}
-    number of hourglass blocks to generate dummy ground truth data
-
-bbox : {tuple of element type int or float}
-    optional bounding box info, anchored at top left of image, of elements (x,y,w,h)
-"""
-def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
-    img = Image.open(img_path).convert('RGB')
-
-    # Required because PIL will read EXIF tags about rotation by default. We want to
-    # preserve the input image rotation so we manually apply the rotation if required.
-    # See https://stackoverflow.com/questions/4228530/pil-thumbnail-is-rotating-my-image/
-    # and the answer I used: https://stackoverflow.com/a/63798032
-    img = ImageOps.exif_transpose(img)
-
-    if bbox is None:
-        w, h = img.size
-
-        if w != h:
-            # if the image is not square
-            # Indexed so upper left corner is (0,0)
-            bbox = data_generator.transform_bbox_square((0, 0, w, h))
-
-    if bbox is not None:
-        # If a bounding box is provided, use it
-        bbox = np.array(bbox, dtype=int)
-
-        # Crop with box of order left, upper, right, lower
-        img = img.crop(box=bbox)
-
-    new_img = cv2.resize(np.array(img), INPUT_DIM,
-                        interpolation=cv2.INTER_LINEAR)
-
-    # Add a 'batch' axis
-    X_batch = np.expand_dims(new_img.astype('float'), axis=0)
-
-    # Add dummy heatmap "ground truth", duplicated 'num_hg_blocks' times
-    y_batch = [np.zeros((1, *(OUTPUT_DIM), NUM_COCO_KEYPOINTS), dtype='float') for _ in range(num_hg_blocks)]
-
-    # Normalize input image
-    X_batch /= 255
-    return X_batch, y_batch
