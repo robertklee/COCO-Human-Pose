@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageOps
 from pycocotools.cocoeval import COCOeval
-from scipy.ndimage import gaussian_filter, maximum_filter
 
 import data_generator
 import HeatMap  # https://github.com/LinShanify/HeatMap
@@ -197,50 +196,10 @@ class Evaluation():
             plt.close()
 
     def heatmaps_to_keypoints_batch(self, heatmaps_batch, threshold=HM_TO_KP_THRESHOLD):
-        keypoints_batch = []
+        return util.heatmaps_to_keypoints_batch(heatmaps_batch, threshold)
 
-        # dimensions are (num_hg_blocks, batch, x, y, keypoint)
-        for i in range(heatmaps_batch.shape[1]):
-            # Get predicted keypoints from last hourglass (last element of list)
-            # Dimensions are (hourglass_layer, batch, x, y, keypoint)
-            keypoints = self.heatmaps_to_keypoints(heatmaps_batch[-1, i, :, :, :])
-
-            keypoints_batch.append(keypoints)
-
-        return np.array(keypoints_batch)
-
-    # Resources for heatmaps to keypoints
-    # https://github.com/yuanyuanli85/Stacked_Hourglass_Network_Keras/blob/eddf0ae15715a88d7859847cfff5f5092b260ae1/src/eval/heatmap_process.py#L5
-    # https://github.com/david8862/tf-keras-stacked-hourglass-keypoint-detection/blob/56707252501c73b2bf2aac8fff3e22760fd47dca/hourglass/postprocess.py#L17
-
-    ### Returns np array of predicted keypoints from one image's heatmaps
     def heatmaps_to_keypoints(self, heatmaps, threshold=HM_TO_KP_THRESHOLD):
-        keypoints = np.zeros((NUM_COCO_KEYPOINTS, NUM_COCO_KP_ATTRBS))
-        for i in range(NUM_COCO_KEYPOINTS):
-            hmap = heatmaps[:,:,i]
-            # Resize heatmap from Output DIM to Input DIM
-            resized_hmap = cv2.resize(hmap, INPUT_DIM, interpolation = cv2.INTER_LINEAR)
-            # Do a heatmap blur with gaussian_filter
-            resized_hmap = gaussian_filter(resized_hmap, REVERSE_HEATMAP_SIGMA)
-
-            # Get peak point (brightest area) in heatmap with 3x3 max filter
-            peaks = self._non_max_supression(resized_hmap.copy(), threshold, windowSize=3)
-
-            # Find the peak location for confidence check
-            peak_y, peak_x = np.unravel_index(np.argmax(peaks), peaks.shape)
-
-            if peaks[peak_y, peak_x] > HM_TO_KP_THRESHOLD_POST_FILTER:
-                conf = peaks[peak_y, peak_x]
-                # Use weighted centroid on the smoothed heatmap (pre-NMS) for sub-pixel accuracy
-                x, y = self._weighted_centroid(resized_hmap, peak_y, peak_x)
-            else:
-                x, y, conf = 0, 0, 0
-
-            keypoints[i, 0] = x
-            keypoints[i, 1] = y
-            keypoints[i, 2] = conf
-
-        return keypoints
+        return util.heatmaps_to_keypoints(heatmaps, threshold)
 
     def heatmap_to_COCO_format(self, predicted_hm_batch, metadata_batch):
         list_of_predictions = []
@@ -465,56 +424,6 @@ class Evaluation():
         img_v_resize = self._vstack_images(heatmap_imgs)
 
         cv2.imwrite(os.path.join(self.output_sub_dir, filename), img_v_resize)
-
-    def _weighted_centroid(self, heatmap, peak_y, peak_x,
-                           brightness_k=WEIGHTED_CENTROID_BRIGHTNESS_K,
-                           spatial_k=WEIGHTED_CENTROID_SPATIAL_K):
-        """Compute the weighted centroid of the heatmap region near the peak.
-
-        The region is defined by pixels that are both:
-        - Within brightness_k std devs of the peak brightness value
-        - Within spatial_k std devs of distance from the peak
-        """
-        peak_val = heatmap[peak_y, peak_x]
-
-        # Brightness constraint: include pixels within k std devs of the peak
-        nonzero_vals = heatmap[heatmap > 0]
-        if len(nonzero_vals) < 2:
-            return peak_x, peak_y
-        brightness_std = np.std(nonzero_vals)
-        brightness_threshold = peak_val - brightness_k * brightness_std
-        brightness_mask = heatmap >= brightness_threshold
-
-        # Spatial constraint: include pixels within k std devs of distance from peak
-        ys, xs = np.mgrid[0:heatmap.shape[0], 0:heatmap.shape[1]]
-        distances = np.sqrt((ys - peak_y) ** 2 + (xs - peak_x) ** 2)
-        bright_distances = distances[brightness_mask]
-        if len(bright_distances) < 2:
-            return peak_x, peak_y
-        spatial_std = np.std(bright_distances)
-        if spatial_std == 0:
-            return peak_x, peak_y
-        spatial_mask = distances <= spatial_k * spatial_std
-
-        # Combined region
-        region_mask = brightness_mask & spatial_mask
-        weights = heatmap[region_mask]
-
-        if weights.sum() == 0:
-            return peak_x, peak_y
-
-        region_ys = ys[region_mask]
-        region_xs = xs[region_mask]
-        centroid_x = np.average(region_xs, weights=weights)
-        centroid_y = np.average(region_ys, weights=weights)
-
-        return centroid_x, centroid_y
-
-    def _non_max_supression(self, plain, threshold, windowSize=3):
-        # Clear values less than threshold
-        under_thresh_indices = plain < threshold
-        plain[under_thresh_indices] = 0
-        return plain * (plain == maximum_filter(plain, footprint=np.ones((windowSize, windowSize))))
 
     """
         Parameters
