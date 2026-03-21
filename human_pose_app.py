@@ -117,12 +117,14 @@ def run_app(img):
 
     left_column, right_column = st.columns(2)
 
-    # Display the original image as-is
+    # Display the original image immediately so the page isn't blank during inference
     with Image.open(img) as orig_img:
         from PIL import ImageOps
         display_image = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
 
-    with st.spinner("Running pose estimation..."):
+    left_column.image(display_image, caption="Original Image")
+
+    with right_column, st.spinner("Running pose estimation..."):
         orig_batch, keypoints_batch, heatmaps, crop_info = handle.predict_in_memory_fullres(img)
         scatter = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=False)
         skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
@@ -134,7 +136,6 @@ def run_app(img):
                 orig_batch[0], heatmaps[0, :, :, joint_idx], joint_idx,
                 crop_info=crop_info)
 
-    left_column.image(display_image, caption="Original Image")
     right_column.image(scatter, caption = "Predicted Keypoints")
     st.image(skeleton, caption = 'Predicted Pose')
 
@@ -261,6 +262,15 @@ def main():
             ('corey',   'corey.jpg',   "Corey"),
         ]
 
+        # Row 1: Display original team photos immediately
+        cols_orig = st.columns(len(team_members))
+        for col, (_member_id, filename, display_name) in zip(cols_orig, team_members):
+            img_path = os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, filename)
+            with Image.open(img_path) as orig_img:
+                from PIL import ImageOps
+                disp = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
+            col.image(disp, use_container_width=True, caption=display_name)
+
         handle = load_model()
 
         # Run predictions (cached so page doesn't re-run on every rerun)
@@ -271,11 +281,7 @@ def main():
                     img_path = os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, filename)
                     orig_batch, keypoints_batch, _heatmaps, _crop_info = handle.predict_in_memory_fullres(img_path)
                     skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
-                    with Image.open(img_path) as orig_img:
-                        from PIL import ImageOps
-                        display_image = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
                     results[member_id] = {
-                        'display_image': display_image,
                         'skeleton': skeleton,
                         'display_name': display_name,
                     }
@@ -283,13 +289,7 @@ def main():
 
         team_results = st.session_state[TEAM_CACHE_KEY]
 
-        # Row 1: Original photos
-        cols_orig = st.columns(len(team_members))
-        for col, (member_id, _filename, _name) in zip(cols_orig, team_members):
-            r = team_results[member_id]
-            col.image(r['display_image'], use_container_width=True, caption=r['display_name'])
-
-        # Row 2: Live predictions
+        # Row 2: Predicted poses
         cols_pred = st.columns(len(team_members))
         for col, (member_id, _filename, _name) in zip(cols_pred, team_members):
             r = team_results[member_id]
