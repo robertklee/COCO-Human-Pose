@@ -128,7 +128,7 @@ def run_app(img):
 
     left_column.image(display_image, caption="Original Image")
     right_column.image(scatter, caption = "Predicted Keypoints")
-    st.image(skeleton, caption = 'FINAL: Predicted Pose')
+    st.image(skeleton, caption = 'Predicted Pose')
 
     # Per-joint heatmap visualization grid
     with st.expander("🔥 View Per-Joint Heatmaps"):
