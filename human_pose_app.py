@@ -172,7 +172,7 @@ def main():
     app_mode = st.sidebar.selectbox("Please select from the following", SIDEBAR_OPTIONS)
 
     # Clear cached prediction data when navigating away from prediction pages
-    prediction_pages = {SIDEBAR_OPTION_DEMO_IMAGE, SIDEBAR_OPTION_UPLOAD_IMAGE, SIDEBAR_OPTION_CAMERA}
+    prediction_pages = {SIDEBAR_OPTION_DEMO_IMAGE, SIDEBAR_OPTION_UPLOAD_IMAGE, SIDEBAR_OPTION_CAMERA, SIDEBAR_OPTION_MEET_TEAM}
     if app_mode not in prediction_pages:
         _clear_prediction_cache()
 
