@@ -180,8 +180,8 @@ def run_app(img):
         for (l_idx, l_label), (r_idx, r_label) in zip(
                 HEATMAP_DISPLAY_ORDER_LEFT, HEATMAP_DISPLAY_ORDER_RIGHT):
             col_l, col_r = st.columns(2)
-            col_l.image(heatmap_overlays[l_idx], caption=l_label, use_container_width=True)
-            col_r.image(heatmap_overlays[r_idx], caption=r_label, use_container_width=True)
+            col_l.image(heatmap_overlays[l_idx], caption=l_label, width="100%")
+            col_r.image(heatmap_overlays[r_idx], caption=r_label, width="100%")
 
 def demo():
     left_column, middle_column, right_column = st.columns(3)
@@ -304,7 +304,7 @@ def main():
             with Image.open(img_path) as orig_img:
                 from PIL import ImageOps
                 disp = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
-            col.image(disp, use_container_width=True, caption=display_name)
+            col.image(disp, width="100%", caption=display_name)
 
         handle = load_model()
 
@@ -328,7 +328,7 @@ def main():
         cols_pred = st.columns(len(team_members))
         for col, (member_id, _filename, _name) in zip(cols_pred, team_members):
             r = team_results[member_id]
-            col.image(r['skeleton'], use_container_width=True, caption=f"{r['display_name']} Pose")
+            col.image(r['skeleton'], width="100%", caption=f"{r['display_name']} Pose")
 
 
         st.sidebar.write('Please feel free to connect with us on Linkedin!')
