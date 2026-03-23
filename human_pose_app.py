@@ -184,8 +184,8 @@ def run_app(img):
         for (l_idx, l_label), (r_idx, r_label) in zip(
                 HEATMAP_DISPLAY_ORDER_LEFT, HEATMAP_DISPLAY_ORDER_RIGHT):
             col_l, col_r = st.columns(2)
-            col_l.image(heatmap_overlays[l_idx], caption=l_label, width="100%")
-            col_r.image(heatmap_overlays[r_idx], caption=r_label, width="100%")
+            col_l.image(heatmap_overlays[l_idx], caption=l_label, width="content")
+            col_r.image(heatmap_overlays[r_idx], caption=r_label, width="content")
 
 def demo():
     left_column, middle_column, right_column = st.columns(3)
