@@ -72,8 +72,8 @@ def download_file(url, local_filename):
     return local_filename
 
 # Modified from https://github.com/thoppe/streamlit-skyAR/blob/master/streamlit_app.py
-@st.cache_resource(show_spinner=False)
-def ensure_model_exists():
+@st.cache_resource(show_spinner="Loading model... this may take a moment on first run.")
+def load_model():
 
     save_dest = Path(DEFAULT_MODEL_BASE_DIR)
     save_dest.mkdir(exist_ok=True)
@@ -91,11 +91,6 @@ def ensure_model_exists():
             download_file(url=MODEL_JSON_DEPLOYMENT_URL, local_filename=MODEL_JSON)
 
     return AppHelper(model_weights=MODEL_WEIGHTS, model_json=MODEL_JSON)
-
-@st.cache_resource(show_spinner="Loading model... this may take a moment on first run.")
-def load_model():
-    return ensure_model_exists()
-
 
 PREDICTION_CACHE_PREFIX = "prediction_"
 TEAM_CACHE_KEY = "team_predictions"
