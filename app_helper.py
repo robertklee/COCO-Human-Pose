@@ -20,6 +20,44 @@ import evaluation
 import util
 from constants import *
 
+# Max dimension caps for each visualization output, avoiding multi-GB memory
+# usage on high-resolution uploads (e.g. 24 MP iOS photos) while keeping the
+# skeleton overlay as close to original quality as possible.
+MAX_DIM_HEATMAP = 1280
+MAX_DIM_SCATTER = 2560
+
+
+def downscale_for_display(orig_batch, keypoints_batch, crop_info, max_dim):
+    """Return copies of orig_batch / keypoints / crop_info downscaled to *max_dim*.
+
+    If the image is already within *max_dim*, the inputs are returned unchanged
+    (no copy is made).  Model inference is never affected — only the display
+    arrays are resized.
+    """
+    h, w = orig_batch.shape[1], orig_batch.shape[2]
+    if max(w, h) <= max_dim:
+        return orig_batch, keypoints_batch, crop_info
+
+    scale = max_dim / max(w, h)
+    new_w, new_h = int(w * scale), int(h * scale)
+
+    # Resize each image in the batch
+    resized = np.stack([
+        cv2.resize(orig_batch[i], (new_w, new_h), interpolation=cv2.INTER_AREA)
+        for i in range(orig_batch.shape[0])
+    ])
+
+    kp = keypoints_batch.copy()
+    kp[:, :, 0] *= scale
+    kp[:, :, 1] *= scale
+
+    ci = dict(crop_info)
+    ci['bbox'] = (crop_info['bbox'].astype(np.float64) * scale).astype(int)
+    ci['crop_w'] = int(crop_info['crop_w'] * scale)
+    ci['crop_h'] = int(crop_info['crop_h'] * scale)
+
+    return resized, kp, ci
+
 
 # TODO: Refactor this class to use the existing (COCO API dependent) evaluation_wrapper, evaluation, and hourglass code
 
@@ -76,10 +114,10 @@ class AppHelper():
                     fullres_keypoints_batch[i, j, 0] = kp_x * scale_x + anchor_x
                     fullres_keypoints_batch[i, j, 1] = kp_y * scale_y + anchor_y
 
-        # Load original full-res image for overlay
+        # Load original full-res image for overlay (float32 to halve memory vs float64).
         with Image.open(img_path) as orig_img:
             orig_img = ImageOps.exif_transpose(orig_img.convert('RGB'))
-            orig_array = np.array(orig_img) / 255.0
+            orig_array = np.array(orig_img, dtype=np.float32) / np.float32(255.0)
 
         orig_batch = np.expand_dims(orig_array, axis=0)
         # Last hourglass stack heatmaps: shape (batch, 64, 64, 17)
