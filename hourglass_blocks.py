@@ -46,13 +46,13 @@ def bottleneck_block(bottom, num_out_channels, block_name):
     # residual: 3 conv blocks,  [num_out_channels/2  -> num_out_channels/2 -> num_out_channels]
     _x = Conv2D(num_out_channels // 2, kernel_size=(1, 1), activation='relu', padding='same',
                 name=block_name + '_conv_1x1_x1')(bottom)
-    _x = BatchNormalization()(_x)
+    _x = BatchNormalization(name=block_name + '_bn_1')(_x)
     _x = Conv2D(num_out_channels // 2, kernel_size=(3, 3), activation='relu', padding='same',
                 name=block_name + '_conv_3x3_x2')(_x)
-    _x = BatchNormalization()(_x)
+    _x = BatchNormalization(name=block_name + '_bn_2')(_x)
     _x = Conv2D(num_out_channels, kernel_size=(1, 1), activation='relu', padding='same',
                 name=block_name + '_conv_1x1_x3')(_x)
-    _x = BatchNormalization()(_x)
+    _x = BatchNormalization(name=block_name + '_bn_3')(_x)
     _x = Add(name=block_name + '_residual')([_skip, _x])
 
     return _x
@@ -69,13 +69,13 @@ def bottleneck_mobile(bottom, num_out_channels, block_name):
     # residual: 3 conv blocks,  [num_out_channels/2  -> num_out_channels/2 -> num_out_channels]
     _x = SeparableConv2D(num_out_channels // 2, kernel_size=(1, 1), activation='relu', padding='same',
                          name=block_name + '_conv_1x1_x1')(bottom)
-    _x = BatchNormalization()(_x)
+    _x = BatchNormalization(name=block_name + '_bn_1')(_x)
     _x = SeparableConv2D(num_out_channels // 2, kernel_size=(3, 3), activation='relu', padding='same',
                          name=block_name + '_conv_3x3_x2')(_x)
-    _x = BatchNormalization()(_x)
+    _x = BatchNormalization(name=block_name + '_bn_2')(_x)
     _x = SeparableConv2D(num_out_channels, kernel_size=(1, 1), activation='relu', padding='same',
                          name=block_name + '_conv_1x1_x3')(_x)
-    _x = BatchNormalization()(_x)
+    _x = BatchNormalization(name=block_name + '_bn_3')(_x)
     _x = Add(name=block_name + '_residual')([_skip, _x])
 
     return _x
@@ -88,7 +88,7 @@ def create_front_module(input, num_channels, bottleneck):
 
     _x = Conv2D(64, kernel_size=(7, 7), strides=(2, 2), padding='same', activation='relu', name='front_conv_1x1_x1')(
         input)
-    _x = BatchNormalization()(_x)
+    _x = BatchNormalization(name='front_bn')(_x)
 
     _x = bottleneck(_x, num_channels // 2, 'front_residual_x1')
     _x = MaxPool2D(pool_size=(2, 2), strides=(2, 2))(_x)
@@ -169,7 +169,7 @@ def create_heads(prelayerfeatures, rf1, num_classes, hgid, num_channels, activat
     # two head, one head to next stage, one head to intermediate features
     head = Conv2D(num_channels, kernel_size=(1, 1), activation='relu', padding='same', name=str(hgid) + '_conv_1x1_x1')(
         rf1)
-    head = BatchNormalization()(head)
+    head = BatchNormalization(name=str(hgid) + '_head_bn')(head)
 
     # for head as intermediate supervision, use 'linear' or 'sigmoid' as activation.
     head_parts = Conv2D(num_classes, kernel_size=(1, 1), activation=activation_str, padding='same',
