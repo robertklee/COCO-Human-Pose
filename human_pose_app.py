@@ -1,7 +1,10 @@
+import logging
 import os
 import shutil
 import ssl
 import tempfile
+import time
+import traceback
 import urllib.request
 from pathlib import Path
 
@@ -326,6 +329,33 @@ def main():
     else:
         raise ValueError('Selected sidebar option is not implemented. Please open an issue on Github: https://github.com/robertklee/COCO-Human-Pose')
 
-main()
+MAX_AUTO_RESTARTS = 3
+AUTO_RESTART_COOLDOWN = 2  # seconds
+
+if "restart_count" not in st.session_state:
+    st.session_state["restart_count"] = 0
+
+try:
+    main()
+except Exception:
+    restart_count = st.session_state["restart_count"]
+    logging.error("Unexpected error (restart %d/%d):\n%s",
+                  restart_count + 1, MAX_AUTO_RESTARTS, traceback.format_exc())
+
+    if restart_count < MAX_AUTO_RESTARTS:
+        st.session_state["restart_count"] = restart_count + 1
+        st.error(f"Something went wrong. Restarting automatically "
+                 f"({restart_count + 1}/{MAX_AUTO_RESTARTS})...")
+        time.sleep(AUTO_RESTART_COOLDOWN)
+        st.rerun()
+    else:
+        st.session_state["restart_count"] = 0
+        st.error("The app encountered repeated errors and could not recover. "
+                 "Please refresh the page to try again.")
+        st.exception(Exception(traceback.format_exc()))
+else:
+    # Successful run — reset the restart counter.
+    st.session_state["restart_count"] = 0
+
 expander_faq = st.expander("More About Our Project")
 expander_faq.write("Hi there! If you have any questions about our project, or simply want to check out the source code, please visit our github repo: https://github.com/robertklee/COCO-Human-Pose")
