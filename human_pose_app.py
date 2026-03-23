@@ -109,24 +109,41 @@ def run_app(img):
 
     left_column, right_column = st.columns(2)
 
-    # Display the original image immediately so the page isn't blank during inference
+    # Display the original image immediately so the page isn't blank during inference.
+    # Preview is shown in a small column, so cap to a reasonable size.
     with Image.open(img) as orig_img:
         from PIL import ImageOps
-        display_image = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
+        orig_img = ImageOps.exif_transpose(orig_img.convert('RGB'))
+        w, h = orig_img.size
+        if max(w, h) > app_helper.MAX_DIM_SCATTER:
+            scale = app_helper.MAX_DIM_SCATTER / max(w, h)
+            orig_img = orig_img.resize(
+                (int(w * scale), int(h * scale)), Image.LANCZOS)
+        display_image = np.array(orig_img)
 
     left_column.image(display_image, caption="Original Image")
 
     with right_column, st.spinner("Running pose estimation..."):
         orig_batch, keypoints_batch, heatmaps, crop_info = handle.predict_in_memory_fullres(img)
-        scatter = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=False)
+
+        # Skeleton: full resolution — the hero output
         skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
 
-        # Pre-render all heatmap overlays so no widgets are needed
+        # Scatter (keypoints only): capped to MAX_DIM_SCATTER
+        scat_batch, scat_kp, _scat_ci = app_helper.downscale_for_display(
+            orig_batch, keypoints_batch, crop_info, app_helper.MAX_DIM_SCATTER)
+        scatter = handle.visualize_keypoints(scat_batch, scat_kp, show_skeleton=False)
+        del scat_batch, scat_kp  # free before heatmap rendering
+
+        # Heatmap overlays: capped to MAX_DIM_HEATMAP (17 images, keep memory bounded)
+        hm_batch, _hm_kp, hm_ci = app_helper.downscale_for_display(
+            orig_batch, keypoints_batch, crop_info, app_helper.MAX_DIM_HEATMAP)
         heatmap_overlays = {}
         for joint_idx in range(NUM_COCO_KEYPOINTS):
             heatmap_overlays[joint_idx] = handle.visualize_heatmap(
-                orig_batch[0], heatmaps[0, :, :, joint_idx], joint_idx,
-                crop_info=crop_info)
+                hm_batch[0], heatmaps[0, :, :, joint_idx], joint_idx,
+                crop_info=hm_ci)
+        del hm_batch, orig_batch  # free full-res arrays
 
     right_column.image(scatter, caption = "Predicted Keypoints")
     st.image(skeleton, caption = 'Predicted Pose')
