@@ -1,0 +1,25 @@
+name: Reboot Streamlit Cloud App
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  reboot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reboot Streamlit Cloud app
+        env:
+          STREAMLIT_API_TOKEN: ${{ secrets.STREAMLIT_API_TOKEN }}
+          STREAMLIT_APP_ID: ${{ secrets.STREAMLIT_APP_ID }}
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "https://api.streamlit.io/v1/apps/${STREAMLIT_APP_ID}/reboot" \
+            -H "Authorization: Bearer ${STREAMLIT_API_TOKEN}" \
+            -H "Content-Type: application/json")
+          if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
+            echo "✅ Streamlit app rebooted successfully (HTTP $response)"
+          else
+            echo "❌ Failed to reboot Streamlit app (HTTP $response)"
+            exit 1
+          fi
