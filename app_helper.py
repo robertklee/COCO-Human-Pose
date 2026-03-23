@@ -27,9 +27,9 @@ MAX_DIM_SCATTER = 2560
 MAX_DIM_HEATMAP = 1280
 
 # Reject images with extreme aspect ratios. The model input is 256×256; non-square
-# images are letterboxed into a square crop, so a 3:1 panorama leaves only ~33% of the
-# input for actual content — too little for reliable pose estimation on a 64×64 heatmap.
-MAX_ASPECT_RATIO = 3.0
+# images are letterboxed into a square crop, so extreme ratios waste most of the input.
+# Human bounding boxes are roughly upright, so even 3:2 is generous.
+MAX_ASPECT_RATIO = 1.5  # 6:4 (i.e. 3:2)
 
 
 def downscale_for_display(orig_batch, keypoints_batch, crop_info, max_dim):
