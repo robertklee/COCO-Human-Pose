@@ -21,10 +21,11 @@ import util
 from constants import *
 
 # Max dimension caps for each visualization output, avoiding multi-GB memory
-# usage on high-resolution uploads (e.g. 24 MP iOS photos) while keeping the
+# usage on high-resolution uploads (e.g. 100 MP Hasselblad) while keeping the
 # skeleton overlay as close to original quality as possible.
-MAX_DIM_HEATMAP = 1280
+MAX_DIM_SKELETON = 3840
 MAX_DIM_SCATTER = 2560
+MAX_DIM_HEATMAP = 1280
 
 
 def downscale_for_display(orig_batch, keypoints_batch, crop_info, max_dim):
@@ -114,9 +115,20 @@ class AppHelper():
                     fullres_keypoints_batch[i, j, 0] = kp_x * scale_x + anchor_x
                     fullres_keypoints_batch[i, j, 1] = kp_y * scale_y + anchor_y
 
-        # Load original full-res image for overlay (float32 to halve memory vs float64).
+        # Load original image for overlay, capped to MAX_DIM_SKELETON to bound
+        # memory for extreme resolutions (e.g. 100 MP).  float32 halves cost vs float64.
         with Image.open(img_path) as orig_img:
             orig_img = ImageOps.exif_transpose(orig_img.convert('RGB'))
+            w, h = orig_img.size
+            if max(w, h) > MAX_DIM_SKELETON:
+                display_scale = MAX_DIM_SKELETON / max(w, h)
+                new_w, new_h = int(w * display_scale), int(h * display_scale)
+                orig_img = orig_img.resize((new_w, new_h), Image.LANCZOS)
+                fullres_keypoints_batch[:, :, 0] *= display_scale
+                fullres_keypoints_batch[:, :, 1] *= display_scale
+                crop_info['bbox'] = (crop_info['bbox'].astype(np.float64) * display_scale).astype(int)
+                crop_info['crop_w'] = int(crop_info['crop_w'] * display_scale)
+                crop_info['crop_h'] = int(crop_info['crop_h'] * display_scale)
             orig_array = np.array(orig_img, dtype=np.float32) / np.float32(255.0)
 
         orig_batch = np.expand_dims(orig_array, axis=0)
