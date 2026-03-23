@@ -26,6 +26,11 @@ MAX_PIXELS_SKELETON = 12_000_000  # 12 MP (~36 MB uint8 RGB)
 MAX_DIM_SCATTER = 2560
 MAX_DIM_HEATMAP = 1280
 
+# Reject images with extreme aspect ratios. The model input is 256×256; non-square
+# images are letterboxed into a square crop, so a 3:1 panorama leaves only ~33% of the
+# input for actual content — too little for reliable pose estimation on a 64×64 heatmap.
+MAX_ASPECT_RATIO = 3.0
+
 
 def downscale_for_display(orig_batch, keypoints_batch, crop_info, max_dim):
     """Return copies of orig_batch / keypoints / crop_info downscaled to *max_dim*.
@@ -86,6 +91,16 @@ class AppHelper():
         and crop_info contains the bbox and crop dimensions used for preprocessing.
         """
         X_batch, _y_stacked, crop_info = util.load_and_preprocess_img(img_path, 1)
+
+        aspect_ratio = max(crop_info['orig_w'], crop_info['orig_h']) / \
+                        max(1, min(crop_info['orig_w'], crop_info['orig_h']))
+        if aspect_ratio > MAX_ASPECT_RATIO:
+            raise ValueError(
+                f"Image aspect ratio {aspect_ratio:.1f}:1 is too extreme "
+                f"(max {MAX_ASPECT_RATIO:.0f}:1). Panoramic or very narrow "
+                f"images produce unreliable pose estimates because the model "
+                f"input is square. Please crop the image closer to the subject."
+            )
 
         predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
         keypoints_batch = self.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
