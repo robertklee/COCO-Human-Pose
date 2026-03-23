@@ -91,7 +91,7 @@ def create_front_module(input, num_channels, bottleneck):
     _x = BatchNormalization(name='front_bn')(_x)
 
     _x = bottleneck(_x, num_channels // 2, 'front_residual_x1')
-    _x = MaxPool2D(pool_size=(2, 2), strides=(2, 2))(_x)
+    _x = MaxPool2D(pool_size=(2, 2), strides=(2, 2), name='front_maxpool')(_x)
 
     _x = bottleneck(_x, num_channels // 2, 'front_residual_x2')
     _x = bottleneck(_x, num_channels, 'front_residual_x3')
@@ -106,13 +106,13 @@ def create_left_half_blocks(bottom, bottleneck, hglayer, num_channels):
     hgname = 'hg' + str(hglayer)
 
     f1 = bottleneck(bottom, num_channels, hgname + '_l1')
-    _x = MaxPool2D(pool_size=(2, 2), strides=(2, 2))(f1)
+    _x = MaxPool2D(pool_size=(2, 2), strides=(2, 2), name=hgname + '_pool1')(f1)
 
     f2 = bottleneck(_x, num_channels, hgname + '_l2')
-    _x = MaxPool2D(pool_size=(2, 2), strides=(2, 2))(f2)
+    _x = MaxPool2D(pool_size=(2, 2), strides=(2, 2), name=hgname + '_pool2')(f2)
 
     f4 = bottleneck(_x, num_channels, hgname + '_l4')
-    _x = MaxPool2D(pool_size=(2, 2), strides=(2, 2))(f4)
+    _x = MaxPool2D(pool_size=(2, 2), strides=(2, 2), name=hgname + '_pool4')(f4)
 
     f8 = bottleneck(_x, num_channels, hgname + '_l8')
 
@@ -130,8 +130,8 @@ def connect_left_to_right(left, right, bottleneck, name, num_channels):
     # Add   -> left + right
 
     _xleft = bottleneck(left, num_channels, name + '_connect')
-    _xright = UpSampling2D()(right)
-    add = Add()([_xleft, _xright])
+    _xright = UpSampling2D(name=name + '_upsample')(right)
+    add = Add(name=name + '_add')([_xleft, _xright])
     out = bottleneck(add, num_channels, name + '_connect_conv')
     return out
 
@@ -146,7 +146,7 @@ def bottom_layer(lf8, bottleneck, hgid, num_channels):
     _x = bottleneck(_x, num_channels, str(hgid) + "_lf8_x2")
     _x = bottleneck(_x, num_channels, str(hgid) + "_lf8_x3")
 
-    rf8 = Add()([_x, lf8_connect])
+    rf8 = Add(name=str(hgid) + '_lf8_add')([_x, lf8_connect])
 
     return rf8
 
@@ -181,5 +181,5 @@ def create_heads(prelayerfeatures, rf1, num_classes, hgid, num_channels, activat
     head_m = Conv2D(num_channels, kernel_size=(1, 1), activation='linear', padding='same',
                     name=str(hgid) + '_conv_1x1_x3')(head_parts)
 
-    head_next_stage = Add()([head, head_m, prelayerfeatures])
+    head_next_stage = Add(name=str(hgid) + '_head_add')([head, head_m, prelayerfeatures])
     return head_next_stage, head_parts
