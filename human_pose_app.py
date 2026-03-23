@@ -1,3 +1,4 @@
+import io
 import logging
 import os
 import shutil
@@ -153,7 +154,21 @@ def run_app(img):
         del hm_batch, orig_batch  # free full-res arrays
 
     right_column.image(scatter, caption = "Predicted Keypoints")
-    st.image(skeleton, caption = 'Predicted Pose')
+
+    # Bypass Streamlit's internal MAXIMUM_CONTENT_WIDTH (1460 px) downscaling
+    # by passing the actual image width.  The frontend CSS still caps the
+    # display size to the container, but the full-res data is preserved so
+    # "Save Image" in the browser yields the original resolution.
+    st.image(skeleton, caption='Predicted Pose', width=skeleton.shape[1])
+
+    _buf = io.BytesIO()
+    Image.fromarray(skeleton).save(_buf, format='JPEG', quality=95)
+    st.download_button(
+        "⬇ Download Full-Resolution Pose",
+        data=_buf.getvalue(),
+        file_name="predicted_pose.jpg",
+        mime="image/jpeg",
+    )
 
     # Per-joint heatmap visualization grid
     with st.expander("🔥 View Per-Joint Heatmaps"):
