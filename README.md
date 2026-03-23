@@ -109,6 +109,17 @@ pip3 install git+https://github.com/philferriere/cocoapi.git#subdirectory=Python
 pip3 install numpy==1.17.0
 ```
 
+## CI / CD
+
+A GitHub Actions workflow (`.github/workflows/reboot-streamlit.yml`) automatically reboots the Streamlit Cloud app whenever changes are pushed to `main`. This clears stale caches so the deployed app picks up new code immediately.
+
+**Required repository secrets** (configure under *Settings → Secrets and variables → Actions*):
+
+| Secret | Description |
+|--------|-------------|
+| `STREAMLIT_API_TOKEN` | API token generated from the [Streamlit Cloud dashboard](https://share.streamlit.io/) under *Settings → API tokens* |
+| `STREAMLIT_APP_ID` | App identifier visible in the Streamlit Cloud dashboard URL or via `GET /v1/apps` |
+
 ## Abstract
 
 Human pose estimation (HPE) is the task of identifying body keypoints on an input image to construct a body model. The motivation for this topic was driven by the exciting applications of HPE: pedestrian behaviour detection, sign language translation, animation and film, security systems, sports science, and many others. HPE shares many challenges with typical computer vision problems, such as intra-class variations, lighting, perspective, and object occlusions. It also faces challenges unique to HPE such as strong articulations, small and barely visible joints, and self-occlusions from overlapping joints. This report discusses a stacked hourglass network architecture that was developed and trained from scratch to achieve performance comparable with models on the COCO leaderboard from late 2016. This work uses the existing COCO 2017 Keypoint Detection dataset. The final model performs very well on most images, especially those containing well-separated people with the subject centered in frame. It struggles with images containing highly overlapped people or heavily occluded or articulated keypoints.
