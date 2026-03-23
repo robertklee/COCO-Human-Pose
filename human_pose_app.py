@@ -155,7 +155,7 @@ def run_app(img):
     # by passing the actual image width.  The frontend CSS still caps the
     # display size to the container, but the full-res data is preserved so
     # "Save Image" in the browser yields the original resolution.
-    st.image(skeleton, caption='Predicted Pose', width=skeleton.shape[1])
+    st.image(skeleton, caption='Predicted Pose', width=int(skeleton.shape[1]))
 
     _buf = io.BytesIO()
     Image.fromarray(skeleton).save(_buf, format='JPEG', quality=95)
