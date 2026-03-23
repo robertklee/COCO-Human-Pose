@@ -212,75 +212,56 @@ class AppHelper():
     def predict_heatmaps(self, X_batch, predict_using_flip=False):
         return util.predict_heatmaps(self.model, X_batch, predict_using_flip)
 
-    """
-    Visualize the set of keypoints on the model image.
-
-    Note, it is assumed that the images have the same dimension domain as the keypoints.
-    (i.e., they keypoint (x,y) should point to the corresponding pixel on the image.)
-
-    ## Parameters
-
-    X_batch : {list of ndarrays}
-        A list of images, with the same dimensionality as the keypoints. This means
-        if the keypoints are relative to a (256 x 256) image, each element of X_batch must be the same
-        dimension.
-
-    keypoints_batch : {list of lists}
-        Each element consists of a list of keypoints, with each keypoint having the components of (x,y,score).
-
-    img_id_batch : {list of strings}
-        A list of image names. These should not contain the extension, epoch, or type. (Purely image ID)
-
-    show_skeleton : {bool}
-        If true, connects joints together (if possible) to construct a COCO-format skeleton
-    """
     def visualize_keypoints(self, X_batch, keypoints_batch, show_skeleton=True):
+        """Draw keypoints (and optionally skeleton) on the first image in the batch.
 
-        for idx in range(len(X_batch)):
-            X = X_batch[idx]
-            keypoints = keypoints_batch[idx]
+        Only the first image is processed; callers always pass batch-size-1
+        arrays from single-image inference.
+        """
+        X = X_batch[0]
+        keypoints = keypoints_batch[0]
 
-            # Accept both uint8 [0,255] and float [0,1] images
-            if X.dtype == np.uint8:
-                canvas = X.copy()
-            else:
-                canvas = (np.clip(X, 0, 1) * 255).astype(np.uint8).copy()
-            h, w = canvas.shape[:2]
+        # Accept both uint8 [0,255] and float [0,1] images
+        if X.dtype == np.uint8:
+            canvas = X.copy()
+        else:
+            canvas = (np.clip(X, 0, 1) * 255).astype(np.uint8).copy()
+        h, w = canvas.shape[:2]
 
-            # Scale drawing sizes relative to image dimensions
-            base_dim = max(h, w)
-            line_thickness = max(2, int(base_dim / 120))
-            kp_radius = max(3, int(base_dim / 80))
-            kp_border = max(1, kp_radius // 3)
+        # Scale drawing sizes relative to image dimensions
+        base_dim = max(h, w)
+        line_thickness = max(2, int(base_dim / 120))
+        kp_radius = max(3, int(base_dim / 80))
+        kp_border = max(1, kp_radius // 3)
 
-            valid = np.zeros(NUM_COCO_KEYPOINTS)
-            for j in range(NUM_COCO_KEYPOINTS):
-                if keypoints[j, 0] != 0 and keypoints[j, 1] != 0:
-                    valid[j] = 1
+        valid = np.zeros(NUM_COCO_KEYPOINTS)
+        for j in range(NUM_COCO_KEYPOINTS):
+            if keypoints[j, 0] != 0 and keypoints[j, 1] != 0:
+                valid[j] = 1
 
-            # Draw skeleton bones (below keypoint dots)
-            if show_skeleton:
-                for j in range(len(COCO_SKELETON)):
-                    a = COCO_SKELETON[j, 0]
-                    b = COCO_SKELETON[j, 1]
-                    if valid[a] and valid[b]:
-                        pt1 = (int(keypoints[a, 0]), int(keypoints[a, 1]))
-                        pt2 = (int(keypoints[b, 0]), int(keypoints[b, 1]))
-                        cv2.line(canvas, pt1, pt2, SKELETON_BONE_COLORS[j],
-                                 line_thickness, lineType=cv2.LINE_AA)
+        # Draw skeleton bones (below keypoint dots)
+        if show_skeleton:
+            for j in range(len(COCO_SKELETON)):
+                a = COCO_SKELETON[j, 0]
+                b = COCO_SKELETON[j, 1]
+                if valid[a] and valid[b]:
+                    pt1 = (int(keypoints[a, 0]), int(keypoints[a, 1]))
+                    pt2 = (int(keypoints[b, 0]), int(keypoints[b, 1]))
+                    cv2.line(canvas, pt1, pt2, SKELETON_BONE_COLORS[j],
+                             line_thickness, lineType=cv2.LINE_AA)
 
-            # Draw keypoint dots on top of skeleton
-            for j in range(NUM_COCO_KEYPOINTS):
-                if valid[j]:
-                    pt = (int(keypoints[j, 0]), int(keypoints[j, 1]))
-                    # Dark border for visibility against any background
-                    cv2.circle(canvas, pt, kp_radius, (0, 0, 0), -1,
-                               lineType=cv2.LINE_AA)
-                    # Colored fill per keypoint
-                    cv2.circle(canvas, pt, kp_radius - kp_border,
-                               KEYPOINT_COLORS[j], -1, lineType=cv2.LINE_AA)
+        # Draw keypoint dots on top of skeleton
+        for j in range(NUM_COCO_KEYPOINTS):
+            if valid[j]:
+                pt = (int(keypoints[j, 0]), int(keypoints[j, 1]))
+                # Dark border for visibility against any background
+                cv2.circle(canvas, pt, kp_radius, (0, 0, 0), -1,
+                           lineType=cv2.LINE_AA)
+                # Colored fill per keypoint
+                cv2.circle(canvas, pt, kp_radius - kp_border,
+                           KEYPOINT_COLORS[j], -1, lineType=cv2.LINE_AA)
 
-            return canvas
+        return canvas
 
     def visualize_heatmap(self, image, heatmap, joint_index, crop_info=None,
                           alpha=0.7, image_brightness=0.4):
