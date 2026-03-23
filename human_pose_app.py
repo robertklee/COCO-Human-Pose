@@ -132,7 +132,11 @@ def run_app(img):
     left_column.image(display_image, caption="Original Image")
 
     with right_column, st.spinner("Running pose estimation..."):
-        orig_batch, keypoints_batch, heatmaps, crop_info = handle.predict_in_memory_fullres(img)
+        try:
+            orig_batch, keypoints_batch, heatmaps, crop_info = handle.predict_in_memory_fullres(img)
+        except ValueError as e:
+            st.error(str(e))
+            return
 
         # Skeleton: full resolution — the hero output
         skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
