@@ -116,7 +116,7 @@ class AppHelper():
                     fullres_keypoints_batch[i, j, 1] = kp_y * scale_y + anchor_y
 
         # Load original image for overlay, capped to MAX_DIM_SKELETON to bound
-        # memory for extreme resolutions (e.g. 100 MP).  float32 halves cost vs float64.
+        # memory for extreme resolutions (e.g. 100 MP).
         with Image.open(img_path) as orig_img:
             orig_img = ImageOps.exif_transpose(orig_img.convert('RGB'))
             w, h = orig_img.size
@@ -129,7 +129,7 @@ class AppHelper():
                 crop_info['bbox'] = (crop_info['bbox'].astype(np.float64) * display_scale).astype(int)
                 crop_info['crop_w'] = int(crop_info['crop_w'] * display_scale)
                 crop_info['crop_h'] = int(crop_info['crop_h'] * display_scale)
-            orig_array = np.array(orig_img, dtype=np.float32) / np.float32(255.0)
+            orig_array = np.array(orig_img, dtype=np.uint8)
 
         orig_batch = np.expand_dims(orig_array, axis=0)
         # Last hourglass stack heatmaps: shape (batch, 64, 64, 17)
@@ -226,8 +226,11 @@ class AppHelper():
             X = X_batch[idx]
             keypoints = keypoints_batch[idx]
 
-            # Convert float [0,1] image to uint8 for OpenCV drawing
-            canvas = (np.clip(X, 0, 1) * 255).astype(np.uint8).copy()
+            # Accept both uint8 [0,255] and float [0,1] images
+            if X.dtype == np.uint8:
+                canvas = X.copy()
+            else:
+                canvas = (np.clip(X, 0, 1) * 255).astype(np.uint8).copy()
             h, w = canvas.shape[:2]
 
             # Scale drawing sizes relative to image dimensions
@@ -272,7 +275,7 @@ class AppHelper():
         Parameters
         ----------
         image : ndarray
-            Original image as float [0,1] with shape (H, W, 3).
+            Original image as uint8 [0,255] or float [0,1] with shape (H, W, 3).
         heatmap : ndarray
             Single-joint heatmap with shape (64, 64).
         joint_index : int
@@ -290,7 +293,10 @@ class AppHelper():
         ndarray : uint8 RGB image with the heatmap overlay.
         """
         h, w = image.shape[:2]
-        base_img = (np.clip(image, 0, 1) * 255 * image_brightness).astype(np.uint8)
+        if image.dtype == np.uint8:
+            base_img = (image * image_brightness).astype(np.uint8)
+        else:
+            base_img = (np.clip(image, 0, 1) * 255 * image_brightness).astype(np.uint8)
 
         if crop_info is not None:
             # Heatmap is relative to the crop region, not the full image.
