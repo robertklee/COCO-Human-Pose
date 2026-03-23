@@ -151,11 +151,8 @@ def run_app(img):
 
     right_column.image(scatter, caption = "Predicted Keypoints")
 
-    # Bypass Streamlit's internal MAXIMUM_CONTENT_WIDTH (1460 px) downscaling
-    # by passing the actual image width.  The frontend CSS still caps the
-    # display size to the container, but the full-res data is preserved so
-    # "Save Image" in the browser yields the original resolution.
-    st.image(skeleton, caption='Predicted Pose', width=int(skeleton.shape[1]))
+    # Streamlit's internal MAXIMUM_CONTENT_WIDTH (1460 px) will downscale the image
+    st.image(skeleton, caption='Predicted Pose')
 
     _buf = io.BytesIO()
     Image.fromarray(skeleton).save(_buf, format='JPEG', quality=95)
