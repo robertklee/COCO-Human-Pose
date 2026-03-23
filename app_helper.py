@@ -20,10 +20,9 @@ import evaluation
 import util
 from constants import *
 
-# Max dimension caps for each visualization output, avoiding multi-GB memory
-# usage on high-resolution uploads (e.g. 100 MP Hasselblad) while keeping the
-# skeleton overlay as close to original quality as possible.
-MAX_DIM_SKELETON = 3840
+# Resolution caps for each visualization output, avoiding excessive memory on
+# high-resolution uploads while keeping the skeleton as close to original as possible.
+MAX_PIXELS_SKELETON = 12_000_000  # 12 MP (~36 MB uint8 RGB)
 MAX_DIM_SCATTER = 2560
 MAX_DIM_HEATMAP = 1280
 
@@ -115,13 +114,13 @@ class AppHelper():
                     fullres_keypoints_batch[i, j, 0] = kp_x * scale_x + anchor_x
                     fullres_keypoints_batch[i, j, 1] = kp_y * scale_y + anchor_y
 
-        # Load original image for overlay, capped to MAX_DIM_SKELETON to bound
+        # Load original image for overlay, capped to MAX_PIXELS_SKELETON to bound
         # memory for extreme resolutions (e.g. 100 MP).
         with Image.open(img_path) as orig_img:
             orig_img = ImageOps.exif_transpose(orig_img.convert('RGB'))
             w, h = orig_img.size
-            if max(w, h) > MAX_DIM_SKELETON:
-                display_scale = MAX_DIM_SKELETON / max(w, h)
+            if w * h > MAX_PIXELS_SKELETON:
+                display_scale = (MAX_PIXELS_SKELETON / (w * h)) ** 0.5
                 new_w, new_h = int(w * display_scale), int(h * display_scale)
                 orig_img = orig_img.resize((new_w, new_h), Image.LANCZOS)
                 fullres_keypoints_batch[:, :, 0] *= display_scale
