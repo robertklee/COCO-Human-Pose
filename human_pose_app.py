@@ -177,6 +177,10 @@ def demo():
 
 def main():
 
+    # Eagerly download & load the model on first page visit so it's ready
+    # by the time the user navigates to a prediction page.
+    load_model()
+
     st.sidebar.warning('\
         Please upload SINGLE-person images. For best results, please also CENTER the person in the image.')
     st.sidebar.write(" ------ ")
