@@ -75,6 +75,7 @@ def download_file(url, local_filename):
 # Modified from https://github.com/thoppe/streamlit-skyAR/blob/master/streamlit_app.py
 @st.cache_resource(show_spinner="Loading model... this may take a moment on first run.")
 def load_model():
+    logging.info("Loading model weights and architecture...")
 
     save_dest = Path(DEFAULT_MODEL_BASE_DIR)
     save_dest.mkdir(exist_ok=True)
