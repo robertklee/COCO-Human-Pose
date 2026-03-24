@@ -181,7 +181,8 @@ class HourglassNet(object):
             print("No loss function provided. Using default of keras.losses.MeanSquaredError")
             self.loss = MeanSquaredError()
 
-        self.model.compile(optimizer=optimizer, loss=self.loss, metrics=[f1_m, precision_m, recall_m])
+        metrics = [[] for _ in self.model.outputs[:-1]] + [[f1_m, precision_m, recall_m]]
+        self.model.compile(optimizer=optimizer, loss=self.loss, metrics=metrics)
 
     def _load_model(self, model_json, model_weights):
         from tensorflow.keras.models import model_from_json
