@@ -228,16 +228,29 @@ class AppHelper():
             canvas = (np.clip(X, 0, 1) * 255).astype(np.uint8).copy()
         h, w = canvas.shape[:2]
 
-        # Scale drawing sizes relative to image dimensions
-        base_dim = max(h, w)
-        line_thickness = max(2, int(base_dim / 120))
-        kp_radius = max(3, int(base_dim / 80))
-        kp_border = max(1, kp_radius // 3)
-
         valid = np.zeros(NUM_COCO_KEYPOINTS)
         for j in range(NUM_COCO_KEYPOINTS):
             if keypoints[j, 0] != 0 and keypoints[j, 1] != 0:
                 valid[j] = 1
+
+        # Scale drawing sizes relative to the skeleton bounding box so that
+        # thickness is consistent regardless of how much of the image the
+        # person occupies.  Fall back to image dimensions when fewer than 2
+        # keypoints are detected.
+        valid_indices = np.where(valid)[0]
+        if len(valid_indices) >= 2:
+            vkp = keypoints[valid_indices]
+            bbox_w = vkp[:, 0].max() - vkp[:, 0].min()
+            bbox_h = vkp[:, 1].max() - vkp[:, 1].min()
+            base_dim = max(bbox_w, bbox_h, 1)
+        else:
+            base_dim = max(h, w)
+        line_thickness = max(2, int(base_dim / 180))
+        if show_skeleton:
+            kp_radius = max(2, int(base_dim / 180))
+        else:
+            kp_radius = max(3, int(base_dim / 80))
+        kp_border = max(1, kp_radius // 3)
 
         # Draw skeleton bones (below keypoint dots)
         if show_skeleton:
