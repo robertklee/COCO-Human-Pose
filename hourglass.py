@@ -184,17 +184,27 @@ class HourglassNet(object):
         self.model.compile(optimizer=optimizer, loss=self.loss)
 
     def _load_model(self, model_json, model_weights):
-        # Keras 3 cannot deserialize Keras 2 model JSON via model_from_json.
-        # Rebuild architecture from code and load only the weights.
-        num_stacks = int(re.search(r'stacks_(\d+)', model_json).group(1))
+        from tensorflow.keras.models import model_from_json
 
         with open(model_json) as f:
             model_config = json.load(f)
-        for layer in model_config['config']['layers']:
-            if '_conv_1x1_parts' in layer.get('name', ''):
-                self.activation_str = layer['config']['activation']
-                break
 
-        self.num_stacks = num_stacks
-        self.build_model()
-        self.model.load_weights(model_weights)
+        is_keras2 = model_config.get('class_name') == 'Model' and 'module' not in model_config
+
+        if is_keras2:
+            # Keras 2 JSON cannot be deserialized by Keras 3's model_from_json.
+            # Rebuild architecture from code and load only the weights.
+            num_stacks = int(re.search(r'stacks_(\d+)', model_json).group(1))
+
+            for layer in model_config['config']['layers']:
+                if '_conv_1x1_parts' in layer.get('name', ''):
+                    self.activation_str = layer['config']['activation']
+                    break
+
+            self.num_stacks = num_stacks
+            self.build_model()
+            self.model.load_weights(model_weights)
+        else:
+            # Keras 3 JSON can be loaded directly
+            self.model = model_from_json(json.dumps(model_config))
+            self.model.load_weights(model_weights)
