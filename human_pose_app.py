@@ -162,14 +162,17 @@ def run_app(img):
     # Streamlit's internal MAXIMUM_CONTENT_WIDTH (1460 px) will downscale the image
     st.image(skeleton, caption='Predicted Pose')
 
-    _buf = io.BytesIO()
-    Image.fromarray(skeleton).save(_buf, format='JPEG', quality=95)
-    st.download_button(
-        "⬇ Download Full-Resolution Pose",
-        data=_buf.getvalue(),
-        file_name="predicted_pose.jpg",
-        mime="image/jpeg",
-    )
+    @st.fragment
+    def _download_section():
+        _buf = io.BytesIO()
+        Image.fromarray(skeleton).save(_buf, format='JPEG', quality=95)
+        st.download_button(
+            "⬇ Download Full-Resolution Pose",
+            data=_buf.getvalue(),
+            file_name="predicted_pose.jpg",
+            mime="image/jpeg",
+        )
+    _download_section()
 
     # Per-joint heatmap visualization grid
     with st.expander("🔥 View Per-Joint Heatmaps"):
