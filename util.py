@@ -5,8 +5,8 @@ import unicodedata
 
 from constants import *
 
-MODEL_ARCHITECTURE_JSON_REGEX = f'^{HPE_HOURGLASS_STACKS_PREFIX}.*\.json$'
-MODEL_CHECKPOINT_REGEX = f'^{HPE_EPOCH_PREFIX}([\d]+).*\.hdf5$'
+MODEL_ARCHITECTURE_JSON_REGEX = f'^{HPE_HOURGLASS_STACKS_PREFIX}.*\\.json$'
+MODEL_CHECKPOINT_REGEX = f'^{HPE_EPOCH_PREFIX}([\\d]+).*\\.hdf5$'
 
 def str_to_enum(EnumClass, str):
     try:
