@@ -28,8 +28,9 @@ MAX_DIM_HEATMAP = 1280
 
 # Reject images with extreme aspect ratios. The model input is 256×256; non-square
 # images are letterboxed into a square crop, so extreme ratios waste most of the input.
-# Human bounding boxes are roughly upright, so even 3:2 is generous.
-MAX_ASPECT_RATIO = 1.5  # 6:4 (i.e. 3:2)
+# Vertical (portrait) images are more forgiving since humans are upright.
+MAX_ASPECT_RATIO_HORIZONTAL = 1.5  # 3:2
+MAX_ASPECT_RATIO_VERTICAL = 3.0    # 3:1
 
 
 def downscale_for_display(orig_batch, keypoints_batch, crop_info, max_dim):
@@ -92,12 +93,14 @@ class AppHelper():
         """
         X_batch, _y_stacked, crop_info = util.load_and_preprocess_img(img_path, 1)
 
+        is_vertical = crop_info['orig_h'] > crop_info['orig_w']
+        max_ratio = MAX_ASPECT_RATIO_VERTICAL if is_vertical else MAX_ASPECT_RATIO_HORIZONTAL
         aspect_ratio = max(crop_info['orig_w'], crop_info['orig_h']) / \
                         max(1, min(crop_info['orig_w'], crop_info['orig_h']))
-        if aspect_ratio > MAX_ASPECT_RATIO:
+        if aspect_ratio > max_ratio:
             raise ValueError(
                 f"Image aspect ratio {aspect_ratio:.1f}:1 is too extreme "
-                f"(max {MAX_ASPECT_RATIO:.0f}:1). Panoramic or very narrow "
+                f"(max {max_ratio:.0f}:1). Panoramic or very narrow "
                 f"images produce unreliable pose estimates because the model "
                 f"input is square. Please crop the image closer to the subject."
             )
