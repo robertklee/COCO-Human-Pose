@@ -37,7 +37,8 @@ IMAGE_DISPLAY_SIZE = (330, 330)
 IMAGE_DIR = 'demo_photo'
 TEAM_DIR = 'team'
 
-MODEL_WEIGHTS = f'{DEFAULT_MODEL_BASE_DIR}/hpe_epoch107_.hdf5'
+MODEL_WEIGHTS_KERAS = f'{DEFAULT_MODEL_BASE_DIR}/hpe_epoch107_.keras'
+MODEL_WEIGHTS_HDF5 = f'{DEFAULT_MODEL_BASE_DIR}/hpe_epoch107_.hdf5'
 MODEL_JSON = f'{DEFAULT_MODEL_BASE_DIR}/hpe_hourglass_stacks_04_.json'
 
 MODEL_WEIGHTS_DEPLOYMENT_URL = 'https://github.com/robertklee/COCO-Human-Pose/releases/download/v0.1-alpha/hpe_epoch107_.hdf5'
@@ -72,11 +73,18 @@ def ensure_model_exists():
     save_dest = Path(DEFAULT_MODEL_BASE_DIR)
     save_dest.mkdir(exist_ok=True)
 
-    f_checkpoint = Path(MODEL_WEIGHTS)
+    # Prefer .keras format if available, otherwise fall back to .hdf5
+    f_keras = Path(MODEL_WEIGHTS_KERAS)
+    f_hdf5 = Path(MODEL_WEIGHTS_HDF5)
 
-    if not f_checkpoint.exists():
+    if f_keras.exists():
+        model_weights = MODEL_WEIGHTS_KERAS
+    elif f_hdf5.exists():
+        model_weights = MODEL_WEIGHTS_HDF5
+    else:
         with st.spinner("Downloading model weights... this may take up to a few minutes. (~150 MB) Please don't interrupt it."):
-            download_file(url=MODEL_WEIGHTS_DEPLOYMENT_URL, local_filename=MODEL_WEIGHTS)
+            download_file(url=MODEL_WEIGHTS_DEPLOYMENT_URL, local_filename=MODEL_WEIGHTS_HDF5)
+        model_weights = MODEL_WEIGHTS_HDF5
 
     f_architecture = Path(MODEL_JSON)
 
@@ -84,7 +92,7 @@ def ensure_model_exists():
         with st.spinner("Downloading model architecture... this may take a few seconds. Please don't interrupt it."):
             download_file(url=MODEL_JSON_DEPLOYMENT_URL, local_filename=MODEL_JSON)
 
-    return AppHelper(model_weights=MODEL_WEIGHTS, model_json=MODEL_JSON)
+    return AppHelper(model_weights=model_weights, model_json=MODEL_JSON)
 
 #         rescale_f = cv2.imread(img)
 #         rescale_f = cv2.cvtColor(rescale_f,cv2.COLOR_BGR2RGB)
