@@ -8,7 +8,6 @@ import numpy as np
 from PIL import Image, ImageOps
 from scipy.ndimage import gaussian_filter, maximum_filter
 
-import data_generator
 from constants import *
 
 MODEL_ARCHITECTURE_JSON_REGEX = f'^{HPE_HOURGLASS_STACKS_PREFIX}.*\\.json$'
@@ -381,6 +380,7 @@ def load_and_preprocess_img(img_path, num_hg_blocks, bbox=None):
 
             if w != h:
                 # if the image is not square
+                import data_generator  # deferred to avoid circular import
                 bbox = data_generator.transform_bbox_square((0, 0, w, h))
 
         if bbox is not None:
