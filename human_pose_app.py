@@ -308,7 +308,7 @@ def main():
             with Image.open(img_path) as orig_img:
                 from PIL import ImageOps
                 disp = np.array(ImageOps.exif_transpose(orig_img.convert('RGB')))
-            col.image(disp, width="100%", caption=display_name)
+            col.image(disp, width="stretch", caption=display_name)
 
         handle = load_model()
 
@@ -332,7 +332,7 @@ def main():
         cols_pred = st.columns(len(team_members))
         for col, (member_id, _filename, _name) in zip(cols_pred, team_members):
             r = team_results[member_id]
-            col.image(r['skeleton'], width="100%", caption=f"{r['display_name']} Pose")
+            col.image(r['skeleton'], width="stretch", caption=f"{r['display_name']} Pose")
 
 
         st.sidebar.write('Please feel free to connect with us on Linkedin!')
