@@ -187,6 +187,40 @@ INPUT_CHANNELS = 3
 OUTPUT_DIM = (64,64)
 NUM_CHANNELS = 256
 
+# Person detection parameters
+# The demo app uses a small COCO-trained object detector (YOLOX-S, exported to ONNX
+# by the OpenCV Model Zoo) to locate the person before cropping. It is run through
+# cv2.dnn, so no additional Python dependency is required.
+PERSON_DETECTOR_FILENAME = 'object_detection_yolox_2022nov.onnx'
+# Tried in order. The first entry mirrors the pose model's own release assets; the
+# second is the upstream OpenCV Model Zoo copy (served through the git-lfs endpoint).
+PERSON_DETECTOR_URLS = (
+    'https://github.com/robertklee/COCO-Human-Pose/releases/download/v0.1-alpha/object_detection_yolox_2022nov.onnx',
+    'https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/object_detection_yolox/object_detection_yolox_2022nov.onnx',
+)
+# Weights are ~34 MB. Anything substantially smaller indicates a failed or partial
+# download (e.g. an HTML error page or a git-lfs pointer file).
+PERSON_DETECTOR_MIN_BYTES = 1_000_000
+PERSON_DETECTOR_INPUT_DIM = (640, 640)
+PERSON_DETECTOR_STRIDES = (8, 16, 32)
+PERSON_DETECTOR_PAD_VALUE = 114.0
+PERSON_DETECTOR_CONF_THRESHOLD = 0.35
+PERSON_DETECTOR_NMS_THRESHOLD = 0.5
+PERSON_DETECTOR_PERSON_CLASS_ID = 0 # 'person' is class 0 in COCO detection label order
+PERSON_DETECTOR_NUM_CLASSES = 80
+
+# Primary-subject selection. Each detection is scored as
+#   area_fraction ** PERSON_AREA_EXPONENT * (1 - normalized_center_distance) ** PERSON_CENTER_EXPONENT * confidence
+# so that large, centered, confident detections win. The model was trained to label
+# the person in the centre of the crop, so centredness is weighted at least as
+# strongly as size.
+PERSON_AREA_EXPONENT = 0.5
+PERSON_CENTER_EXPONENT = 1.0
+
+# Fraction of the square crop's height that the detected person should occupy.
+# The model was trained on people filling roughly 60-90% of the crop.
+PERSON_CROP_VERTICAL_FILL = 0.75
+
 # Data Generator Constants
 DEFAULT_BATCH_SIZE = 12 #NOTE need to test optimal batch size
 NUM_COCO_KEYPOINTS = 17 # Number of joints to detect

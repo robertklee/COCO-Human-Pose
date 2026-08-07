@@ -51,6 +51,54 @@ def transform_bbox_square(bbox, slack=1):
     new_y = center_y - new_h/2
     return (round(new_x), round(new_y), round(new_x+new_w), round(new_y+new_h))
 
+
+def person_bbox_to_crop(bbox, vertical_fill=PERSON_CROP_VERTICAL_FILL, min_edge=None):
+    """
+        Transforms a detected person bounding box into the square crop the model expects.
+
+        The box is squared with :func:`transform_bbox_square` using enough slack that the
+        person occupies approximately ``vertical_fill`` of the crop, matching the framing
+        the model was trained on.
+
+        The returned box is deliberately *not* clamped to the image bounds. ``PIL.Image.crop``
+        zero-pads out-of-bounds regions, and the model is robust to black borders, whereas
+        clamping would shift the person away from the centre of the crop.
+
+        ## Parameters
+
+        bbox : {tuple or ndarray of len 4}
+            Detected person box as (x, y, w, h), anchored at the top left of the image.
+
+        vertical_fill : {float}
+            Target fraction of the crop's edge length occupied by the person. Must be in (0, 1].
+
+        min_edge : {int, float, or None}
+            Optional floor on the crop's edge length, expanded about the centre. Useful to
+            avoid upscaling a small detection far beyond the model's input resolution.
+
+        ## Returns
+
+        tuple of 4 ints, given as two points anchored at the top left of the image:
+        left, upper, right, lower.
+        ##
+    """
+    if not 0 < vertical_fill <= 1:
+        raise ValueError(f'vertical_fill must be in (0, 1], got {vertical_fill}')
+
+    x, y, w, h = [float(i) for i in bbox]
+
+    left, upper, right, lower = transform_bbox_square((x, y, w, h), slack=1.0 / vertical_fill)
+
+    if min_edge is not None and (right - left) < min_edge:
+        center_x = (left + right) / 2
+        center_y = (upper + lower) / 2
+        half = min_edge / 2
+        left, upper, right, lower = (round(center_x - half), round(center_y - half),
+                                     round(center_x + half), round(center_y + half))
+
+    return (left, upper, right, lower)
+
+
 # inherit from Sequence to access multicore functionality: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 class DataGenerator(Sequence):
 
