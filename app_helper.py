@@ -17,6 +17,7 @@ from PIL import Image, ImageOps
 
 import data_generator
 import evaluation
+import person_detector
 import util
 from constants import *
 
@@ -57,12 +58,28 @@ def downscale_for_display(orig_batch, keypoints_batch, crop_info, max_dim):
     kp[:, :, 0] *= scale
     kp[:, :, 1] *= scale
 
-    ci = dict(crop_info)
-    ci['bbox'] = (crop_info['bbox'].astype(np.float64) * scale).astype(int)
-    ci['crop_w'] = int(crop_info['crop_w'] * scale)
-    ci['crop_h'] = int(crop_info['crop_h'] * scale)
+    ci = _scale_crop_info(crop_info, scale)
 
     return resized, kp, ci
+
+
+def _scale_crop_info(crop_info, scale):
+    """Return a copy of *crop_info* with all pixel measurements multiplied by *scale*.
+
+    ``np.round`` is used rather than truncation so that a crop box extending past the
+    top/left edge of the image (negative coordinates, produced by the person detector)
+    scales consistently with its width and height.
+    """
+    ci = dict(crop_info)
+    ci['bbox'] = np.round(np.asarray(crop_info['bbox'], dtype=np.float64) * scale).astype(int)
+    ci['crop_w'] = int(round(crop_info['crop_w'] * scale))
+    ci['crop_h'] = int(round(crop_info['crop_h'] * scale))
+
+    if crop_info.get('person_bbox') is not None:
+        ci['person_bbox'] = np.round(
+            np.asarray(crop_info['person_bbox'], dtype=np.float64) * scale).astype(int)
+
+    return ci
 
 
 # TODO: Refactor this class to use the existing (COCO API dependent) evaluation_wrapper, evaluation, and hourglass code
@@ -84,26 +101,58 @@ class AppHelper():
             average_flip_prediction=average_flip_prediction
         )
 
-    def predict_in_memory_fullres(self, img_path, average_flip_prediction=True):
+    def predict_in_memory_fullres(self, img_path, average_flip_prediction=True,
+                                  auto_detect=True, bbox=None):
         """Predict keypoints and return them mapped to original image coordinates.
 
-        Returns (orig_batch, fullres_keypoints_batch, heatmaps, crop_info) where
-        heatmaps is the last hourglass stack output with shape (batch, 64, 64, 17)
-        and crop_info contains the bbox and crop dimensions used for preprocessing.
-        """
-        X_batch, _y_stacked, crop_info = util.load_and_preprocess_img(img_path, 1)
+        Parameters
+        ----------
+        img_path : str
+            Path to the image file.
+        average_flip_prediction : bool
+            Average the prediction with a left-right flipped pass for accuracy.
+        auto_detect : bool
+            Automatically locate the primary person and crop to them. Ignored when an
+            explicit *bbox* is supplied. If detection is unavailable or finds nobody,
+            this silently falls back to the whole-image square crop.
+        bbox : tuple or None
+            Explicit crop box (left, upper, right, lower) overriding auto-detection.
 
-        is_vertical = crop_info['orig_h'] > crop_info['orig_w']
-        max_ratio = MAX_ASPECT_RATIO_VERTICAL if is_vertical else MAX_ASPECT_RATIO_HORIZONTAL
-        aspect_ratio = max(crop_info['orig_w'], crop_info['orig_h']) / \
-                        max(1, min(crop_info['orig_w'], crop_info['orig_h']))
-        if aspect_ratio > max_ratio:
-            raise ValueError(
-                f"Image aspect ratio {aspect_ratio:.1f}:1 is too extreme "
-                f"(max {max_ratio:.0f}:1). Panoramic or very narrow "
-                f"images produce unreliable pose estimates because the model "
-                f"input is square. Please crop the image closer to the subject."
-            )
+        Returns
+        -------
+        (orig_batch, fullres_keypoints_batch, heatmaps, crop_info) where heatmaps is the
+        last hourglass stack output with shape (batch, 64, 64, 17) and crop_info contains
+        the crop geometry plus the detection metadata described in ``_detect_crop_bbox``.
+        """
+        detection_info = {
+            'auto_cropped': False,
+            'num_people_detected': 0,
+            'detection_confidence': None,
+            'person_bbox': None,
+        }
+
+        if bbox is None and auto_detect:
+            bbox, detection_info = self._detect_crop_bbox(img_path)
+
+        X_batch, _y_stacked, crop_info = util.load_and_preprocess_img(img_path, 1, bbox=bbox)
+        crop_info.update(detection_info)
+
+        # A whole-image square crop letterboxes the entire photo into the model's square
+        # input, so extreme aspect ratios waste most of it. That reasoning does not apply
+        # once we have cropped to a detected person, so only guard the fallback path.
+        if not crop_info['auto_cropped']:
+            is_vertical = crop_info['orig_h'] > crop_info['orig_w']
+            max_ratio = MAX_ASPECT_RATIO_VERTICAL if is_vertical else MAX_ASPECT_RATIO_HORIZONTAL
+            aspect_ratio = max(crop_info['orig_w'], crop_info['orig_h']) / \
+                            max(1, min(crop_info['orig_w'], crop_info['orig_h']))
+            if aspect_ratio > max_ratio:
+                raise ValueError(
+                    f"Image aspect ratio {aspect_ratio:.1f}:1 is too extreme "
+                    f"(max {max_ratio:.1f}:1), and no person could be detected "
+                    f"automatically. Panoramic or very narrow images produce unreliable "
+                    f"pose estimates because the model input is square. Please crop the "
+                    f"image closer to the subject."
+                )
 
         predicted_heatmaps_batch = self.predict_heatmaps(X_batch)
         keypoints_batch = self.heatmaps_to_keypoints_batch(predicted_heatmaps_batch)
@@ -143,15 +192,56 @@ class AppHelper():
                 orig_img = orig_img.resize((new_w, new_h), Image.LANCZOS)
                 fullres_keypoints_batch[:, :, 0] *= display_scale
                 fullres_keypoints_batch[:, :, 1] *= display_scale
-                crop_info['bbox'] = (crop_info['bbox'].astype(np.float64) * display_scale).astype(int)
-                crop_info['crop_w'] = int(crop_info['crop_w'] * display_scale)
-                crop_info['crop_h'] = int(crop_info['crop_h'] * display_scale)
+                crop_info = _scale_crop_info(crop_info, display_scale)
             orig_array = np.array(orig_img, dtype=np.uint8)
 
         orig_batch = np.expand_dims(orig_array, axis=0)
         # Last hourglass stack heatmaps: shape (batch, 64, 64, 17)
         last_heatmaps = predicted_heatmaps_batch[-1]
         return orig_batch, fullres_keypoints_batch, last_heatmaps, crop_info
+
+    def _detect_crop_bbox(self, img_path):
+        """Locate the primary person and derive the square crop box for the model.
+
+        Returns ``(bbox, detection_info)``. *bbox* is ``(left, upper, right, lower)`` in
+        original image coordinates, or None when no person was found — in which case the
+        caller falls back to the whole-image square crop. *detection_info* reports what
+        happened so the UI can explain it to the user.
+
+        The returned box may extend past the image bounds; ``PIL.Image.crop`` zero-pads,
+        which keeps the person centred as the model expects.
+        """
+        detection_info = {
+            'auto_cropped': False,
+            'num_people_detected': 0,
+            'detection_confidence': None,
+            'person_bbox': None,
+        }
+
+        with Image.open(img_path) as img:
+            img = ImageOps.exif_transpose(img.convert('RGB'))
+            image = np.array(img, dtype=np.uint8)
+
+        h, w = image.shape[:2]
+        detections = person_detector.detect_people(image)
+        detection_info['num_people_detected'] = len(detections)
+
+        primary = person_detector.select_primary_person(detections, w, h)
+        if primary is None:
+            return None, detection_info
+
+        x, y, box_w, box_h, confidence = primary
+
+        # Never upscale a small detection far beyond the model's input resolution.
+        bbox = data_generator.person_bbox_to_crop(
+            (x, y, box_w, box_h), min_edge=INPUT_DIM[0])
+
+        detection_info['auto_cropped'] = True
+        detection_info['detection_confidence'] = confidence
+        detection_info['person_bbox'] = np.array(
+            [round(x), round(y), round(x + box_w), round(y + box_h)], dtype=int)
+
+        return bbox, detection_info
 
     def _load_model(self, model_json, model_weights):
         from hourglass_blocks import create_hourglass_network, bottleneck_block
@@ -321,11 +411,16 @@ class AppHelper():
                                  interpolation=cv2.INTER_LINEAR)
             hm_full = np.zeros((h, w), dtype=np.float32)
 
-            # Clamp placement to image bounds
+            # Clamp placement to image bounds. The crop box can extend past any edge
+            # (the detector-derived crop is deliberately unclamped), so the far edge
+            # must be measured from the box origin rather than from the clamped one.
             x1 = max(0, int(bbox[0]))
             y1 = max(0, int(bbox[1]))
-            x2 = min(w, x1 + crop_w)
-            y2 = min(h, y1 + crop_h)
+            x2 = min(w, int(bbox[0]) + crop_w)
+            y2 = min(h, int(bbox[1]) + crop_h)
+            if x2 <= x1 or y2 <= y1:
+                # Crop lies entirely outside the image; nothing to overlay.
+                return base_img
             src_x = x1 - int(bbox[0])
             src_y = y1 - int(bbox[1])
             hm_full[y1:y2, x1:x2] = hm_crop[src_y:src_y + (y2 - y1),

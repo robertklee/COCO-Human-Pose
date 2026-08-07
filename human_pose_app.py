@@ -103,13 +103,68 @@ def load_model():
 
 PREDICTION_CACHE_PREFIX = "prediction_"
 TEAM_CACHE_KEY = "team_predictions"
+AUTO_DETECT_KEY = "auto_detect_person"
+
+# Overlay colors (RGB) for the original-image preview
+DETECTED_PERSON_BOX_COLOR = (60, 220, 120)
+CROP_REGION_BOX_COLOR = (255, 200, 60)
 
 def _clear_prediction_cache():
     """Remove all cached prediction data from session state."""
     keys_to_remove = [k for k in st.session_state
-                      if k.startswith(PREDICTION_CACHE_PREFIX) or k == TEAM_CACHE_KEY]
+                      if k.startswith(PREDICTION_CACHE_PREFIX) or k.startswith(TEAM_CACHE_KEY)]
     for k in keys_to_remove:
         del st.session_state[k]
+
+def _auto_detect_enabled():
+    """Whether automatic person detection is enabled (defaults to on)."""
+    return st.session_state.get(AUTO_DETECT_KEY, True)
+
+def _draw_crop_overlay(image, crop_info):
+    """Return a copy of *image* with the detected person and model crop region drawn.
+
+    Both boxes must be in the same coordinate space as *image*, which the caller
+    guarantees by passing the matching downscaled ``crop_info``. The crop region is
+    intentionally allowed to extend past the image edges, so its rectangle may be
+    partly clipped.
+    """
+    canvas = image.copy()
+    thickness = max(2, int(max(canvas.shape[:2]) / 400))
+
+    bbox = crop_info.get('bbox')
+    if bbox is not None:
+        cv2.rectangle(canvas, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])),
+                      CROP_REGION_BOX_COLOR, thickness, lineType=cv2.LINE_AA)
+
+    person_bbox = crop_info.get('person_bbox')
+    if person_bbox is not None:
+        cv2.rectangle(canvas,
+                      (int(person_bbox[0]), int(person_bbox[1])),
+                      (int(person_bbox[2]), int(person_bbox[3])),
+                      DETECTED_PERSON_BOX_COLOR, thickness, lineType=cv2.LINE_AA)
+
+    return canvas
+
+def _report_detection(crop_info):
+    """Tell the user what automatic detection did, and how to help when it found nobody."""
+    if crop_info.get('auto_cropped'):
+        num_people = crop_info.get('num_people_detected', 1)
+        confidence = crop_info.get('detection_confidence')
+        message = "Automatically cropped to the detected person"
+        if confidence is not None:
+            message += f" ({confidence:.0%} confidence)"
+        if num_people > 1:
+            message += (f". {num_people} people were detected — the largest, "
+                        f"most centered one was used.")
+        else:
+            message += "."
+        st.caption(message)
+    elif _auto_detect_enabled():
+        st.warning(
+            "No person was detected automatically, so the whole image was used. "
+            "For best results, crop the photo so the person is centered and fills "
+            "roughly 70-90% of the vertical space."
+        )
 
 def run_app(img):
 
@@ -129,11 +184,15 @@ def run_app(img):
                 (int(w * scale), int(h * scale)), Image.LANCZOS)
         display_image = np.array(orig_img)
 
-    left_column.image(display_image, caption="Original Image")
+    # Placeholder so the preview can be replaced with the annotated crop overlay once
+    # detection has run.
+    preview_slot = left_column.empty()
+    preview_slot.image(display_image, caption="Original Image")
 
     with right_column, st.spinner("Running pose estimation..."):
         try:
-            orig_batch, keypoints_batch, heatmaps, crop_info = handle.predict_in_memory_fullres(img)
+            orig_batch, keypoints_batch, heatmaps, crop_info = \
+                handle.predict_in_memory_fullres(img, auto_detect=_auto_detect_enabled())
         except ValueError as e:
             st.error(str(e))
             return
@@ -142,9 +201,17 @@ def run_app(img):
         skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
 
         # Scatter (keypoints only): capped to MAX_DIM_SCATTER
-        scat_batch, scat_kp, _scat_ci = app_helper.downscale_for_display(
+        scat_batch, scat_kp, scat_ci = app_helper.downscale_for_display(
             orig_batch, keypoints_batch, crop_info, app_helper.MAX_DIM_SCATTER)
         scatter = handle.visualize_keypoints(scat_batch, scat_kp, show_skeleton=False)
+
+        # scat_batch shares the preview's dimensions, so its crop_info can annotate
+        # the original image preview directly.
+        if crop_info.get('auto_cropped'):
+            preview_slot.image(
+                _draw_crop_overlay(scat_batch[0], scat_ci),
+                caption="Original Image (green: detected person, orange: model crop)")
+
         del scat_batch, scat_kp  # free before heatmap rendering
 
         # Heatmap overlays: capped to MAX_DIM_HEATMAP (17 images, keep memory bounded)
@@ -158,6 +225,8 @@ def run_app(img):
         del hm_batch, orig_batch  # free full-res arrays
 
     right_column.image(scatter, caption = "Predicted Keypoints")
+
+    _report_detection(crop_info)
 
     # Streamlit's internal MAXIMUM_CONTENT_WIDTH (1460 px) will downscale the image
     st.image(skeleton, caption='Predicted Pose')
@@ -205,6 +274,12 @@ def main():
 
     st.sidebar.warning('\
         Please upload SINGLE-person images. For best results, please also CENTER the person in the image.')
+    st.sidebar.toggle(
+        'Auto-detect and crop the person',
+        value=True,
+        key=AUTO_DETECT_KEY,
+        help='Automatically locate the person and crop to them before running the model. '
+             'Turn this off if you have already cropped the image yourself.')
     st.sidebar.write(" ------ ")
     st.sidebar.title("Explore the Following")
 
@@ -312,21 +387,25 @@ def main():
 
         handle = load_model()
 
-        # Run predictions (cached so page doesn't re-run on every rerun)
-        if TEAM_CACHE_KEY not in st.session_state:
+        # Run predictions (cached so page doesn't re-run on every rerun). The cache key
+        # includes the auto-detect setting so toggling it re-runs the predictions.
+        auto_detect = _auto_detect_enabled()
+        team_cache_key = f"{TEAM_CACHE_KEY}_{auto_detect}"
+        if team_cache_key not in st.session_state:
             with st.spinner("Running pose estimation on team photos..."):
                 results = {}
                 for member_id, filename, display_name in team_members:
                     img_path = os.path.join(DEFAULT_DATA_BASE_DIR, TEAM_DIR, filename)
-                    orig_batch, keypoints_batch, _heatmaps, _crop_info = handle.predict_in_memory_fullres(img_path)
+                    orig_batch, keypoints_batch, _heatmaps, _crop_info = handle.predict_in_memory_fullres(
+                        img_path, auto_detect=auto_detect)
                     skeleton = handle.visualize_keypoints(orig_batch, keypoints_batch, show_skeleton=True)
                     results[member_id] = {
                         'skeleton': skeleton,
                         'display_name': display_name,
                     }
-                st.session_state[TEAM_CACHE_KEY] = results
+                st.session_state[team_cache_key] = results
 
-        team_results = st.session_state[TEAM_CACHE_KEY]
+        team_results = st.session_state[team_cache_key]
 
         # Row 2: Predicted poses
         cols_pred = st.columns(len(team_members))
