@@ -10,7 +10,9 @@ Our model is deployed [online here](https://share.streamlit.io/robertklee/coco-h
 
 Feel free to check out our demo photos, or upload your own to try out. If you encounter any issues, please open an issue in this repository.
 
-If you upload your own photos, **please crop them so the person of interest is relatively centered**, taking up approxiately 70-90% of the vertical space. The model is robust to cropped image boundaries being black, so don't worry about cropping to an irregular shape. We'll automatically center the image in our pre-processing pipeline.
+If you upload your own photos, the app **automatically detects the person and crops to them** before running the model, so you no longer need to pre-crop your image. Detection uses a small object detector run through OpenCV's DNN module; its weights are downloaded once on first use. When several people are present, the largest, most central person is used, and the detected person and the resulting crop are drawn on the original image so you can see what the model was given. Predictions and heatmaps are always mapped back onto your full-resolution image.
+
+If no person is detected, the app falls back to using the whole image. In that case, **please crop the photo so the person of interest is relatively centered**, taking up approximately 70-90% of the vertical space. The model is robust to cropped image boundaries being black, so don't worry about cropping to an irregular shape. We'll automatically center the image in our pre-processing pipeline. You can also turn automatic detection off with the sidebar toggle if you have already cropped the image yourself.
 
 ## Example Outputs
 
