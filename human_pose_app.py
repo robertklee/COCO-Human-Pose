@@ -145,7 +145,7 @@ def _draw_crop_overlay(image, crop_info):
 
     return canvas
 
-def _report_detection(crop_info):
+def _report_detection(crop_info, auto_detect):
     """Tell the user what automatic detection did, and how to help when it found nobody."""
     if crop_info.get('auto_cropped'):
         num_people = crop_info.get('num_people_detected', 1)
@@ -159,14 +159,17 @@ def _report_detection(crop_info):
         else:
             message += "."
         st.caption(message)
-    elif _auto_detect_enabled():
+    elif auto_detect:
         st.warning(
             "No person was detected automatically, so the whole image was used. "
             "For best results, crop the photo so the person is centered and fills "
             "roughly 70-90% of the vertical space."
         )
 
-def run_app(img):
+def run_app(img, auto_detect=None):
+
+    if auto_detect is None:
+        auto_detect = _auto_detect_enabled()
 
     handle = load_model()
 
@@ -192,7 +195,7 @@ def run_app(img):
     with right_column, st.spinner("Running pose estimation..."):
         try:
             orig_batch, keypoints_batch, heatmaps, crop_info = \
-                handle.predict_in_memory_fullres(img, auto_detect=_auto_detect_enabled())
+                handle.predict_in_memory_fullres(img, auto_detect=auto_detect)
         except ValueError as e:
             st.error(str(e))
             return
@@ -226,7 +229,7 @@ def run_app(img):
 
     right_column.image(scatter, caption = "Predicted Keypoints")
 
-    _report_detection(crop_info)
+    _report_detection(crop_info, auto_detect)
 
     # Streamlit's internal MAXIMUM_CONTENT_WIDTH (1460 px) will downscale the image
     st.image(skeleton, caption='Predicted Pose')
@@ -279,7 +282,8 @@ def main():
         value=True,
         key=AUTO_DETECT_KEY,
         help='Automatically locate the person and crop to them before running the model. '
-             'Turn this off if you have already cropped the image yourself.')
+             'Turn this off if you have already cropped the image yourself. '
+             'Demo images always skip detection to preserve their known outputs.')
     st.sidebar.write(" ------ ")
     st.sidebar.title("Explore the Following")
 
@@ -322,14 +326,14 @@ def main():
 
             pic = os.path.join(directory, option)
 
-            run_app(pic)
+            run_app(pic, auto_detect=False)
 
         st.sidebar.write("OR")
         fun = st.sidebar.button('Fur-riend')
         if fun:
             st.sidebar.write('Please enjoy our favourite Kangaroo!')
             k = os.path.join(DEFAULT_DATA_BASE_DIR, 'Macropus_rufogriseus_rufogriseus_Bruny.jpg')
-            run_app(k)
+            run_app(k, auto_detect=False)
 
     elif app_mode == SIDEBAR_OPTION_UPLOAD_IMAGE:
         st.sidebar.info('PRIVACY POLICY: uploaded images are never saved or stored. They are held entirely within memory for prediction \
